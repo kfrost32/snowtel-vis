@@ -28,9 +28,11 @@ interface StationMapProps {
   viewMode?: "stations" | "basins";
   basinLevel?: 2 | 4;
   metric?: string;
+  onStationSelect?: (triplet: string) => void;
+  onBasinSelect?: (huc: string) => void;
 }
 
-function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarkers, viewMode = "stations", basinLevel = 2, metric = "WTEQ" }: StationMapProps) {
+function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarkers, viewMode = "stations", basinLevel = 2, metric = "WTEQ", onStationSelect, onBasinSelect }: StationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -232,6 +234,10 @@ function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarker
           .setLngLat(e.lngLat)
           .setHTML(html)
           .addTo(map);
+
+        if (onBasinSelectRef.current && props.huc2) {
+          onBasinSelectRef.current(props.huc2 as string);
+        }
       });
 
       map.on("mouseenter", "basin-fill", () => {
@@ -273,6 +279,9 @@ function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarker
       if (geom.type !== "Point") return;
 
       showPopup(map, geom.coordinates as [number, number], props);
+      if (onStationSelectRef.current && props.triplet) {
+        onStationSelectRef.current(props.triplet as string);
+      }
     });
 
     map.on("mouseenter", "station-circles", () => {
@@ -299,6 +308,10 @@ function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarker
 
   const metricRef = useRef(metric);
   metricRef.current = metric;
+  const onStationSelectRef = useRef(onStationSelect);
+  onStationSelectRef.current = onStationSelect;
+  const onBasinSelectRef = useRef(onBasinSelect);
+  onBasinSelectRef.current = onBasinSelect;
 
   function formatMetricValue(m: string, val: number | null): string {
     switch (m) {

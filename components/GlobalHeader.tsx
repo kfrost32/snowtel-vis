@@ -7,9 +7,7 @@ import { Menu, X, Search } from "lucide-react";
 import { theme } from "@/lib/theme";
 
 const sections = [
-  { href: "/", label: "Dashboard", shortLabel: "Dashboard" },
-  { href: "/map", label: "Map", shortLabel: "Map" },
-  { href: "/basins", label: "Basins", shortLabel: "Basins" },
+  { href: "/", label: "Map", shortLabel: "Map" },
   { href: "/rankings", label: "Rankings", shortLabel: "Rankings" },
   { href: "/compare", label: "Compare", shortLabel: "Compare" },
 ];
