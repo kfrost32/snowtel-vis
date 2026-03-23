@@ -4,8 +4,8 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@/lib/types";
-import { getMapMarkerColor } from "@/lib/colors";
-import { formatSwe, formatPctOfNormal, formatElevation } from "@/lib/formatting";
+import { getMapMarkerColor, getMetricMapColor, getStationMetricValue, getMetricColor } from "@/lib/colors";
+import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip } from "@/lib/formatting";
 import { urlTriplet } from "@/lib/stations";
 import { theme } from "@/lib/theme";
 import huc2Boundaries from "@/data/huc2-boundaries.json";
@@ -27,9 +27,10 @@ interface StationMapProps {
   basinMarkers?: BasinMarker[];
   viewMode?: "stations" | "basins";
   basinLevel?: 2 | 4;
+  metric?: string;
 }
 
-function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarkers, viewMode = "stations", basinLevel = 2 }: StationMapProps) {
+function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarkers, viewMode = "stations", basinLevel = 2, metric = "WTEQ" }: StationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -271,17 +272,7 @@ function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarker
       const geom = features[0].geometry;
       if (geom.type !== "Point") return;
 
-      showPopup(
-        map,
-        geom.coordinates as [number, number],
-        props.triplet,
-        props.name,
-        props.state,
-        props.elevation,
-        props.swe !== "null" ? Number(props.swe) : null,
-        props.pctOfNormal !== "null" ? Number(props.pctOfNormal) : null,
-        props.color
-      );
+      showPopup(map, geom.coordinates as [number, number], props);
     });
 
     map.on("mouseenter", "station-circles", () => {
@@ -306,18 +297,54 @@ function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarker
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const metricRef = useRef(metric);
+  metricRef.current = metric;
+
+  function formatMetricValue(m: string, val: number | null): string {
+    switch (m) {
+      case "SNWD": return formatSnowDepth(val);
+      case "PREC": return formatPrecip(val);
+      case "TAVG": return formatTemp(val);
+      default: return formatSwe(val);
+    }
+  }
+
+  function metricLabel(m: string): string {
+    switch (m) {
+      case "SNWD": return "Snow Depth";
+      case "PREC": return "Precip";
+      case "TAVG": return "Temp";
+      default: return "SWE";
+    }
+  }
+
   function showPopup(
     map: maplibregl.Map,
     coords: [number, number],
-    triplet: string,
-    name: string,
-    state: string,
-    elevation: number,
-    swe: number | null,
-    pctOfNormal: number | null,
-    color: string
+    props: Record<string, any>
   ) {
     if (popupRef.current) popupRef.current.remove();
+
+    const triplet = props.triplet;
+    const name = props.name;
+    const state = props.state;
+    const elevation = Number(props.elevation);
+    const color = props.color;
+    const m = metricRef.current;
+
+    const swe = props.swe !== "null" && props.swe !== undefined ? Number(props.swe) : null;
+    const pctOfNormal = props.pctOfNormal !== "null" && props.pctOfNormal !== undefined ? Number(props.pctOfNormal) : null;
+    const snowDepth = props.snowDepth !== "null" && props.snowDepth !== undefined ? Number(props.snowDepth) : null;
+    const precipAccum = props.precipAccum !== "null" && props.precipAccum !== undefined ? Number(props.precipAccum) : null;
+    const temp = props.temp !== "null" && props.temp !== undefined ? Number(props.temp) : null;
+
+    const primaryVal = m === "SNWD" ? snowDepth : m === "PREC" ? precipAccum : m === "TAVG" ? temp : swe;
+    const primaryLabel = metricLabel(m);
+    const primaryFormatted = formatMetricValue(m, primaryVal);
+
+    const secondaryLabel = m === "WTEQ" ? "% Normal" : "SWE";
+    const secondaryVal = m === "WTEQ" ? formatPctOfNormal(pctOfNormal) : formatSwe(swe);
+    const secondaryColor = m === "WTEQ" ? color : theme.black;
 
     const html = `
       <div style="font-family: var(--font-dm-sans), sans-serif; min-width: 180px;">
@@ -329,12 +356,12 @@ function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarker
         </div>
         <div style="display: flex; gap: 12px; margin-bottom: 8px;">
           <div>
-            <div style="font-size: 10px; color: ${theme.mediumGray}; text-transform: uppercase; letter-spacing: 0.05em;">SWE</div>
-            <div style="font-size: 14px; font-weight: 600; font-family: var(--font-ibm-plex-mono), monospace; color: ${theme.black};">${formatSwe(swe)}</div>
+            <div style="font-size: 10px; color: ${theme.mediumGray}; text-transform: uppercase; letter-spacing: 0.05em;">${primaryLabel}</div>
+            <div style="font-size: 14px; font-weight: 600; font-family: var(--font-ibm-plex-mono), monospace; color: ${color};">${primaryFormatted}</div>
           </div>
           <div>
-            <div style="font-size: 10px; color: ${theme.mediumGray}; text-transform: uppercase; letter-spacing: 0.05em;">% Normal</div>
-            <div style="font-size: 14px; font-weight: 600; font-family: var(--font-ibm-plex-mono), monospace; color: ${color};">${formatPctOfNormal(pctOfNormal)}</div>
+            <div style="font-size: 10px; color: ${theme.mediumGray}; text-transform: uppercase; letter-spacing: 0.05em;">${secondaryLabel}</div>
+            <div style="font-size: 14px; font-weight: 600; font-family: var(--font-ibm-plex-mono), monospace; color: ${secondaryColor};">${secondaryVal}</div>
           </div>
         </div>
         <a href="/station/${urlTriplet(triplet)}" style="font-size: 11px; color: #3B82F6; text-decoration: none; font-weight: 500;">
@@ -377,8 +404,11 @@ function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarker
             state: s.state,
             elevation: s.elevation,
             swe: s.swe,
+            snowDepth: s.snowDepth,
+            precipAccum: s.precipAccum,
+            temp: s.temp,
             pctOfNormal: s.pctOfNormal,
-            color: getMapMarkerColor(s.pctOfNormal),
+            color: getMetricMapColor(metric, s),
           },
         })),
     };
@@ -386,7 +416,7 @@ function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarker
     source.setData(geojson);
 
     setTimeout(updateVisibleStations, 100);
-  }, [stations, mapLoaded, updateVisibleStations]);
+  }, [stations, mapLoaded, metric, updateVisibleStations]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -402,17 +432,18 @@ function StationMapInner({ stations, onVisibleStationsChange, flyTo, basinMarker
       const station = stationsRef.current.find((s) => s.triplet === flyTo.triplet);
       if (!station) return;
 
-      showPopup(
-        map,
-        [station.longitude, station.latitude],
-        station.triplet,
-        station.name,
-        station.state,
-        station.elevation,
-        station.swe,
-        station.pctOfNormal,
-        getMapMarkerColor(station.pctOfNormal)
-      );
+      showPopup(map, [station.longitude, station.latitude], {
+        triplet: station.triplet,
+        name: station.name,
+        state: station.state,
+        elevation: station.elevation,
+        swe: station.swe,
+        snowDepth: station.snowDepth,
+        precipAccum: station.precipAccum,
+        temp: station.temp,
+        pctOfNormal: station.pctOfNormal,
+        color: getMetricMapColor(metricRef.current, station),
+      });
     };
 
     map.once("moveend", waitForIdle);

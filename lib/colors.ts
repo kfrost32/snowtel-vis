@@ -39,3 +39,66 @@ export function getMapMarkerColor(pctOfNormal: number | null): string {
   if (pctOfNormal <= 150) return "#2563EB";
   return "#1D4ED8";
 }
+
+export function getMetricColor(metric: string, value: number | null): string {
+  if (value === null) return "#94A3B8";
+
+  if (metric === "WTEQ") {
+    if (value <= 0) return "#CBD5E1";
+    if (value < 5) return "#93C5FD";
+    if (value < 15) return "#60A5FA";
+    if (value < 30) return "#3B82F6";
+    if (value < 50) return "#2563EB";
+    return "#1D4ED8";
+  }
+
+  if (metric === "SNWD") {
+    if (value <= 0) return "#CBD5E1";
+    if (value < 12) return "#C4B5FD";
+    if (value < 36) return "#A78BFA";
+    if (value < 72) return "#8B5CF6";
+    if (value < 120) return "#7C3AED";
+    return "#6D28D9";
+  }
+
+  if (metric === "PREC") {
+    if (value <= 0) return "#CBD5E1";
+    if (value < 10) return "#A5F3FC";
+    if (value < 20) return "#67E8F9";
+    if (value < 35) return "#22D3EE";
+    if (value < 50) return "#06B6D4";
+    return "#0891B2";
+  }
+
+  if (metric === "TAVG") {
+    if (value < 10) return "#1D4ED8";
+    if (value < 25) return "#3B82F6";
+    if (value < 32) return "#93C5FD";
+    if (value < 40) return "#FDE68A";
+    if (value < 55) return "#F59E0B";
+    if (value < 70) return "#EF4444";
+    return "#991B1B";
+  }
+
+  return getMapMarkerColor(value);
+}
+
+export type MetricKey = "WTEQ" | "SNWD" | "PREC" | "TAVG";
+
+export function getStationMetricValue(
+  station: { swe: number | null; snowDepth: number | null; precipAccum: number | null; temp: number | null; pctOfNormal: number | null },
+  metric: string
+): number | null {
+  switch (metric) {
+    case "WTEQ": return station.swe;
+    case "SNWD": return station.snowDepth;
+    case "PREC": return station.precipAccum;
+    case "TAVG": return station.temp;
+    default: return station.pctOfNormal;
+  }
+}
+
+export function getMetricMapColor(metric: string, station: { swe: number | null; snowDepth: number | null; precipAccum: number | null; temp: number | null; pctOfNormal: number | null }): string {
+  if (metric === "WTEQ") return getMapMarkerColor(station.pctOfNormal);
+  return getMetricColor(metric, getStationMetricValue(station, metric));
+}
