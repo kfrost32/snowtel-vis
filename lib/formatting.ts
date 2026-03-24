@@ -33,6 +33,12 @@ export const formatChange = (value: number | null): string => {
   return `${sign}${value.toFixed(1)}″`;
 };
 
+export const formatDepthChange = (value: number | null): string => {
+  if (value === null || value === undefined) return "—";
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value}″`;
+};
+
 export const formatNumber = (value: number): string => {
   return value.toLocaleString();
 };

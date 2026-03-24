@@ -4,17 +4,33 @@ import { theme } from "@/lib/theme";
 import { SNOTEL_STATES } from "@/lib/constants";
 import { SidebarSection, SidebarToggle, SidebarRadioItem, SidebarChip } from "@/components/sidebar";
 
-const METRICS = [
-  { key: "WTEQ", label: "SWE" },
-  { key: "WTEQ_PCT", label: "% of Normal" },
-  { key: "CHANGE_1D", label: "1-Day Change" },
-  { key: "CHANGE_3D", label: "3-Day Change" },
-  { key: "CHANGE_7D", label: "7-Day Change" },
-  { key: "SNWD_CHANGE_1D", label: "New Snow (24h)" },
-  { key: "SNWD_CHANGE_3D", label: "New Snow (72h)" },
-  { key: "SNWD", label: "Snow Depth" },
-  { key: "PREC", label: "Season Precip" },
-  { key: "TAVG", label: "Temperature" },
+const METRIC_GROUPS = [
+  {
+    label: "SWE",
+    metrics: [
+      { key: "WTEQ", label: "SWE" },
+      { key: "WTEQ_PCT", label: "% of Normal" },
+      { key: "CHANGE_1D", label: "1-Day Δ" },
+      { key: "CHANGE_3D", label: "3-Day Δ" },
+      { key: "CHANGE_7D", label: "7-Day Δ" },
+    ],
+  },
+  {
+    label: "Snow Depth",
+    metrics: [
+      { key: "SNWD", label: "Snow Depth" },
+      { key: "SNWD_CHANGE_1D", label: "1-Day Δ" },
+      { key: "SNWD_CHANGE_3D", label: "3-Day Δ" },
+      { key: "SNWD_CHANGE_7D", label: "7-Day Δ" },
+    ],
+  },
+  {
+    label: "Other",
+    metrics: [
+      { key: "PREC", label: "Season Precip" },
+      { key: "TAVG", label: "Temperature" },
+    ],
+  },
 ] as const;
 
 interface MapControlsProps {
@@ -63,18 +79,20 @@ export default function MapControls({
 
   return (
     <div className="flex flex-col">
-      <SidebarSection label="Metric">
-        <div className="flex flex-col">
-          {METRICS.map((m) => (
-            <SidebarRadioItem
-              key={m.key}
-              label={m.label}
-              active={metric === m.key}
-              onClick={() => onMetricChange(m.key)}
-            />
-          ))}
-        </div>
-      </SidebarSection>
+      {METRIC_GROUPS.map((group) => (
+        <SidebarSection key={group.label} label={group.label}>
+          <div className="flex flex-col">
+            {group.metrics.map((m) => (
+              <SidebarRadioItem
+                key={m.key}
+                label={m.label}
+                active={metric === m.key}
+                onClick={() => onMetricChange(m.key)}
+              />
+            ))}
+          </div>
+        </SidebarSection>
+      ))}
 
       <SidebarSection label="Layers">
         <div className="flex flex-col gap-3">

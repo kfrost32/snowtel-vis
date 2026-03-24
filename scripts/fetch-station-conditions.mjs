@@ -190,7 +190,7 @@ async function main() {
 
   console.log(`Fetched in ${((Date.now() - start) / 1000).toFixed(1)}s`);
 
-  const empty = { swe: null, sweNormal: null, pctOfNormal: null, snowDepth: null, temp: null, precipAccum: null, sweChange1d: null, sweChange7d: null, depthChange1d: null, depthChange3d: null, lastUpdated: endDate };
+  const empty = { swe: null, sweNormal: null, pctOfNormal: null, snowDepth: null, temp: null, precipAccum: null, sweChange1d: null, sweChange7d: null, depthChange1d: null, depthChange3d: null, depthChange7d: null, lastUpdated: endDate };
   const results = [];
 
   for (const station of stations) {
@@ -241,10 +241,15 @@ async function main() {
       depthChange3d = Math.round(snwd[snwdLatest] - snwd[snwdLatest - 3]);
     }
 
+    let depthChange7d = null;
+    if (snwdLatest >= 7 && snwd[snwdLatest] !== null && snwd[snwdLatest - 7] !== null) {
+      depthChange7d = Math.round(snwd[snwdLatest] - snwd[snwdLatest - 7]);
+    }
+
     results.push({
       ...station,
       swe, sweNormal, pctOfNormal, snowDepth, temp, precipAccum,
-      sweChange1d, sweChange3d, sweChange7d, depthChange1d, depthChange3d, lastUpdated: endDate,
+      sweChange1d, sweChange3d, sweChange7d, depthChange1d, depthChange3d, depthChange7d, lastUpdated: endDate,
     });
   }
 

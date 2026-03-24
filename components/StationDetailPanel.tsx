@@ -6,7 +6,7 @@ import { theme } from "@/lib/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
 import { getStation } from "@/lib/stations";
-import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatPrecip } from "@/lib/formatting";
+import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatDepthChange } from "@/lib/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor, getDepthChangeColor } from "@/lib/colors";
 import InfoTooltip from "@/components/InfoTooltip";
 import { metricDescriptions } from "@/lib/metric-descriptions";
@@ -186,7 +186,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
               const stats = [
                 { label: "SWE", tip: metricDescriptions.swe, value: formatSwe(current.swe), sub: current.sweNormal !== null ? `nml ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray, custom: null },
                 { label: "% Normal", tip: metricDescriptions.pctOfNormal, value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal), custom: null },
-                { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: (depthChange1d !== null || deltaDepth !== null) ? `${depthChange1d !== null ? (depthChange1d >= 0 ? "+" : "") + depthChange1d + "″" : "—"} / ${deltaDepth !== null ? (Math.round(deltaDepth) >= 0 ? "+" : "") + Math.round(deltaDepth) + "″" : "—"} (1/3d)` : null, subColor: getDepthChangeColor(depthChange1d), custom: null },
+                { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: (depthChange1d !== null || deltaDepth !== null) ? `${formatDepthChange(depthChange1d)} / ${formatDepthChange(deltaDepth !== null ? Math.round(deltaDepth) : null)} (1/3d)` : null, subColor: getDepthChangeColor(depthChange1d), custom: null },
                 { label: "Density", tip: metricDescriptions.newSnowDensity, value: newSnowDensity !== null ? `${newSnowDensity.toFixed(0)}%` : "—", sub: null, subColor: null, custom: null },
                 { label: "Snow ∆ (1/3/7d)", tip: "Snow depth change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "depthDeltas" },
                 { label: "SWE ∆ (1/3/7d)", tip: "SWE change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "sweDeltas" },
@@ -209,7 +209,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
                             <span key={j} className="flex items-baseline">
                               {j > 0 && <span className="font-mono text-[11px] mx-1" style={{ color: theme.borderGray }}>/</span>}
                               <span className="font-mono text-[13px] font-semibold whitespace-nowrap" style={{ color: row.custom === "depthDeltas" ? getDepthChangeColor(val) : getChangeColor(val) }}>
-                                {row.custom === "depthDeltas" ? (val !== null ? `${val > 0 ? "+" : ""}${val}″` : "—") : formatChange(val)}
+                                {row.custom === "depthDeltas" ? formatDepthChange(val) : formatChange(val)}
                               </span>
                             </span>
                           ))}

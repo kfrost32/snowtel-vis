@@ -6,7 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@/lib/types";
 import { getMapMarkerColor, getMetricMapColor } from "@/lib/colors";
 import { computePolygonCentroid } from "@/lib/basins";
-import { formatSwe, formatPctOfNormal, formatSnowDepth, formatTemp, formatPrecip } from "@/lib/formatting";
+import { formatSwe, formatPctOfNormal, formatSnowDepth, formatTemp, formatPrecip, formatDepthChange } from "@/lib/formatting";
 import { urlTriplet } from "@/lib/stations";
 import { prefetchStation } from "@/lib/prefetch";
 import { theme } from "@/lib/theme";
@@ -336,8 +336,9 @@ function StationMapInner({
       case "CHANGE_1D": return fmtChange(s.sweChange1d);
       case "CHANGE_3D": return fmtChange(s.sweChange3d ?? null);
       case "CHANGE_7D": return fmtChange(s.sweChange7d);
-      case "SNWD_CHANGE_1D": { const v = s.depthChange1d ?? null; return v !== null ? `${v > 0 ? "+" : ""}${v}"` : "—"; }
-      case "SNWD_CHANGE_3D": { const v = s.depthChange3d ?? null; return v !== null ? `${v > 0 ? "+" : ""}${v}"` : "—"; }
+      case "SNWD_CHANGE_1D": return formatDepthChange(s.depthChange1d ?? null);
+      case "SNWD_CHANGE_3D": return formatDepthChange(s.depthChange3d ?? null);
+      case "SNWD_CHANGE_7D": return formatDepthChange(s.depthChange7d ?? null);
       case "SNWD": return s.snowDepth !== null ? `${Math.round(s.snowDepth)}"` : "—";
       case "PREC": return s.precipAccum !== null ? `${Math.round(s.precipAccum)}"` : "";
       case "TAVG": return s.temp !== null ? `${Math.round(s.temp)}°` : "";
@@ -378,7 +379,7 @@ function StationMapInner({
         properties: {
           triplet: s.triplet, name: s.name, state: s.state, elevation: s.elevation,
           swe: s.swe, snowDepth: s.snowDepth, precipAccum: s.precipAccum, temp: s.temp,
-          pctOfNormal: s.pctOfNormal, sweChange1d: s.sweChange1d, sweChange3d: s.sweChange3d, sweChange7d: s.sweChange7d, depthChange1d: s.depthChange1d, depthChange3d: s.depthChange3d,
+          pctOfNormal: s.pctOfNormal, sweChange1d: s.sweChange1d, sweChange3d: s.sweChange3d, sweChange7d: s.sweChange7d, depthChange1d: s.depthChange1d, depthChange3d: s.depthChange3d, depthChange7d: s.depthChange7d,
           color: getMetricMapColor(metric, s),
           label: metricDotLabel(metric, s),
         },

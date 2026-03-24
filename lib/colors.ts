@@ -1,5 +1,5 @@
 import { snowColors } from "./theme";
-import type { ConditionLevel } from "./types";
+import type { ConditionLevel, StationCurrentConditions } from "./types";
 
 export function getConditionLevel(pctOfNormal: number | null): ConditionLevel {
   if (pctOfNormal === null) return "nearNormal";
@@ -116,13 +116,14 @@ export function getChangeColor(v: number | null): string {
   return "#DC2626";
 }
 
-export function getMetricMapColor(metric: string, station: { swe: number | null; snowDepth: number | null; precipAccum: number | null; temp: number | null; pctOfNormal: number | null; sweChange1d?: number | null; sweChange3d?: number | null; sweChange7d?: number | null; depthChange1d?: number | null; depthChange3d?: number | null }): string {
+export function getMetricMapColor(metric: string, station: StationCurrentConditions): string {
   if (metric === "WTEQ") return getMapMarkerColor(station.pctOfNormal);
   if (metric === "WTEQ_PCT") return getMapMarkerColor(station.pctOfNormal);
   if (metric === "CHANGE_1D") return getChangeColor(station.sweChange1d ?? null);
   if (metric === "CHANGE_3D") return getChangeColor(station.sweChange3d ?? null);
   if (metric === "CHANGE_7D") return getChangeColor(station.sweChange7d ?? null);
-  if (metric === "SNWD_CHANGE_1D") return getDepthChangeColor(station.depthChange1d !== undefined ? station.depthChange1d : null);
-  if (metric === "SNWD_CHANGE_3D") return getDepthChangeColor(station.depthChange3d !== undefined ? station.depthChange3d : null);
+  if (metric === "SNWD_CHANGE_1D") return getDepthChangeColor(station.depthChange1d ?? null);
+  if (metric === "SNWD_CHANGE_3D") return getDepthChangeColor(station.depthChange3d ?? null);
+  if (metric === "SNWD_CHANGE_7D") return getDepthChangeColor(station.depthChange7d ?? null);
   return getMetricColor(metric, getStationMetricValue(station, metric));
 }
