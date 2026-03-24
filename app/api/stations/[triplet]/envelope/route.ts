@@ -34,13 +34,17 @@ export async function GET(
 
     const medianValues = medianMap.get(triplet) || [];
 
-    const byWyDay = new Map<number, number[]>();
+    const byWyDay = new Map<number, { swe: number; wy: number }[]>();
     for (let i = 0; i < wteq.dates.length; i++) {
       const swe = wteq.values[i];
       if (swe === null) continue;
-      const wyDay = getWaterYearDay(wteq.dates[i]);
+      const dateStr = wteq.dates[i];
+      const wyDay = getWaterYearDay(dateStr);
+      const date = new Date(dateStr + "T12:00:00Z");
+      const month = date.getUTCMonth();
+      const wy = month >= 9 ? date.getUTCFullYear() + 1 : date.getUTCFullYear();
       if (!byWyDay.has(wyDay)) byWyDay.set(wyDay, []);
-      byWyDay.get(wyDay)!.push(swe);
+      byWyDay.get(wyDay)!.push({ swe, wy });
     }
 
     const envelope: EnvelopeDay[] = [];
@@ -62,14 +66,16 @@ export async function GET(
         continue;
       }
 
-      let max = vals[0];
-      let min = vals[0];
+      let max = vals[0].swe;
+      let min = vals[0].swe;
+      let maxYear = vals[0].wy;
+      let minYear = vals[0].wy;
       for (const v of vals) {
-        if (v > max) max = v;
-        if (v < min) min = v;
+        if (v.swe > max) { max = v.swe; maxYear = v.wy; }
+        if (v.swe < min) { min = v.swe; minYear = v.wy; }
       }
 
-      envelope.push({ wyDay, max, min, median });
+      envelope.push({ wyDay, max, min, median, maxYear, minYear });
     }
 
     const result: StationEnvelope = { envelope, medianPeakDay, medianPeakSwe };

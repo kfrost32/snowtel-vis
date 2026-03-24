@@ -7,7 +7,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
 import { getStation } from "@/lib/stations";
 import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatPrecip } from "@/lib/formatting";
-import { getConditionColor, getConditionLabel, getChangeColor } from "@/lib/colors";
+import { getConditionColor, getConditionLabel, getChangeColor, getDepthChangeColor } from "@/lib/colors";
 import InfoTooltip from "@/components/InfoTooltip";
 import { metricDescriptions } from "@/lib/metric-descriptions";
 import { getWaterYearDay } from "@/lib/water-year";
@@ -178,11 +178,12 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
               const deltaSwe = n >= 3 && season[n].swe !== null && season[n - 3].swe !== null ? season[n].swe! - season[n - 3].swe! : null;
               const change7d = n >= 7 && season[n].swe !== null && season[n - 7].swe !== null ? season[n].swe! - season[n - 7].swe! : null;
               const deltaDepth = n >= 3 && season[n].snowDepth !== null && season[n - 3].snowDepth !== null ? season[n].snowDepth! - season[n - 3].snowDepth! : null;
+              const depthChange1d = n >= 1 && season[n].snowDepth !== null && season[n - 1].snowDepth !== null ? Math.round(season[n].snowDepth! - season[n - 1].snowDepth!) : null;
               const newSnowDensity = deltaSwe !== null && deltaSwe > 0.2 && deltaDepth !== null && deltaDepth > 2 ? (deltaSwe / deltaDepth) * 100 : null;
               const stats = [
                 { label: "SWE", tip: metricDescriptions.swe, value: formatSwe(current.swe), sub: current.sweNormal !== null ? `nml ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray },
                 { label: "% Normal", tip: metricDescriptions.pctOfNormal, value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal) },
-                { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: null, subColor: null },
+                { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: (depthChange1d !== null || deltaDepth !== null) ? `${depthChange1d !== null ? (depthChange1d >= 0 ? "+" : "") + depthChange1d + "″" : "—"} / ${deltaDepth !== null ? (Math.round(deltaDepth) >= 0 ? "+" : "") + Math.round(deltaDepth) + "″" : "—"} (1/3d)` : null, subColor: getDepthChangeColor(depthChange1d) },
                 { label: "Density", tip: metricDescriptions.newSnowDensity, value: newSnowDensity !== null ? `${newSnowDensity.toFixed(0)}%` : "—", sub: null, subColor: null },
                 { label: "Precip", tip: metricDescriptions.precip, value: formatPrecip(current.precipAccum), sub: null, subColor: null },
               ];

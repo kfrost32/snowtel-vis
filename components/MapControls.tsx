@@ -10,6 +10,8 @@ const METRICS = [
   { key: "CHANGE_1D", label: "1-Day Change" },
   { key: "CHANGE_3D", label: "3-Day Change" },
   { key: "CHANGE_7D", label: "7-Day Change" },
+  { key: "SNWD_CHANGE_1D", label: "New Snow (24h)" },
+  { key: "SNWD_CHANGE_3D", label: "New Snow (72h)" },
   { key: "SNWD", label: "Snow Depth" },
   { key: "PREC", label: "Season Precip" },
   { key: "TAVG", label: "Temperature" },

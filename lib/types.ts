@@ -20,6 +20,8 @@ export interface StationCurrentConditions extends Station {
   sweChange1d: number | null;
   sweChange3d: number | null;
   sweChange7d: number | null;
+  depthChange1d: number | null;
+  depthChange3d: number | null;
   lastUpdated: string;
 }
 
@@ -71,6 +73,8 @@ export interface EnvelopeDay {
   max: number | null;
   min: number | null;
   median: number | null;
+  maxYear?: number | null;
+  minYear?: number | null;
 }
 
 export interface StationEnvelope {

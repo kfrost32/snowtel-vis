@@ -33,12 +33,22 @@ const CHANGE_LEGEND = [
   { label: "+2″+", color: "#1D4ED8" },
 ];
 
+const DEPTH_CHANGE_LEGEND = [
+  { label: "−6″+", color: "#DC2626" },
+  { label: "−2″", color: "#F59E0B" },
+  { label: "0", color: "#94A3B8" },
+  { label: "+2″", color: "#3B82F6" },
+  { label: "+6″+", color: "#1D4ED8" },
+];
+
 const METRIC_LABELS: Record<string, string> = {
   WTEQ: "SWE",
   WTEQ_PCT: "% of Normal",
   CHANGE_1D: "1-Day Change",
   CHANGE_3D: "3-Day Change",
   CHANGE_7D: "7-Day Change",
+  SNWD_CHANGE_1D: "New Snow (24h)",
+  SNWD_CHANGE_3D: "New Snow (72h)",
   SNWD: "Snow Depth",
   PREC: "Season Precip",
   TAVG: "Temperature",
@@ -64,6 +74,8 @@ const METRIC_LEGEND: Record<string, { label: string; color: string }[]> = {
     { label: '50"+', color: "#0891B2" },
   ],
   CHANGE_3D: CHANGE_LEGEND,
+  SNWD_CHANGE_1D: DEPTH_CHANGE_LEGEND,
+  SNWD_CHANGE_3D: DEPTH_CHANGE_LEGEND,
   TAVG: [
     { label: "<10°", color: "#1D4ED8" },
     { label: "25°", color: "#3B82F6" },

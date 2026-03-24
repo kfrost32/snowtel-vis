@@ -30,6 +30,8 @@ interface ChartPoint {
   median: number | null;
   max: number | null;
   min: number | null;
+  maxYear: number | null;
+  minYear: number | null;
 }
 
 interface TooltipPayloadEntry {
@@ -56,8 +58,8 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   const rows: { label: string; value: number | null; color: string }[] = [
     { label: "Current", value: point.current, color: snowColors.swe },
     { label: "Median (′91-′20)", value: point.median, color: snowColors.median },
-    { label: "Max", value: point.max, color: theme.mediumGray },
-    { label: "Min", value: point.min, color: snowColors.envelopeMin },
+    { label: point.maxYear ? `Max (WY ${point.maxYear})` : "Max", value: point.max, color: theme.mediumGray },
+    { label: point.minYear ? `Min (WY ${point.minYear})` : "Min", value: point.min, color: snowColors.envelopeMin },
   ];
 
   return (
@@ -115,6 +117,8 @@ export default function SweEnvelopeChart({
       median: e.median,
       max: e.max,
       min: e.min,
+      maxYear: e.maxYear ?? null,
+      minYear: e.minYear ?? null,
     }));
   }, [envelope, seasonMap]);
 

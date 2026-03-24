@@ -190,7 +190,7 @@ async function main() {
 
   console.log(`Fetched in ${((Date.now() - start) / 1000).toFixed(1)}s`);
 
-  const empty = { swe: null, sweNormal: null, pctOfNormal: null, snowDepth: null, temp: null, precipAccum: null, sweChange1d: null, sweChange7d: null, lastUpdated: endDate };
+  const empty = { swe: null, sweNormal: null, pctOfNormal: null, snowDepth: null, temp: null, precipAccum: null, sweChange1d: null, sweChange7d: null, depthChange1d: null, depthChange3d: null, lastUpdated: endDate };
   const results = [];
 
   for (const station of stations) {
@@ -230,10 +230,21 @@ async function main() {
       sweChange7d = Math.round((swe - wteq[latest - 7]) * 10) / 10;
     }
 
+    const snwdLatest = snwd.length - 1;
+    let depthChange1d = null;
+    if (snwdLatest >= 1 && snwd[snwdLatest] !== null && snwd[snwdLatest - 1] !== null) {
+      depthChange1d = Math.round(snwd[snwdLatest] - snwd[snwdLatest - 1]);
+    }
+
+    let depthChange3d = null;
+    if (snwdLatest >= 3 && snwd[snwdLatest] !== null && snwd[snwdLatest - 3] !== null) {
+      depthChange3d = Math.round(snwd[snwdLatest] - snwd[snwdLatest - 3]);
+    }
+
     results.push({
       ...station,
       swe, sweNormal, pctOfNormal, snowDepth, temp, precipAccum,
-      sweChange1d, sweChange3d, sweChange7d, lastUpdated: endDate,
+      sweChange1d, sweChange3d, sweChange7d, depthChange1d, depthChange3d, lastUpdated: endDate,
     });
   }
 
