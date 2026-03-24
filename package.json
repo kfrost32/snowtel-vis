@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "prebuild": "node scripts/fetch-station-conditions.mjs",
+    "build": "node scripts/fetch-station-conditions.mjs && next build",
     "start": "next start",
     "lint": "eslint"
   },

@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { getStation, parseTripletFromUrl } from "@/lib/stations";
-import { buildStationHistoricalUrl, parseCsvResponse, parseNumericValue } from "@/lib/snotel-csv";
+import { fetchPorData } from "@/lib/snotel-api";
 import type { WaterYearSummary } from "@/lib/types";
 
-const historicalCache = new Map<string, { data: WaterYearSummary[]; timestamp: number }>();
-const CACHE_TTL = 24 * 60 * 60 * 1000;
 const CACHE_HEADER = { "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=3600" };
 const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
 
@@ -20,33 +18,30 @@ export async function GET(
     return NextResponse.json({ error: "Station not found" }, { status: 404, headers: NO_CACHE_HEADER });
   }
 
-  const cached = historicalCache.get(triplet);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return NextResponse.json(cached.data, { headers: CACHE_HEADER });
-  }
-
   try {
-    const url = buildStationHistoricalUrl(triplet);
-    const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) {
-      return NextResponse.json({ error: "Failed to fetch historical data" }, { status: 502, headers: NO_CACHE_HEADER });
+    const beginDate = station.beginDate || "1980-01-01";
+    const endDate = new Date().toISOString().split("T")[0];
+
+    const [wteq, prec] = await Promise.all([
+      fetchPorData(triplet, "WTEQ", beginDate, endDate),
+      fetchPorData(triplet, "PREC", beginDate, endDate),
+    ]);
+
+    if (!wteq.dates.length) {
+      return NextResponse.json([], { headers: CACHE_HEADER });
     }
 
-    const text = await response.text();
-    const { headers, rows } = parseCsvResponse(text);
-
-    const dateKey = headers.find((h) => h.toLowerCase() === "date") || headers[0];
-    const sweKey = headers.find((h) => h.includes("Snow Water Equivalent") && !h.includes("Median") && !h.includes("%"));
-    const precKey = headers.find((h) => h.includes("Precipitation Accumulation"));
+    const precByDate = new Map<string, number | null>();
+    for (let i = 0; i < prec.dates.length; i++) {
+      precByDate.set(prec.dates[i], prec.values[i]);
+    }
 
     const waterYearData = new Map<number, { peakSwe: number; peakSweDate: string; apr1Swe: number | null; totalPrecip: number | null }>();
 
-    for (const row of rows) {
-      const dateStr = row[dateKey];
-      if (!dateStr) continue;
-
-      const swe = sweKey ? parseNumericValue(row[sweKey]) : null;
-      const precip = precKey ? parseNumericValue(row[precKey]) : null;
+    for (let i = 0; i < wteq.dates.length; i++) {
+      const dateStr = wteq.dates[i];
+      const swe = wteq.values[i];
+      const precip = precByDate.get(dateStr) ?? null;
 
       const date = new Date(dateStr + "T00:00:00");
       const month = date.getMonth();
@@ -84,7 +79,6 @@ export async function GET(
       .filter((s) => s.peakSwe > 0)
       .sort((a, b) => a.waterYear - b.waterYear);
 
-    historicalCache.set(triplet, { data: summaries, timestamp: Date.now() });
     return NextResponse.json(summaries, { headers: CACHE_HEADER });
   } catch {
     return NextResponse.json({ error: "Failed to fetch historical data" }, { status: 500, headers: NO_CACHE_HEADER });

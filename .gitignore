@@ -2,3 +2,4 @@ node_modules/
 .next/
 .env*
 *.tsbuildinfo
+data/station-conditions.json

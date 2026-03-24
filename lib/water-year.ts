@@ -26,13 +26,13 @@ export function getWaterYearDay(dateStr: string): number {
 }
 
 export function waterYearDayToDate(wyDay: number, wy: number): Date {
-  const oct1 = new Date(wy - 1, 9, 1);
-  return new Date(oct1.getTime() + (wyDay - 1) * 24 * 60 * 60 * 1000);
+  const oct1 = Date.UTC(wy - 1, 9, 1);
+  return new Date(oct1 + (wyDay - 1) * 24 * 60 * 60 * 1000);
 }
 
 export function waterYearDayToLabel(wyDay: number, wy: number): string {
   const date = waterYearDayToDate(wyDay, wy);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 export function isInWaterYear(dateStr: string, wy: number): boolean {

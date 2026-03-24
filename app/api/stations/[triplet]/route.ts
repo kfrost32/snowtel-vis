@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { getStation, parseTripletFromUrl } from "@/lib/stations";
-import { buildStationSeasonUrl, parseCsvResponse, parseNumericValue } from "@/lib/snotel-csv";
+import { fetchElementData, fetchMedianData, generateDates } from "@/lib/snotel-api";
 import { getCurrentWaterYear, getWaterYearStart } from "@/lib/water-year";
 import type { DailyObservation, StationSeasonData } from "@/lib/types";
 
-const seasonCache = new Map<string, { data: StationSeasonData; timestamp: number }>();
-const CACHE_TTL = 4 * 60 * 60 * 1000;
 const CACHE_HEADER = { "Cache-Control": "public, max-age=1800, s-maxage=14400, stale-while-revalidate=3600" };
 const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
 
@@ -21,47 +19,52 @@ export async function GET(
     return NextResponse.json({ error: "Station not found" }, { status: 404, headers: NO_CACHE_HEADER });
   }
 
-  const cached = seasonCache.get(triplet);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return NextResponse.json(cached.data, { headers: CACHE_HEADER });
-  }
-
   try {
     const wy = getCurrentWaterYear();
     const wyStart = getWaterYearStart(wy);
-    const url = buildStationSeasonUrl(triplet, wyStart);
+    const today = new Date().toISOString().split("T")[0];
+    const todayDate = new Date();
 
-    const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) {
-      return NextResponse.json({ error: "Failed to fetch SNOTEL data" }, { status: 502, headers: NO_CACHE_HEADER });
-    }
+    const [wteqMap, snwdMap, precMap, tmaxMap, tminMap, tavgMap, medianOctDec, medianJanNow] = await Promise.all([
+      fetchElementData([triplet], "WTEQ", wyStart, today),
+      fetchElementData([triplet], "SNWD", wyStart, today),
+      fetchElementData([triplet], "PREC", wyStart, today),
+      fetchElementData([triplet], "TMAX", wyStart, today),
+      fetchElementData([triplet], "TMIN", wyStart, today),
+      fetchElementData([triplet], "TAVG", wyStart, today),
+      fetchMedianData([triplet], "WTEQ", 10, 1, 12, 31),
+      todayDate.getMonth() >= 9
+        ? Promise.resolve(new Map<string, (number | null)[]>())
+        : fetchMedianData([triplet], "WTEQ", 1, 1, todayDate.getMonth() + 1, todayDate.getDate()),
+    ]);
 
-    const text = await response.text();
-    const { headers, rows } = parseCsvResponse(text);
+    const wteq = wteqMap.get(triplet);
+    const dates = wteq?.dates || generateDates(wyStart, today);
+    const wteqVals = wteq?.values || [];
+    const snwdVals = snwdMap.get(triplet)?.values || [];
+    const precVals = precMap.get(triplet)?.values || [];
+    const tmaxVals = tmaxMap.get(triplet)?.values || [];
+    const tminVals = tminMap.get(triplet)?.values || [];
+    const tavgVals = tavgMap.get(triplet)?.values || [];
 
-    const dateKey = headers.find((h) => h.toLowerCase() === "date") || headers[0];
-    const sweKey = headers.find((h) => h.includes("Snow Water Equivalent") && !h.includes("Median") && !h.includes("%"));
-    const medianKey = headers.find((h) => h.includes("Median Snow Water Equivalent"));
-    const depthKey = headers.find((h) => h.includes("Snow Depth"));
-    const precKey = headers.find((h) => h.includes("Precipitation Accumulation"));
-    const tmaxKey = headers.find((h) => h.includes("Air Temperature Maximum"));
-    const tminKey = headers.find((h) => h.includes("Air Temperature Minimum"));
-    const tavgKey = headers.find((h) => h.includes("Air Temperature Average"));
+    const octDecMedian = medianOctDec.get(triplet) || [];
+    const janNowMedian = medianJanNow.get(triplet) || [];
+    const allMedian = [...octDecMedian, ...janNowMedian];
 
-    const season: DailyObservation[] = rows.map((row) => ({
-      date: row[dateKey] || "",
-      swe: sweKey ? parseNumericValue(row[sweKey]) : null,
-      sweMedian: medianKey ? parseNumericValue(row[medianKey]) : null,
-      snowDepth: depthKey ? parseNumericValue(row[depthKey]) : null,
-      precip: precKey ? parseNumericValue(row[precKey]) : null,
-      tmax: tmaxKey ? parseNumericValue(row[tmaxKey]) : null,
-      tmin: tminKey ? parseNumericValue(row[tminKey]) : null,
-      tavg: tavgKey ? parseNumericValue(row[tavgKey]) : null,
+    const season: DailyObservation[] = dates.map((date, i) => ({
+      date,
+      swe: wteqVals[i] ?? null,
+      sweMedian: allMedian[i] ?? null,
+      snowDepth: snwdVals[i] ?? null,
+      precip: precVals[i] ?? null,
+      tmax: tmaxVals[i] ?? null,
+      tmin: tminVals[i] ?? null,
+      tavg: tavgVals[i] ?? null,
     }));
 
     const latest = season[season.length - 1];
-    const latestMedian = latest?.sweMedian;
     const latestSwe = latest?.swe;
+    const latestMedian = latest?.sweMedian;
 
     const result: StationSeasonData = {
       station,
@@ -79,7 +82,6 @@ export async function GET(
       season,
     };
 
-    seasonCache.set(triplet, { data: result, timestamp: Date.now() });
     return NextResponse.json(result, { headers: CACHE_HEADER });
   } catch {
     return NextResponse.json({ error: "Failed to fetch station data" }, { status: 500, headers: NO_CACHE_HEADER });

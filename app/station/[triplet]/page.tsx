@@ -10,7 +10,6 @@ import { getConditionColor, getConditionLabel } from "@/lib/colors";
 import { findNearestStations } from "@/lib/geo";
 import { useSeasonData } from "@/hooks/useSeasonData";
 import { useHistoricalData } from "@/hooks/useHistoricalData";
-import { useEnvelopeData } from "@/hooks/useEnvelopeData";
 import Section from "@/components/Section";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import StatCard from "@/components/StatCard";
@@ -18,7 +17,6 @@ import ConditionBadge from "@/components/ConditionBadge";
 import ChartCard from "@/components/ChartCard";
 import SeasonChart from "@/components/SeasonChart";
 import PeakSweChart from "@/components/PeakSweChart";
-import EnvelopeChart from "@/components/EnvelopeChart";
 
 export default function StationPage({ params }: { params: Promise<{ triplet: string }> }) {
   const { triplet: urlParam } = use(params);
@@ -27,8 +25,6 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
 
   const { data: seasonData, loading: seasonLoading, error: seasonError } = useSeasonData(triplet);
   const { data: historicalData, loading: historicalLoading } = useHistoricalData(triplet);
-  const { data: envelopeData, loading: envelopeLoading } = useEnvelopeData(triplet);
-
   const nearbyStations = useMemo(() => {
     if (!station) return [];
     const all = getAllStations().filter((s) => s.triplet !== triplet);
@@ -149,20 +145,6 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
           ) : (
             <div className="flex items-center justify-center h-full font-mono text-sm" style={{ color: theme.mediumGray }}>
               No season data available
-            </div>
-          )}
-        </ChartCard>
-      </Section>
-
-      <Section title="Historical SWE Envelope" description="Current water year vs period of record min/max range and recent years">
-        <ChartCard title={`Snow Water Equivalent — ${station.name}`} height={420} exportable={false}>
-          {envelopeLoading ? (
-            <LoadingSpinner />
-          ) : envelopeData ? (
-            <EnvelopeChart data={envelopeData} stationName={station.name} />
-          ) : (
-            <div className="flex items-center justify-center h-full font-mono text-sm" style={{ color: theme.mediumGray }}>
-              No historical data available
             </div>
           )}
         </ChartCard>

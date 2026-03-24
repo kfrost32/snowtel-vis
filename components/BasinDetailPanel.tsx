@@ -4,14 +4,10 @@ import { useMemo, useRef, useState } from "react";
 import { X, Star } from "lucide-react";
 import { theme } from "@/lib/theme";
 import { formatSwe, formatPctOfNormal, formatDateFull } from "@/lib/formatting";
-import LoadingSpinner from "@/components/LoadingSpinner";
 import { getConditionColor, getConditionLabel } from "@/lib/colors";
 import type { BasinSummary } from "@/lib/types";
 import PercentOfNormalGauge from "@/components/PercentOfNormalGauge";
 import ConditionBadge from "@/components/ConditionBadge";
-import ChartCard from "@/components/ChartCard";
-import EnvelopeChart from "@/components/EnvelopeChart";
-import { useBasinEnvelopeData } from "@/hooks/useBasinEnvelopeData";
 
 interface BasinDetailPanelProps {
   basin: BasinSummary;
@@ -30,7 +26,6 @@ export default function BasinDetailPanel({
 }: BasinDetailPanelProps) {
   const snapshotRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
-  const { data: envelopeData, loading: envelopeLoading } = useBasinEnvelopeData(basin.huc);
 
   const handleExport = async () => {
     if (!snapshotRef.current || exporting) return;
@@ -205,22 +200,6 @@ export default function BasinDetailPanel({
             {formatDateFull(new Date().toISOString().slice(0, 10))} · Source: USDA NRCS
           </span>
         </div>
-      </div>
-
-      <div className="px-5 pb-4">
-        <ChartCard title={`Basin SWE — ${basin.name}`} height={320} exportable={false}>
-          {envelopeLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <LoadingSpinner />
-            </div>
-          ) : envelopeData ? (
-            <EnvelopeChart data={envelopeData} stationName={basin.name} />
-          ) : (
-            <div className="flex items-center justify-center h-full font-mono text-xs" style={{ color: theme.mediumGray }}>
-              No historical data available
-            </div>
-          )}
-        </ChartCard>
       </div>
 
       <div
