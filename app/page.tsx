@@ -102,13 +102,15 @@ function HomePageInner() {
   const { favorites, toggleStation, toggleBasin, isStationFav, isBasinFav } = useFavorites();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)").matches : false
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== "undefined" ? !window.matchMedia("(max-width: 767px)").matches : false
+  );
 
   useEffect(() => {
     const mql = window.matchMedia("(max-width: 767px)");
-    setIsMobile(mql.matches);
-    setSidebarOpen(!mql.matches);
     const handler = (e: MediaQueryListEvent) => {
       setIsMobile(e.matches);
       if (e.matches) setSidebarOpen(false);

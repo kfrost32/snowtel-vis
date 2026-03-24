@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { theme } from "@/lib/theme";
 
 interface SidebarChipProps {
@@ -9,26 +10,17 @@ interface SidebarChipProps {
 }
 
 export default function SidebarChip({ label, active, onClick }: SidebarChipProps) {
+  const [hovered, setHovered] = useState(false);
   return (
     <button
       onClick={onClick}
       className="px-3 py-1.5 md:px-2 md:py-1 text-[12px] md:text-[11px] font-mono font-medium rounded-md min-h-[36px] md:min-h-0 transition-all duration-150 cursor-pointer"
       style={{
-        background: active ? theme.black : theme.lightGray,
-        color: active ? theme.white : theme.mediumGray,
+        background: active ? theme.black : hovered ? theme.borderGray : theme.lightGray,
+        color: active ? theme.white : hovered ? theme.gray : theme.mediumGray,
       }}
-      onMouseEnter={(e) => {
-        if (!active) {
-          e.currentTarget.style.background = theme.borderGray;
-          e.currentTarget.style.color = theme.gray;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!active) {
-          e.currentTarget.style.background = theme.lightGray;
-          e.currentTarget.style.color = theme.mediumGray;
-        }
-      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {label}
     </button>

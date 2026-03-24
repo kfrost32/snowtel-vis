@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { theme } from "@/lib/theme";
 import { SNOTEL_STATES } from "@/lib/constants";
 import { SidebarSection, SidebarToggle, SidebarRadioItem, SidebarChip } from "@/components/sidebar";
@@ -70,6 +71,10 @@ export default function MapControls({
   onElevMinChange,
   onElevMaxChange,
 }: MapControlsProps) {
+  const [elevMinFocused, setElevMinFocused] = useState(false);
+  const [elevMaxFocused, setElevMaxFocused] = useState(false);
+  const [clearHovered, setClearHovered] = useState(false);
+
   const toggleState = (state: string) => {
     const next = new Set(selectedStates);
     if (next.has(state)) next.delete(state);
@@ -113,9 +118,9 @@ export default function MapControls({
             <button
               onClick={() => onStatesChange(new Set())}
               className="text-[10px] font-sans cursor-pointer transition-colors duration-150"
-              style={{ color: theme.mediumGray }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = theme.gray)}
-              onMouseLeave={(e) => (e.currentTarget.style.color = theme.mediumGray)}
+              style={{ color: clearHovered ? theme.gray : theme.mediumGray }}
+              onMouseEnter={() => setClearHovered(true)}
+              onMouseLeave={() => setClearHovered(false)}
             >
               Clear
             </button>
@@ -141,10 +146,11 @@ export default function MapControls({
             placeholder="Min"
             value={elevMin}
             onChange={(e) => onElevMinChange(e.target.value)}
+            aria-label="Minimum elevation (feet)"
             className="flex-1 w-full px-2.5 py-2 md:py-1.5 text-[13px] md:text-[11px] font-mono rounded-lg border outline-none transition-all duration-150"
-            style={{ borderColor: theme.borderGray, color: theme.black, background: theme.white }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = theme.mediumGray)}
-            onBlur={(e) => (e.currentTarget.style.borderColor = theme.borderGray)}
+            style={{ borderColor: elevMinFocused ? theme.mediumGray : theme.borderGray, color: theme.black, background: theme.white }}
+            onFocus={() => setElevMinFocused(true)}
+            onBlur={() => setElevMinFocused(false)}
           />
           <span className="text-[11px] md:text-[10px] font-sans flex-shrink-0" style={{ color: theme.borderGray }}>to</span>
           <input
@@ -152,10 +158,11 @@ export default function MapControls({
             placeholder="Max"
             value={elevMax}
             onChange={(e) => onElevMaxChange(e.target.value)}
+            aria-label="Maximum elevation (feet)"
             className="flex-1 w-full px-2.5 py-2 md:py-1.5 text-[13px] md:text-[11px] font-mono rounded-lg border outline-none transition-all duration-150"
-            style={{ borderColor: theme.borderGray, color: theme.black, background: theme.white }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = theme.mediumGray)}
-            onBlur={(e) => (e.currentTarget.style.borderColor = theme.borderGray)}
+            style={{ borderColor: elevMaxFocused ? theme.mediumGray : theme.borderGray, color: theme.black, background: theme.white }}
+            onFocus={() => setElevMaxFocused(true)}
+            onBlur={() => setElevMaxFocused(false)}
           />
         </div>
       </SidebarSection>

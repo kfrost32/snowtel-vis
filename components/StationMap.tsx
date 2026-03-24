@@ -61,14 +61,14 @@ function StationMapInner({
     if (!map || !map.isStyleLoaded() || !onVisibleStationsChange) return;
     try {
       if (!map.getLayer("station-circles")) return;
-      const features = map.queryRenderedFeatures(undefined as any, { layers: ["station-circles"] });
+      const features = map.queryRenderedFeatures(undefined, { layers: ["station-circles"] });
       const triplets = new Set<string>();
       for (const f of features) {
         if (f.properties?.triplet) triplets.add(f.properties.triplet);
       }
       onVisibleStationsChange(triplets);
     } catch {
-      // map may not be ready
+      // map layer may not be ready yet
     }
   }, [onVisibleStationsChange]);
 
@@ -319,7 +319,9 @@ function StationMapInner({
     });
 
     return () => { map.remove(); mapRef.current = null; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Map init runs once on mount; all mutable values accessed via refs
+  }, []);
 
   const metricRef = useRef(metric);
   metricRef.current = metric;
@@ -385,7 +387,7 @@ function StationMapInner({
         },
       })),
     });
-    setTimeout(updateVisibleStations, 100);
+    map.once("render", updateVisibleStations);
   }, [stations, mapLoaded, metric, updateVisibleStations]);
 
   // fly-to

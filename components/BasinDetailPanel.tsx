@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { X, Star } from "lucide-react";
-import { theme } from "@/lib/theme";
+import { theme, glassmorphicButtonStyle } from "@/lib/theme";
 import { formatSwe, formatPctOfNormal, formatSnowDepth, formatChange } from "@/lib/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor } from "@/lib/colors";
 import type { BasinSummary } from "@/lib/types";
@@ -45,8 +45,8 @@ export default function BasinDetailPanel({
       link.download = `swe-${name}.png`;
       link.href = dataUrl;
       link.click();
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error("Export failed:", err);
     } finally {
       setExporting(false);
     }
@@ -83,13 +83,7 @@ export default function BasinDetailPanel({
           <button
             onClick={onToggleFavorite}
             className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
-            style={{
-              color: isFavorite ? "#FBBF24" : "rgba(255,255,255,0.9)",
-              background: "rgba(255,255,255,0.18)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-              border: "1px solid rgba(255,255,255,0.3)",
-            }}
+            style={{ color: isFavorite ? "#FBBF24" : "rgba(255,255,255,0.9)", ...glassmorphicButtonStyle }}
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             <Star size={18} fill={isFavorite ? "#FBBF24" : "none"} />
@@ -108,7 +102,7 @@ export default function BasinDetailPanel({
           <button
             onClick={onClose}
             className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
-            style={{ color: "rgba(255,255,255,0.9)", background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.3)" }}
+            style={{ color: "rgba(255,255,255,0.9)", ...glassmorphicButtonStyle }}
             aria-label="Close panel"
           >
             <X size={20} />

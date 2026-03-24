@@ -58,3 +58,10 @@ export const chartTooltipStyle = {
 };
 
 export const chartCursorStyle = { fill: "rgba(0, 0, 0, 0.04)" };
+
+export const glassmorphicButtonStyle = {
+  background: "rgba(255,255,255,0.18)",
+  backdropFilter: "blur(8px)",
+  WebkitBackdropFilter: "blur(8px)",
+  border: "1px solid rgba(255,255,255,0.3)",
+} as const;

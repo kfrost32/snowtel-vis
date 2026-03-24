@@ -48,8 +48,8 @@ export default function ChartCard({ title, description, height, controls, footer
       link.download = `snotel-chart-${Date.now()}.jpg`;
       link.href = dataUrl;
       link.click();
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error("Export failed:", err);
     } finally {
       setExporting(false);
     }

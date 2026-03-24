@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { X, MapPin, Mountain, Star } from "lucide-react";
-import { theme } from "@/lib/theme";
+import { theme, glassmorphicButtonStyle } from "@/lib/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
 import { getStation } from "@/lib/stations";
@@ -123,10 +123,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
             className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
             style={{
               color: isFavorite ? "#FBBF24" : imageError ? theme.darkGray : "rgba(255,255,255,0.9)",
-              background: imageError ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.18)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-              border: imageError ? `1px solid ${theme.borderGray}` : "1px solid rgba(255,255,255,0.3)",
+              ...(imageError ? { background: "rgba(0,0,0,0.06)", border: `1px solid ${theme.borderGray}` } : glassmorphicButtonStyle),
             }}
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
@@ -137,10 +134,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
             className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
             style={{
               color: imageError ? theme.darkGray : "rgba(255,255,255,0.9)",
-              background: imageError ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.18)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-              border: imageError ? `1px solid ${theme.borderGray}` : "1px solid rgba(255,255,255,0.3)",
+              ...(imageError ? { background: "rgba(0,0,0,0.06)", border: `1px solid ${theme.borderGray}` } : glassmorphicButtonStyle),
             }}
             aria-label="Close panel"
           >
