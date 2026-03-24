@@ -24,11 +24,13 @@ export const metadata: Metadata = {
     title: "SNOTEL Explorer",
     description: "Interactive map of SNOTEL snowpack conditions across the western United States.",
     type: "website",
+    images: [{ url: "/og.jpg" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "SNOTEL Explorer",
     description: "Interactive map of SNOTEL snowpack conditions across the western United States.",
+    images: ["/og.jpg"],
   },
 };
 
