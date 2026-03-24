@@ -81,7 +81,20 @@ const StationMap = dynamic(() => import("@/components/StationMap"), {
 export default function HomePage() {
   const { stations, loading, error } = useStationList();
   const { favorites, toggleStation, toggleBasin, isStationFav, isBasinFav } = useFavorites();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mql.matches);
+    setSidebarOpen(!mql.matches);
+    const handler = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+      if (e.matches) setSidebarOpen(false);
+    };
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
   const [selectedStates, setSelectedStates] = useState<Set<string>>(new Set());
   const [elevMin, setElevMin] = useState("");
   const [elevMax, setElevMax] = useState("");
@@ -126,12 +139,14 @@ export default function HomePage() {
   const handleStationClick = (triplet: string) => {
     setSelectedTriplet(triplet);
     setSelectedBasinHuc(null);
+    if (isMobile) setSidebarOpen(false);
     requestAnimationFrame(() => setOverlayVisible(true));
   };
 
   const handleBasinClick = (huc: string) => {
     setSelectedBasinHuc(huc);
     setSelectedTriplet(null);
+    if (isMobile) setSidebarOpen(false);
     requestAnimationFrame(() => setOverlayVisible(true));
   };
 
@@ -160,11 +175,19 @@ export default function HomePage() {
         }
       `}</style>
       <div className="map-page-root flex w-full relative">
+        {isMobile && sidebarOpen && (
+          <div
+            className="fixed inset-0 z-30"
+            style={{ background: "rgba(0,0,0,0.4)" }}
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
         {sidebarOpen && (
           <div
-            className="flex-shrink-0 flex flex-col border-r overflow-hidden z-10"
+            className={`${isMobile ? "fixed top-14 left-0 bottom-0 z-30 shadow-xl" : "flex-shrink-0 border-r z-10"} flex flex-col overflow-hidden`}
             style={{
-              width: 320,
+              width: isMobile ? "min(320px, 85vw)" : 320,
               borderColor: theme.borderGray,
               background: theme.white,
             }}
@@ -287,14 +310,14 @@ export default function HomePage() {
           </div>
 
           <div
-            className="absolute bottom-4 left-4 rounded-lg px-3 py-2 shadow-sm z-10"
+            className="absolute bottom-4 left-4 right-4 md:right-auto rounded-lg px-3 py-2 shadow-sm z-10"
             style={{
               background: `${theme.white}ee`,
               border: `1px solid ${theme.borderGray}`,
               backdropFilter: "blur(8px)",
             }}
           >
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
               {(METRIC_LEGEND[metric] ?? METRIC_LEGEND.TAVG).map(({ label, color }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
@@ -310,17 +333,17 @@ export default function HomePage() {
         {hasDetailPanel && (
           <div
             className="absolute inset-0 pointer-events-none z-20"
-            style={{ left: sidebarOpen ? 320 : 0 }}
+            style={{ left: !isMobile && sidebarOpen ? 320 : 0 }}
           >
             <div
-              className="absolute inset-4 pointer-events-auto rounded-xl shadow-2xl overflow-hidden transition-all duration-200 mx-auto"
+              className="absolute inset-0 md:inset-4 pointer-events-auto md:rounded-xl shadow-2xl overflow-hidden transition-all duration-200 md:mx-auto"
               style={{
                 background: theme.white,
-                border: `1px solid ${theme.borderGray}`,
+                border: isMobile ? "none" : `1px solid ${theme.borderGray}`,
                 opacity: overlayVisible ? 1 : 0,
                 transform: overlayVisible ? "scale(1)" : "scale(0.97)",
                 transformOrigin: "center center",
-                maxWidth: 1200,
+                maxWidth: isMobile ? undefined : 1200,
               }}
             >
               {selectedTriplet ? (

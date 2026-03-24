@@ -131,29 +131,31 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="flex items-stretch border-b" style={{ borderColor: theme.borderGray }}>
-          {seasonLoading ? (
-            ["SWE", "% of Normal", "Snow Depth", "Temp", "Precip"].map((label, i) => (
-              <div key={label} className="flex-1 flex flex-col gap-1 px-3 py-2.5" style={{ borderLeft: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}>
-                <span className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>{label}</span>
-                <div className="h-4 w-12 rounded animate-pulse" style={{ background: theme.borderGray }} />
-              </div>
-            ))
-          ) : current ? (
-            [
-              { label: "SWE", value: formatSwe(current.swe), sub: current.sweNormal !== null ? `nml ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray },
-              { label: "% Normal", value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal) },
-              { label: "Depth", value: formatSnowDepth(current.snowDepth), sub: null, subColor: null },
-              { label: "Temp", value: formatTemp(current.temp), sub: null, subColor: null },
-              { label: "Precip", value: formatPrecip(current.precipAccum), sub: null, subColor: null },
-            ].map((row, i) => (
-              <div key={row.label} className="flex-1 flex flex-col px-3 py-2.5" style={{ borderLeft: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}>
-                <span className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>{row.label}</span>
-                <span className="font-mono text-[13px] font-semibold mt-0.5" style={{ color: theme.black }}>{row.value}</span>
-                {row.sub && <span className="font-mono text-[10px] mt-0.5" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>}
-              </div>
-            ))
-          ) : null}
+        <div className="overflow-x-auto border-b" style={{ borderColor: theme.borderGray, WebkitOverflowScrolling: "touch" }}>
+          <div className="flex items-stretch min-w-min">
+            {seasonLoading ? (
+              ["SWE", "% of Normal", "Snow Depth", "Temp", "Precip"].map((label, i) => (
+                <div key={label} className="flex-1 min-w-[72px] flex flex-col gap-1 px-3 py-2.5" style={{ borderLeft: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}>
+                  <span className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>{label}</span>
+                  <div className="h-4 w-12 rounded animate-pulse" style={{ background: theme.borderGray }} />
+                </div>
+              ))
+            ) : current ? (
+              [
+                { label: "SWE", value: formatSwe(current.swe), sub: current.sweNormal !== null ? `nml ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray },
+                { label: "% Normal", value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal) },
+                { label: "Depth", value: formatSnowDepth(current.snowDepth), sub: null, subColor: null },
+                { label: "Temp", value: formatTemp(current.temp), sub: null, subColor: null },
+                { label: "Precip", value: formatPrecip(current.precipAccum), sub: null, subColor: null },
+              ].map((row, i) => (
+                <div key={row.label} className="flex-1 min-w-[72px] flex flex-col px-3 py-2.5" style={{ borderLeft: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}>
+                  <span className="font-mono text-[10px] whitespace-nowrap" style={{ color: theme.mediumGray }}>{row.label}</span>
+                  <span className="font-mono text-[13px] font-semibold mt-0.5 whitespace-nowrap" style={{ color: theme.black }}>{row.value}</span>
+                  {row.sub && <span className="font-mono text-[10px] mt-0.5 whitespace-nowrap" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>}
+                </div>
+              ))
+            ) : null}
+          </div>
         </div>
 
         <div className="px-4 pt-3">

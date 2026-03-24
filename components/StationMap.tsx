@@ -5,6 +5,7 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@/lib/types";
 import { getMapMarkerColor, getMetricMapColor, getChangeColor } from "@/lib/colors";
+import { computePolygonCentroid } from "@/lib/basins";
 import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip, formatChange } from "@/lib/formatting";
 import { urlTriplet } from "@/lib/stations";
 import { prefetchStation } from "@/lib/prefetch";
@@ -117,23 +118,6 @@ function StationMapInner({
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       });
-      map.addLayer({
-        id: "huc4-label-text",
-        type: "symbol",
-        source: "huc4-labels",
-        layout: {
-          "text-field": ["get", "label"],
-          "text-size": 11,
-          "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
-          "text-allow-overlap": false,
-          visibility: "none",
-        },
-        paint: {
-          "text-color": theme.darkGray,
-          "text-halo-color": "rgba(255,255,255,0.85)",
-          "text-halo-width": 1.5,
-        },
-      });
 
       // ── HUC-2: bold outline only + large bold labels ───────────────────
       map.addSource("huc2-polygons", {
@@ -165,23 +149,6 @@ function StationMapInner({
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       });
-      map.addLayer({
-        id: "huc2-label-text",
-        type: "symbol",
-        source: "huc2-labels",
-        layout: {
-          "text-field": ["get", "label"],
-          "text-size": 14,
-          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          "text-allow-overlap": false,
-          visibility: "none",
-        },
-        paint: {
-          "text-color": theme.black,
-          "text-halo-color": "rgba(255,255,255,0.92)",
-          "text-halo-width": 2,
-        },
-      });
 
       // ── Stations: always on top ────────────────────────────────────────
       map.addSource("stations", {
@@ -194,8 +161,8 @@ function StationMapInner({
         source: "stations",
         paint: {
           "circle-color": ["get", "color"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 5, 6, 8, 8, 14, 10, 18],
-          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 6, 1, 8, 1.5],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 6, 6, 10, 8, 16, 10, 20],
+          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 6, 1.5, 8, 2],
           "circle-stroke-color": theme.white,
           "circle-opacity": 0.95,
         },
@@ -204,10 +171,10 @@ function StationMapInner({
         id: "station-labels",
         type: "symbol",
         source: "stations",
-        minzoom: 7,
+        minzoom: 6,
         layout: {
           "text-field": ["get", "label"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 7, 8, 10, 11],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 6, 9, 10, 12],
           "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
           "text-allow-overlap": true,
           "text-ignore-placement": true,
@@ -216,6 +183,44 @@ function StationMapInner({
           "text-color": theme.white,
           "text-halo-color": "rgba(0,0,0,0.15)",
           "text-halo-width": 0.5,
+        },
+      });
+
+      // Basin labels — added last so they render above station dots
+      map.addLayer({
+        id: "huc4-label-text",
+        type: "symbol",
+        source: "huc4-labels",
+        layout: {
+          "text-field": ["get", "label"],
+          "text-size": 13,
+          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+          "text-allow-overlap": false,
+          "text-padding": 6,
+          visibility: "none",
+        },
+        paint: {
+          "text-color": ["get", "textColor"],
+          "text-halo-color": "rgba(255,255,255,0.95)",
+          "text-halo-width": 2,
+        },
+      });
+      map.addLayer({
+        id: "huc2-label-text",
+        type: "symbol",
+        source: "huc2-labels",
+        layout: {
+          "text-field": ["get", "label"],
+          "text-size": 15,
+          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+          "text-allow-overlap": false,
+          "text-padding": 8,
+          visibility: "none",
+        },
+        paint: {
+          "text-color": ["get", "textColor"],
+          "text-halo-color": "rgba(255,255,255,0.95)",
+          "text-halo-width": 2.5,
         },
       });
 
@@ -455,13 +460,23 @@ function StationMapInner({
         };
       }),
     });
+    const huc4CentroidMap = new Map<string, { latitude: number; longitude: number }>();
+    for (const f of (huc4Boundaries as GeoJSON.FeatureCollection).features) {
+      const huc = f.properties?.huc4;
+      const centroid = computePolygonCentroid(f.geometry);
+      if (huc && centroid) huc4CentroidMap.set(huc, centroid);
+    }
     labelSource.setData({
       type: "FeatureCollection",
-      features: (huc4Markers || []).filter((b) => b.medianPctOfNormal !== null).map((b) => ({
-        type: "Feature" as const,
-        geometry: { type: "Point" as const, coordinates: [b.longitude, b.latitude] },
-        properties: { label: `${Math.round(b.medianPctOfNormal!)}%` },
-      })),
+      features: (huc4Markers || []).filter((b) => b.medianPctOfNormal !== null).map((b) => {
+        const centroid = huc4CentroidMap.get(b.huc) ?? { latitude: b.latitude, longitude: b.longitude };
+        const color = getMapMarkerColor(b.medianPctOfNormal);
+        return {
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [centroid.longitude, centroid.latitude] },
+          properties: { label: `${Math.round(b.medianPctOfNormal!)}%`, textColor: color },
+        };
+      }),
     });
   }, [huc4Markers, mapLoaded]);
 
@@ -492,13 +507,23 @@ function StationMapInner({
         };
       }),
     });
+    const huc2CentroidMap = new Map<string, { latitude: number; longitude: number }>();
+    for (const f of (huc2Boundaries as GeoJSON.FeatureCollection).features) {
+      const huc = f.properties?.huc2;
+      const centroid = computePolygonCentroid(f.geometry);
+      if (huc && centroid) huc2CentroidMap.set(huc, centroid);
+    }
     labelSource.setData({
       type: "FeatureCollection",
-      features: (huc2Markers || []).filter((b) => b.medianPctOfNormal !== null).map((b) => ({
-        type: "Feature" as const,
-        geometry: { type: "Point" as const, coordinates: [b.longitude, b.latitude] },
-        properties: { label: `${b.name}\n${Math.round(b.medianPctOfNormal!)}%` },
-      })),
+      features: (huc2Markers || []).filter((b) => b.medianPctOfNormal !== null).map((b) => {
+        const centroid = huc2CentroidMap.get(b.huc) ?? { latitude: b.latitude, longitude: b.longitude };
+        const color = getMapMarkerColor(b.medianPctOfNormal);
+        return {
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [centroid.longitude, centroid.latitude] },
+          properties: { label: `${b.name}\n${Math.round(b.medianPctOfNormal!)}%`, textColor: color },
+        };
+      }),
     });
   }, [huc2Markers, mapLoaded]);
 

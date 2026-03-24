@@ -26,7 +26,7 @@ export default function GlobalHeader() {
         >
           <Search size={14} style={{ color: "#CCCCCC" }} />
           <kbd
-            className="font-mono text-[10px] px-1 py-0.5 rounded"
+            className="hidden sm:inline font-mono text-[10px] px-1 py-0.5 rounded"
             style={{
               color: "rgba(255,255,255,0.5)",
               background: "rgba(255,255,255,0.1)",
