@@ -176,7 +176,17 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick }:
         </div>
 
         <div className="px-4 pt-4">
-          <ChartCard title="Peak SWE by Year" height={220} exportable={false}>
+          <ChartCard
+            title="Annual Peak Snowpack — Historical Record"
+            height={220}
+            exportable={false}
+            footer={
+              <div className="flex items-center gap-1.5">
+                <div className="w-5 border-t border-dashed" style={{ borderColor: theme.mediumGray }} />
+                <span className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>Historical average</span>
+              </div>
+            }
+          >
             {historicalLoading ? (
               <div className="flex items-center justify-center h-full">
                 <LoadingSpinner />

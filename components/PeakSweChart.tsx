@@ -9,7 +9,6 @@ import {
   Tooltip,
   ReferenceLine,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 import { theme, snowColors, chartTooltipStyle, chartCursorStyle } from "@/lib/theme";
 import { formatSwe, formatDateFull } from "@/lib/formatting";
@@ -23,7 +22,6 @@ interface ChartBar {
   waterYear: number;
   peakSwe: number;
   peakSweDate: string;
-  aboveAvg: boolean;
 }
 
 interface TooltipPayloadEntry {
@@ -75,7 +73,6 @@ export default function PeakSweChart({ data }: PeakSweChartProps) {
       waterYear: d.waterYear,
       peakSwe: d.peakSwe,
       peakSweDate: d.peakSweDate,
-      aboveAvg: d.peakSwe >= avg,
     }));
 
     return { chartData: bars, average: avg };
@@ -122,15 +119,7 @@ export default function PeakSweChart({ data }: PeakSweChartProps) {
             fontFamily: "var(--font-ibm-plex-mono)",
           }}
         />
-        <Bar dataKey="peakSwe" radius={[2, 2, 0, 0]} maxBarSize={20}>
-          {chartData.map((entry, i) => (
-            <Cell
-              key={i}
-              fill={entry.aboveAvg ? snowColors.swe : snowColors.below}
-              fillOpacity={0.85}
-            />
-          ))}
-        </Bar>
+        <Bar dataKey="peakSwe" radius={[2, 2, 0, 0]} maxBarSize={20} fill={snowColors.swe} fillOpacity={0.85} />
       </BarChart>
     </ResponsiveContainer>
   );

@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
 import { theme } from "@/lib/theme";
 import { computeBasinSummaries, computeBasinCentroid } from "@/lib/basins";
-import { getStation } from "@/lib/stations";
 import MapControls from "@/components/MapControls";
 import StationDetailPanel from "@/components/StationDetailPanel";
 import BasinDetailPanel from "@/components/BasinDetailPanel";
@@ -59,7 +58,6 @@ export default function HomePage() {
   const [selectedStates, setSelectedStates] = useState<Set<string>>(new Set());
   const [elevMin, setElevMin] = useState("");
   const [elevMax, setElevMax] = useState("");
-  const [flyTo, setFlyTo] = useState<{ lng: number; lat: number; triplet: string } | null>(null);
   const [showStations, setShowStations] = useState(true);
   const [showHuc2, setShowHuc2] = useState(false);
   const [showHuc4, setShowHuc4] = useState(false);
@@ -67,7 +65,7 @@ export default function HomePage() {
   const [metric, setMetric] = useState("WTEQ");
   const [selectedTriplet, setSelectedTriplet] = useState<string | null>(null);
   const [selectedBasinHuc, setSelectedBasinHuc] = useState<string | null>(null);
-  const [panelExpanded, setPanelExpanded] = useState(false);
+  const [overlayVisible, setOverlayVisible] = useState(false);
 
   const filteredStations = useMemo(() => {
     return stations.filter((s) => {
@@ -99,27 +97,30 @@ export default function HomePage() {
   }, [allBasins, selectedBasinHuc]);
 
   const handleStationClick = (triplet: string) => {
-    const station = getStation(triplet);
-    if (station) {
-      setFlyTo({ lng: station.longitude, lat: station.latitude, triplet });
-    }
     setSelectedTriplet(triplet);
     setSelectedBasinHuc(null);
+    requestAnimationFrame(() => setOverlayVisible(true));
   };
 
   const handleBasinClick = (huc: string) => {
-    const marker = [...huc2Markers, ...huc4Markers].find((b) => b.huc === huc);
-    if (marker) {
-      setFlyTo({ lng: marker.longitude, lat: marker.latitude, triplet: huc });
-    }
     setSelectedBasinHuc(huc);
     setSelectedTriplet(null);
+    requestAnimationFrame(() => setOverlayVisible(true));
   };
 
   const closeDetailPanel = () => {
-    setSelectedTriplet(null);
-    setSelectedBasinHuc(null);
+    setOverlayVisible(false);
+    setTimeout(() => {
+      setSelectedTriplet(null);
+      setSelectedBasinHuc(null);
+    }, 200);
   };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeDetailPanel(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const hasDetailPanel = selectedTriplet !== null || selectedBasin !== null;
 
@@ -203,7 +204,6 @@ export default function HomePage() {
           ) : (
             <StationMap
               stations={filteredStations}
-              flyTo={flyTo}
               huc2Markers={huc2Markers}
               huc4Markers={huc4Markers}
               showStations={showStations}
@@ -238,38 +238,33 @@ export default function HomePage() {
 
         {hasDetailPanel && (
           <div
-            className="flex-shrink-0 flex flex-col border-l overflow-hidden z-10 relative transition-[width] duration-200"
-            style={{
-              width: panelExpanded ? 800 : 520,
-              borderColor: theme.borderGray,
-              background: theme.white,
-            }}
+            className="absolute inset-0 pointer-events-none z-20"
+            style={{ left: sidebarOpen ? 320 : 0 }}
           >
-            <button
-              onClick={() => setPanelExpanded(!panelExpanded)}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full z-20 flex items-center justify-center w-6 h-12 rounded-l-md shadow-md cursor-pointer"
-              style={{ background: theme.white, border: `1px solid ${theme.borderGray}`, borderRight: "none" }}
-              aria-label={panelExpanded ? "Collapse panel" : "Expand panel"}
+            <div
+              className="absolute inset-4 pointer-events-auto rounded-xl shadow-2xl overflow-hidden transition-all duration-200"
+              style={{
+                background: theme.white,
+                border: `1px solid ${theme.borderGray}`,
+                opacity: overlayVisible ? 1 : 0,
+                transform: overlayVisible ? "scale(1)" : "scale(0.97)",
+                transformOrigin: "center center",
+              }}
             >
-              {panelExpanded ? (
-                <ChevronRight size={14} style={{ color: theme.gray }} />
-              ) : (
-                <ChevronLeft size={14} style={{ color: theme.gray }} />
-              )}
-            </button>
-            {selectedTriplet ? (
-              <StationDetailPanel
-                triplet={selectedTriplet}
-                onClose={closeDetailPanel}
-                onStationClick={handleStationClick}
-              />
-            ) : selectedBasin ? (
-              <BasinDetailPanel
-                basin={selectedBasin}
-                onClose={closeDetailPanel}
-                onStationClick={handleStationClick}
-              />
-            ) : null}
+              {selectedTriplet ? (
+                <StationDetailPanel
+                  triplet={selectedTriplet}
+                  onClose={closeDetailPanel}
+                  onStationClick={handleStationClick}
+                />
+              ) : selectedBasin ? (
+                <BasinDetailPanel
+                  basin={selectedBasin}
+                  onClose={closeDetailPanel}
+                  onStationClick={handleStationClick}
+                />
+              ) : null}
+            </div>
           </div>
         )}
       </div>
