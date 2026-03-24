@@ -41,7 +41,7 @@ export async function GET(
       fetchWaterYearMedian(triplets, "WTEQ"),
     ]);
 
-    const byWyDay = new Map<number, number[]>();
+    const byWyDayYear = new Map<number, Map<number, number[]>>();
     const currentWy = getCurrentWaterYear();
     const currentByWyDay = new Map<number, number[]>();
 
@@ -53,12 +53,16 @@ export async function GET(
         const dateStr = dates[i];
         const wyDay = getWaterYearDay(dateStr);
 
-        if (!byWyDay.has(wyDay)) byWyDay.set(wyDay, []);
-        byWyDay.get(wyDay)!.push(swe);
-
-        const year = new Date(dateStr + "T12:00:00Z").getUTCFullYear();
-        const month = new Date(dateStr + "T12:00:00Z").getUTCMonth() + 1;
+        const date = new Date(dateStr + "T12:00:00Z");
+        const year = date.getUTCFullYear();
+        const month = date.getUTCMonth() + 1;
         const wy = month >= 10 ? year + 1 : year;
+
+        if (!byWyDayYear.has(wyDay)) byWyDayYear.set(wyDay, new Map());
+        const yearMap = byWyDayYear.get(wyDay)!;
+        if (!yearMap.has(wy)) yearMap.set(wy, []);
+        yearMap.get(wy)!.push(swe);
+
         if (wy === currentWy) {
           if (!currentByWyDay.has(wyDay)) currentByWyDay.set(wyDay, []);
           currentByWyDay.get(wyDay)!.push(swe);
@@ -83,7 +87,7 @@ export async function GET(
     let medianPeakSwe = 0;
 
     for (let wyDay = 1; wyDay <= 366; wyDay++) {
-      const vals = byWyDay.get(wyDay);
+      const yearMap = byWyDayYear.get(wyDay);
       const medianVals = medianByDay.get(wyDay);
       const median = medianVals && medianVals.length > 0
         ? medianVals.reduce((a, b) => a + b, 0) / medianVals.length
@@ -94,19 +98,33 @@ export async function GET(
         medianPeakDay = wyDay;
       }
 
-      if (!vals || vals.length === 0) {
+      if (!yearMap || yearMap.size === 0) {
         envelope.push({ wyDay, max: null, min: null, median });
         continue;
       }
 
-      let max = vals[0];
-      let min = vals[0];
-      for (const v of vals) {
-        if (v > max) max = v;
-        if (v < min) min = v;
+      const yearAvgs: { avg: number; wy: number }[] = [];
+      for (const [wy, vals] of yearMap) {
+        if (wy === currentWy) continue;
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        yearAvgs.push({ avg, wy });
       }
 
-      envelope.push({ wyDay, max, min, median });
+      if (yearAvgs.length === 0) {
+        envelope.push({ wyDay, max: null, min: null, median });
+        continue;
+      }
+
+      let max = yearAvgs[0].avg;
+      let min = yearAvgs[0].avg;
+      let maxYear = yearAvgs[0].wy;
+      let minYear = yearAvgs[0].wy;
+      for (const v of yearAvgs) {
+        if (v.avg > max) { max = v.avg; maxYear = v.wy; }
+        if (v.avg < min) { min = v.avg; minYear = v.wy; }
+      }
+
+      envelope.push({ wyDay, max, min, median, maxYear, minYear });
     }
 
     const currentSeason: { wyDay: number; swe: number }[] = [];
