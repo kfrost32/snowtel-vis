@@ -220,6 +220,11 @@ async function main() {
       sweChange1d = Math.round((swe - wteq[latest - 1]) * 10) / 10;
     }
 
+    let sweChange3d = null;
+    if (latest >= 3 && swe !== null && wteq[latest - 3] !== null) {
+      sweChange3d = Math.round((swe - wteq[latest - 3]) * 10) / 10;
+    }
+
     let sweChange7d = null;
     if (latest >= 7 && swe !== null && wteq[latest - 7] !== null) {
       sweChange7d = Math.round((swe - wteq[latest - 7]) * 10) / 10;
@@ -228,7 +233,7 @@ async function main() {
     results.push({
       ...station,
       swe, sweNormal, pctOfNormal, snowDepth, temp, precipAccum,
-      sweChange1d, sweChange7d, lastUpdated: endDate,
+      sweChange1d, sweChange3d, sweChange7d, lastUpdated: endDate,
     });
   }
 

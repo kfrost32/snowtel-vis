@@ -29,16 +29,7 @@ export default function GlobalFooter() {
                   Interactive Map
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/rankings"
-                  className="text-xs font-mono hover:underline underline-offset-4 transition-opacity hover:opacity-70"
-                  style={{ color: theme.darkGray }}
-                >
-                  Station Rankings
-                </Link>
-              </li>
-              <li>
+<li>
                 <Link
                   href="/compare"
                   className="text-xs font-mono hover:underline underline-offset-4 transition-opacity hover:opacity-70"

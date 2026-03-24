@@ -81,7 +81,7 @@ export default function BasinDetailPanel({
         className="relative px-5 pt-10 pb-4 border-b"
         style={{ borderColor: theme.borderGray }}
       >
-        <div className="absolute top-2 right-2 flex items-center gap-1">
+        <div className="absolute top-3 right-3 flex items-center gap-2">
           <button
             onClick={onToggleFavorite}
             className="p-2 rounded-md hover:bg-black/[0.05] transition-colors cursor-pointer"
@@ -104,8 +104,8 @@ export default function BasinDetailPanel({
           </button>
           <button
             onClick={onClose}
-            className="p-2 rounded-md hover:bg-black/[0.05] transition-colors cursor-pointer"
-            style={{ color: theme.gray }}
+            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.08] transition-colors cursor-pointer"
+            style={{ color: theme.darkGray, background: "rgba(0,0,0,0.06)", border: `1px solid ${theme.borderGray}` }}
             aria-label="Close basin detail"
           >
             <X size={20} />

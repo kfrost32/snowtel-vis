@@ -17,7 +17,7 @@ interface SearchItem {
 const stationItems: SearchItem[] = getAllStations().map((s) => ({
   label: s.name,
   subtitle: `${s.state} · ${s.elevation.toLocaleString()}′`,
-  href: `/station/${urlTriplet(s.triplet)}`,
+  href: `/?station=${urlTriplet(s.triplet)}`,
   group: "Stations",
   keywords: `${s.name} ${s.state} ${s.triplet}`.toLowerCase(),
 }));

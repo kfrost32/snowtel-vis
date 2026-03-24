@@ -18,6 +18,7 @@ export interface StationCurrentConditions extends Station {
   temp: number | null;
   precipAccum: number | null;
   sweChange1d: number | null;
+  sweChange3d: number | null;
   sweChange7d: number | null;
   lastUpdated: string;
 }

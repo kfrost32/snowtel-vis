@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
 import { useFavorites } from "@/hooks/useFavorites";
 import { theme } from "@/lib/theme";
 import { computeBasinSummaries, computeBasinCentroid } from "@/lib/basins";
-import { getStation } from "@/lib/stations";
+import { getStation, urlTriplet, parseTripletFromUrl } from "@/lib/stations";
 import MapControls from "@/components/MapControls";
 import StationDetailPanel from "@/components/StationDetailPanel";
 import BasinDetailPanel from "@/components/BasinDetailPanel";
@@ -35,9 +36,9 @@ const METRIC_LABELS: Record<string, string> = {
   WTEQ: "SWE",
   WTEQ_PCT: "% of Normal",
   CHANGE_1D: "1-Day Change",
+  CHANGE_3D: "3-Day Change",
   CHANGE_7D: "7-Day Change",
   SNWD: "Snow Depth",
-  DENSITY: "Snow Density",
   PREC: "Season Precip",
   TAVG: "Temperature",
 };
@@ -61,12 +62,7 @@ const METRIC_LEGEND: Record<string, { label: string; color: string }[]> = {
     { label: '35"', color: "#22D3EE" },
     { label: '50"+', color: "#0891B2" },
   ],
-  DENSITY: [
-    { label: "<8%", color: "#93C5FD" },
-    { label: "8–12%", color: "#3B82F6" },
-    { label: "12–18%", color: "#F59E0B" },
-    { label: ">18%", color: "#DC2626" },
-  ],
+  CHANGE_3D: CHANGE_LEGEND,
   TAVG: [
     { label: "<10°", color: "#1D4ED8" },
     { label: "25°", color: "#3B82F6" },
@@ -85,9 +81,11 @@ const StationMap = dynamic(() => import("@/components/StationMap"), {
   ),
 });
 
-export default function HomePage() {
+function HomePageInner() {
   const { stations, loading, error } = useStationList();
   const { favorites, toggleStation, toggleBasin, isStationFav, isBasinFav } = useFavorites();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -110,9 +108,15 @@ export default function HomePage() {
   const [showHuc4, setShowHuc4] = useState(false);
   const [activeOnly, setActiveOnly] = useState(true);
   const [metric, setMetric] = useState("WTEQ");
-  const [selectedTriplet, setSelectedTriplet] = useState<string | null>(null);
-  const [selectedBasinHuc, setSelectedBasinHuc] = useState<string | null>(null);
   const [overlayVisible, setOverlayVisible] = useState(false);
+
+  const selectedTriplet = useMemo(() => {
+    const param = searchParams.get("station");
+    return param ? parseTripletFromUrl(param) : null;
+  }, [searchParams]);
+
+  const selectedBasinHuc = useMemo(() => searchParams.get("basin"), [searchParams]);
+
 
   const filteredStations = useMemo(() => {
     return stations.filter((s) => {
@@ -144,25 +148,27 @@ export default function HomePage() {
   }, [allBasins, selectedBasinHuc]);
 
   const handleStationClick = (triplet: string) => {
-    setSelectedTriplet(triplet);
-    setSelectedBasinHuc(null);
     if (isMobile) setSidebarOpen(false);
-    requestAnimationFrame(() => setOverlayVisible(true));
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("station", urlTriplet(triplet));
+    params.delete("basin");
+    router.replace(`/?${params.toString()}`, { scroll: false });
   };
 
   const handleBasinClick = (huc: string) => {
-    setSelectedBasinHuc(huc);
-    setSelectedTriplet(null);
     if (isMobile) setSidebarOpen(false);
-    requestAnimationFrame(() => setOverlayVisible(true));
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("basin", huc);
+    params.delete("station");
+    router.replace(`/?${params.toString()}`, { scroll: false });
   };
 
   const closeDetailPanel = () => {
-    setOverlayVisible(false);
-    setTimeout(() => {
-      setSelectedTriplet(null);
-      setSelectedBasinHuc(null);
-    }, 200);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("station");
+    params.delete("basin");
+    const qs = params.toString();
+    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
   };
 
   useEffect(() => {
@@ -170,6 +176,14 @@ export default function HomePage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  useEffect(() => {
+    if (selectedTriplet || selectedBasinHuc) {
+      requestAnimationFrame(() => setOverlayVisible(true));
+    } else {
+      setOverlayVisible(false);
+    }
+  }, [selectedTriplet, selectedBasinHuc]);
 
   const hasDetailPanel = selectedTriplet !== null || selectedBasin !== null;
 
@@ -339,7 +353,7 @@ export default function HomePage() {
 
         {hasDetailPanel && (
           <div
-            className="absolute inset-0 pointer-events-none z-20"
+            className={`${isMobile ? "fixed inset-0 z-[60]" : "absolute inset-0 z-20"} pointer-events-none`}
             style={{ left: !isMobile && sidebarOpen ? 320 : 0 }}
           >
             <div
@@ -375,5 +389,13 @@ export default function HomePage() {
         )}
       </div>
     </>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense>
+      <HomePageInner />
+    </Suspense>
   );
 }

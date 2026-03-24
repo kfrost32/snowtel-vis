@@ -4,9 +4,9 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@/lib/types";
-import { getMapMarkerColor, getMetricMapColor, getChangeColor } from "@/lib/colors";
+import { getMapMarkerColor, getMetricMapColor } from "@/lib/colors";
 import { computePolygonCentroid } from "@/lib/basins";
-import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip, formatChange, calcDensity, formatDensity, getDensityLabel } from "@/lib/formatting";
+import { formatSwe, formatPctOfNormal, formatSnowDepth, formatTemp, formatPrecip } from "@/lib/formatting";
 import { urlTriplet } from "@/lib/stations";
 import { prefetchStation } from "@/lib/prefetch";
 import { theme } from "@/lib/theme";
@@ -299,9 +299,6 @@ function StationMapInner({
         const features = map.queryRenderedFeatures(e.point, { layers: ["station-circles"] });
         if (!features.length) return;
         const props = features[0].properties!;
-        const geom = features[0].geometry;
-        if (geom.type !== "Point") return;
-        showPopup(map, geom.coordinates as [number, number], props);
         if (onStationSelectRef.current && props.triplet) {
           onStationSelectRef.current(props.triplet as string);
         }
@@ -337,14 +334,11 @@ function StationMapInner({
       case "WTEQ": return s.swe !== null ? `${s.swe.toFixed(1)}"` : "";
       case "WTEQ_PCT": return s.pctOfNormal !== null ? `${Math.round(s.pctOfNormal)}%` : "";
       case "CHANGE_1D": return fmtChange(s.sweChange1d);
+      case "CHANGE_3D": return fmtChange(s.sweChange3d ?? null);
       case "CHANGE_7D": return fmtChange(s.sweChange7d);
       case "SNWD": return s.snowDepth !== null ? `${Math.round(s.snowDepth)}"` : "";
       case "PREC": return s.precipAccum !== null ? `${Math.round(s.precipAccum)}"` : "";
       case "TAVG": return s.temp !== null ? `${Math.round(s.temp)}°` : "";
-      case "DENSITY": {
-        const d = calcDensity(s.swe, s.snowDepth);
-        return d !== null ? `${d.toFixed(0)}%` : "";
-      }
       default: return "";
     }
   }
@@ -354,7 +348,6 @@ function StationMapInner({
       case "SNWD": return formatSnowDepth(val);
       case "PREC": return formatPrecip(val);
       case "TAVG": return formatTemp(val);
-      case "DENSITY": return formatDensity(val);
       default: return formatSwe(val);
     }
   }
@@ -364,83 +357,12 @@ function StationMapInner({
       case "SNWD": return "Snow Depth";
       case "PREC": return "Precip";
       case "TAVG": return "Temp";
-      case "DENSITY": return "Density";
       default: return "SWE";
     }
   }
 
-  function parseVal(v: unknown): number | null {
-    if (v === null || v === undefined || v === "null") return null;
-    const n = Number(v);
-    return isNaN(n) ? null : n;
-  }
 
-  function showPopup(map: maplibregl.Map, coords: [number, number], props: Record<string, any>) {
-    if (popupRef.current) popupRef.current.remove();
-    const m = metricRef.current;
-    const color = props.color;
-    const swe = parseVal(props.swe);
-    const pctOfNormal = parseVal(props.pctOfNormal);
-    const snowDepth = parseVal(props.snowDepth);
-    const precipAccum = parseVal(props.precipAccum);
-    const temp = parseVal(props.temp);
-    const change1d = parseVal(props.sweChange1d);
-    const change7d = parseVal(props.sweChange7d);
-
-    const statRow = (label: string, val: string, valColor = theme.darkGray) =>
-      `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-top:1px solid ${theme.borderGray};">
-        <span style="font-size:10px;color:${theme.mediumGray};font-family:var(--font-ibm-plex-mono),monospace;">${label}</span>
-        <span style="font-size:11px;font-weight:600;font-family:var(--font-ibm-plex-mono),monospace;color:${valColor};">${val}</span>
-      </div>`;
-
-    let rows = "";
-    if (m === "WTEQ" || m === "WTEQ_PCT") {
-      rows += statRow("SWE", formatSwe(swe));
-      rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal), color);
-      rows += statRow("1-day change", formatChange(change1d), getChangeColor(change1d));
-      rows += statRow("7-day change", formatChange(change7d), getChangeColor(change7d));
-    } else if (m === "CHANGE_1D") {
-      rows += statRow("1-day change", formatChange(change1d), color);
-      rows += statRow("7-day change", formatChange(change7d), getChangeColor(change7d));
-      rows += statRow("SWE", formatSwe(swe));
-      rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal));
-    } else if (m === "CHANGE_7D") {
-      rows += statRow("7-day change", formatChange(change7d), color);
-      rows += statRow("1-day change", formatChange(change1d), getChangeColor(change1d));
-      rows += statRow("SWE", formatSwe(swe));
-      rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal));
-    } else if (m === "SNWD") {
-      rows += statRow("Snow Depth", formatSnowDepth(snowDepth), color);
-      rows += statRow("SWE", formatSwe(swe));
-      rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal));
-    } else if (m === "PREC") {
-      rows += statRow("Season Precip", formatPrecip(precipAccum), color);
-      rows += statRow("SWE", formatSwe(swe));
-      rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal));
-    } else if (m === "DENSITY") {
-      const dens = calcDensity(swe, snowDepth);
-      rows += statRow("Density", formatDensity(dens), color);
-      rows += statRow("Quality", getDensityLabel(dens));
-      rows += statRow("SWE", formatSwe(swe));
-      rows += statRow("Depth", formatSnowDepth(snowDepth));
-    } else {
-      rows += statRow("Temperature", formatTemp(temp), color);
-      rows += statRow("SWE", formatSwe(swe));
-      rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal));
-    }
-
-    const html = `
-      <div style="font-family:var(--font-dm-sans),sans-serif;min-width:200px;">
-        <div style="font-weight:600;font-size:13px;color:${theme.black};margin-bottom:2px;">${props.name}</div>
-        <div style="font-size:10px;color:${theme.mediumGray};margin-bottom:8px;font-family:var(--font-ibm-plex-mono),monospace;">${props.state} · ${formatElevation(Number(props.elevation))}</div>
-        ${rows}
-      </div>
-    `;
-    popupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "260px", offset: 10 })
-      .setLngLat(coords).setHTML(html).addTo(map);
-  }
-
-  // Update station data
+// Update station data
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
@@ -454,7 +376,7 @@ function StationMapInner({
         properties: {
           triplet: s.triplet, name: s.name, state: s.state, elevation: s.elevation,
           swe: s.swe, snowDepth: s.snowDepth, precipAccum: s.precipAccum, temp: s.temp,
-          pctOfNormal: s.pctOfNormal, sweChange1d: s.sweChange1d, sweChange7d: s.sweChange7d,
+          pctOfNormal: s.pctOfNormal, sweChange1d: s.sweChange1d, sweChange3d: s.sweChange3d, sweChange7d: s.sweChange7d,
           color: getMetricMapColor(metric, s),
           label: metricDotLabel(metric, s),
         },
@@ -468,17 +390,6 @@ function StationMapInner({
     const map = mapRef.current;
     if (!map || !flyTo) return;
     map.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: 11, duration: 1500 });
-    map.once("moveend", () => {
-      const station = stationsRef.current.find((s) => s.triplet === flyTo.triplet);
-      if (!station) return;
-      showPopup(map, [station.longitude, station.latitude], {
-        triplet: station.triplet, name: station.name, state: station.state,
-        elevation: station.elevation, swe: station.swe, snowDepth: station.snowDepth,
-        precipAccum: station.precipAccum, temp: station.temp, pctOfNormal: station.pctOfNormal,
-        sweChange1d: station.sweChange1d, sweChange7d: station.sweChange7d,
-        color: getMetricMapColor(metricRef.current, station),
-      });
-    });
   }, [flyTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update HUC-4 layer data

@@ -12,7 +12,7 @@ export default function SidebarChip({ label, active, onClick }: SidebarChipProps
   return (
     <button
       onClick={onClick}
-      className="px-2 py-1 text-[11px] font-mono font-medium rounded-md transition-all duration-150 cursor-pointer"
+      className="px-3 py-1.5 md:px-2 md:py-1 text-[12px] md:text-[11px] font-mono font-medium rounded-md min-h-[36px] md:min-h-0 transition-all duration-150 cursor-pointer"
       style={{
         background: active ? theme.black : theme.lightGray,
         color: active ? theme.white : theme.mediumGray,

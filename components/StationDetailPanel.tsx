@@ -6,8 +6,8 @@ import { theme } from "@/lib/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
 import { getStation } from "@/lib/stations";
-import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip, calcDensity, formatDensity, getDensityLabel } from "@/lib/formatting";
-import { getConditionColor, getConditionLabel, getDensityColor } from "@/lib/colors";
+import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatPrecip } from "@/lib/formatting";
+import { getConditionColor, getConditionLabel, getChangeColor } from "@/lib/colors";
 import InfoTooltip from "@/components/InfoTooltip";
 import { metricDescriptions } from "@/lib/metric-descriptions";
 import { getWaterYearDay } from "@/lib/water-year";
@@ -26,6 +26,27 @@ interface StationDetailPanelProps {
   onStationClick: (triplet: string) => void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+}
+
+function DensityScale({ density }: { density: number }) {
+  const stops = [
+    { pct: 0, color: "#BAE6FD" },
+    { pct: 40, color: "#60A5FA" },
+    { pct: 70, color: "#F59E0B" },
+    { pct: 100, color: "#EF4444" },
+  ];
+  const gradient = `linear-gradient(to right, ${stops.map(s => `${s.color} ${s.pct}%`).join(", ")})`;
+  const MAX_DENSITY = 25;
+  const position = Math.min(Math.max(density / MAX_DENSITY, 0), 1) * 100;
+  return (
+    <div className="mt-1.5 relative" style={{ width: "100%" }}>
+      <div className="h-1.5 rounded-full" style={{ background: gradient }} />
+      <div
+        className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-white shadow-sm"
+        style={{ left: `calc(${position}% - 4px)`, background: "#1E293B" }}
+      />
+    </div>
+  );
 }
 
 export default function StationDetailPanel({ triplet, onClose, onStationClick, isFavorite, onToggleFavorite }: StationDetailPanelProps) {
@@ -96,7 +117,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
             style={{ background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 55%, transparent 100%)" }}
           />
         )}
-        <div className="absolute top-2 right-2 flex items-center gap-1">
+        <div className="absolute top-3 right-3 flex items-center gap-2">
           <button
             onClick={onToggleFavorite}
             className="p-2 rounded-md transition-colors duration-150 cursor-pointer"
@@ -110,10 +131,13 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
           </button>
           <button
             onClick={onClose}
-            className="p-2 rounded-md transition-colors duration-150 cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
             style={{
-              color: imageError ? theme.gray : "rgba(255,255,255,0.8)",
-              background: imageError ? "transparent" : "rgba(0,0,0,0.25)",
+              color: imageError ? theme.darkGray : "rgba(255,255,255,0.9)",
+              background: imageError ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.18)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              border: imageError ? `1px solid ${theme.borderGray}` : "1px solid rgba(255,255,255,0.3)",
             }}
             aria-label="Close panel"
           >
@@ -127,7 +151,9 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[11px] mt-0.5" style={{ color: imageError ? theme.gray : "rgba(255,255,255,0.7)" }}>
             <span className="flex items-center gap-1"><MapPin size={11} /> {station.state}</span>
             <span className="flex items-center gap-1"><Mountain size={11} /> {formatElevation(station.elevation)}</span>
-            <span>{station.latitude.toFixed(4)}°N, {Math.abs(station.longitude).toFixed(4)}°W</span>
+            {current?.lastUpdated && (
+              <span>Updated {new Date(current.lastUpdated + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+            )}
           </div>
         </div>
       </div>
@@ -136,31 +162,54 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
         <div className="overflow-x-auto border-b" style={{ borderColor: theme.borderGray, WebkitOverflowScrolling: "touch" }}>
           <div className="flex items-stretch min-w-min">
             {seasonLoading ? (
-              ["SWE", "% of Normal", "Snow Depth", "Density", "Temp", "Precip"].map((label, i) => (
-                <div key={label} className="flex-1 min-w-[72px] flex flex-col gap-1 px-3 py-2.5" style={{ borderLeft: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}>
+              ["SWE", "% Normal", "Depth", "Density", "Precip", "SWE ∆"].map((label, i) => (
+                <div key={label} className="flex flex-col gap-1 px-3 py-2.5 min-w-[64px]" style={{ borderLeft: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}>
                   <span className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>{label}</span>
-                  <div className="h-4 w-12 rounded animate-pulse" style={{ background: theme.borderGray }} />
+                  <div className="h-4 w-10 rounded animate-pulse" style={{ background: theme.borderGray }} />
                 </div>
               ))
-            ) : current ? (
-              (() => {
-                const density = calcDensity(current.swe, current.snowDepth);
-                return [
-                  { label: "SWE", tip: metricDescriptions.swe, value: formatSwe(current.swe), sub: current.sweNormal !== null ? `nml ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray },
-                  { label: "% Normal", tip: metricDescriptions.pctOfNormal, value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal) },
-                  { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: null, subColor: null },
-                  { label: "Density", tip: metricDescriptions.density, value: formatDensity(density), sub: getDensityLabel(density), subColor: getDensityColor(density) },
-                  { label: "Temp", tip: metricDescriptions.temp, value: formatTemp(current.temp), sub: null, subColor: null },
-                  { label: "Precip", tip: metricDescriptions.precip, value: formatPrecip(current.precipAccum), sub: null, subColor: null },
-                ];
-              })().map((row, i) => (
-                <div key={row.label} className="flex-1 min-w-[72px] flex flex-col px-3 py-2.5" style={{ borderLeft: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}>
-                  <span className="font-mono text-[10px] whitespace-nowrap flex items-center gap-0.5" style={{ color: theme.mediumGray }}>{row.label}<InfoTooltip text={row.tip} size={10} /></span>
-                  <span className="font-mono text-[13px] font-semibold mt-0.5 whitespace-nowrap" style={{ color: theme.black }}>{row.value}</span>
-                  {row.sub && <span className="font-mono text-[10px] mt-0.5 whitespace-nowrap" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>}
-                </div>
-              ))
-            ) : null}
+            ) : current ? (() => {
+              const season = seasonData?.season ?? [];
+              const n = season.length - 1;
+              const change1d = n >= 1 && season[n].swe !== null && season[n - 1].swe !== null ? season[n].swe! - season[n - 1].swe! : null;
+              const deltaSwe = n >= 3 && season[n].swe !== null && season[n - 3].swe !== null ? season[n].swe! - season[n - 3].swe! : null;
+              const change7d = n >= 7 && season[n].swe !== null && season[n - 7].swe !== null ? season[n].swe! - season[n - 7].swe! : null;
+              const deltaDepth = n >= 3 && season[n].snowDepth !== null && season[n - 3].snowDepth !== null ? season[n].snowDepth! - season[n - 3].snowDepth! : null;
+              const newSnowDensity = deltaSwe !== null && deltaSwe > 0.2 && deltaDepth !== null && deltaDepth > 2 ? (deltaSwe / deltaDepth) * 100 : null;
+              const stats = [
+                { label: "SWE", tip: metricDescriptions.swe, value: formatSwe(current.swe), sub: current.sweNormal !== null ? `nml ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray },
+                { label: "% Normal", tip: metricDescriptions.pctOfNormal, value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal) },
+                { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: null, subColor: null },
+                { label: "Density", tip: metricDescriptions.newSnowDensity, value: newSnowDensity !== null ? `${newSnowDensity.toFixed(0)}%` : "—", sub: null, subColor: null },
+                { label: "Precip", tip: metricDescriptions.precip, value: formatPrecip(current.precipAccum), sub: null, subColor: null },
+              ];
+              return (
+                <>
+                  {stats.map((row, i) => (
+                    <div key={row.label} className="flex-1 min-w-[64px] flex flex-col px-3 py-2.5" style={{ borderLeft: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}>
+                      <span className="font-mono text-[10px] whitespace-nowrap flex items-center gap-0.5" style={{ color: theme.mediumGray }}>{row.label}<InfoTooltip text={row.tip} size={10} /></span>
+                      <span className="font-mono text-[13px] font-semibold mt-0.5 whitespace-nowrap" style={{ color: theme.black }}>{row.value}</span>
+                      {row.label === "Density" && row.value !== "—" ? (
+                        <DensityScale density={parseFloat(row.value)} />
+                      ) : row.sub ? (
+                        <span className="font-mono text-[10px] mt-0.5 whitespace-nowrap" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>
+                      ) : null}
+                    </div>
+                  ))}
+                  <div className="flex-1 min-w-[120px] flex flex-col px-3 py-2.5" style={{ borderLeft: `1px solid ${theme.borderGray}` }}>
+                    <span className="font-mono text-[10px] whitespace-nowrap flex items-center gap-0.5" style={{ color: theme.mediumGray }}>SWE ∆ (1/3/7d)<InfoTooltip text="SWE change over 1, 3, and 7 days." size={10} /></span>
+                    <div className="flex items-baseline mt-0.5">
+                      {([change1d, deltaSwe, change7d] as (number | null)[]).map((val, i) => (
+                        <span key={i} className="flex items-baseline">
+                          {i > 0 && <span className="font-mono text-[11px] mx-1" style={{ color: theme.borderGray }}>/</span>}
+                          <span className="font-mono text-[13px] font-semibold whitespace-nowrap" style={{ color: getChangeColor(val) }}>{formatChange(val)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              );
+            })() : null}
           </div>
         </div>
 

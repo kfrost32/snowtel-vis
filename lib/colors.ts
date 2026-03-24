@@ -1,6 +1,5 @@
 import { snowColors } from "./theme";
 import type { ConditionLevel } from "./types";
-import { calcDensity } from "./formatting";
 
 export function getConditionLevel(pctOfNormal: number | null): ConditionLevel {
   if (pctOfNormal === null) return "nearNormal";
@@ -81,20 +80,10 @@ export function getMetricColor(metric: string, value: number | null): string {
     return "#991B1B";
   }
 
-  if (metric === "DENSITY") return getDensityColor(value);
-
   return getMapMarkerColor(value);
 }
 
-export function getDensityColor(density: number | null): string {
-  if (density === null) return "#94A3B8";
-  if (density < 8) return "#93C5FD";
-  if (density <= 12) return "#3B82F6";
-  if (density <= 18) return "#F59E0B";
-  return "#DC2626";
-}
-
-export type MetricKey = "WTEQ" | "SNWD" | "PREC" | "TAVG" | "DENSITY";
+export type MetricKey = "WTEQ" | "SNWD" | "PREC" | "TAVG";
 
 export function getStationMetricValue(
   station: { swe: number | null; snowDepth: number | null; precipAccum: number | null; temp: number | null; pctOfNormal: number | null },
@@ -105,7 +94,6 @@ export function getStationMetricValue(
     case "SNWD": return station.snowDepth;
     case "PREC": return station.precipAccum;
     case "TAVG": return station.temp;
-    case "DENSITY": return calcDensity(station.swe, station.snowDepth);
     default: return station.pctOfNormal;
   }
 }
@@ -119,11 +107,11 @@ export function getChangeColor(v: number | null): string {
   return "#DC2626";
 }
 
-export function getMetricMapColor(metric: string, station: { swe: number | null; snowDepth: number | null; precipAccum: number | null; temp: number | null; pctOfNormal: number | null; sweChange1d?: number | null; sweChange7d?: number | null }): string {
+export function getMetricMapColor(metric: string, station: { swe: number | null; snowDepth: number | null; precipAccum: number | null; temp: number | null; pctOfNormal: number | null; sweChange1d?: number | null; sweChange3d?: number | null; sweChange7d?: number | null }): string {
   if (metric === "WTEQ") return getMapMarkerColor(station.pctOfNormal);
   if (metric === "WTEQ_PCT") return getMapMarkerColor(station.pctOfNormal);
   if (metric === "CHANGE_1D") return getChangeColor(station.sweChange1d ?? null);
+  if (metric === "CHANGE_3D") return getChangeColor(station.sweChange3d ?? null);
   if (metric === "CHANGE_7D") return getChangeColor(station.sweChange7d ?? null);
-  if (metric === "DENSITY") return getDensityColor(calcDensity(station.swe, station.snowDepth));
   return getMetricColor(metric, getStationMetricValue(station, metric));
 }

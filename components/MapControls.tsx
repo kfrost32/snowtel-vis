@@ -8,6 +8,7 @@ const METRICS = [
   { key: "WTEQ", label: "SWE" },
   { key: "WTEQ_PCT", label: "% of Normal" },
   { key: "CHANGE_1D", label: "1-Day Change" },
+  { key: "CHANGE_3D", label: "3-Day Change" },
   { key: "CHANGE_7D", label: "7-Day Change" },
   { key: "SNWD", label: "Snow Depth" },
   { key: "PREC", label: "Season Precip" },
@@ -120,18 +121,18 @@ export default function MapControls({
             placeholder="Min"
             value={elevMin}
             onChange={(e) => onElevMinChange(e.target.value)}
-            className="flex-1 w-full px-2.5 py-1.5 text-[11px] font-mono rounded-lg border outline-none transition-all duration-150"
+            className="flex-1 w-full px-2.5 py-2 md:py-1.5 text-[13px] md:text-[11px] font-mono rounded-lg border outline-none transition-all duration-150"
             style={{ borderColor: theme.borderGray, color: theme.black, background: theme.white }}
             onFocus={(e) => (e.currentTarget.style.borderColor = theme.mediumGray)}
             onBlur={(e) => (e.currentTarget.style.borderColor = theme.borderGray)}
           />
-          <span className="text-[10px] font-sans flex-shrink-0" style={{ color: theme.borderGray }}>to</span>
+          <span className="text-[11px] md:text-[10px] font-sans flex-shrink-0" style={{ color: theme.borderGray }}>to</span>
           <input
             type="number"
             placeholder="Max"
             value={elevMax}
             onChange={(e) => onElevMaxChange(e.target.value)}
-            className="flex-1 w-full px-2.5 py-1.5 text-[11px] font-mono rounded-lg border outline-none transition-all duration-150"
+            className="flex-1 w-full px-2.5 py-2 md:py-1.5 text-[13px] md:text-[11px] font-mono rounded-lg border outline-none transition-all duration-150"
             style={{ borderColor: theme.borderGray, color: theme.black, background: theme.white }}
             onFocus={(e) => (e.currentTarget.style.borderColor = theme.mediumGray)}
             onBlur={(e) => (e.currentTarget.style.borderColor = theme.borderGray)}
