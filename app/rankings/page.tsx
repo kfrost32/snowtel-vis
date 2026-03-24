@@ -11,8 +11,109 @@ import { useStationList } from "@/hooks/useStationList";
 import { median } from "@/lib/basins";
 import type { StationCurrentConditions } from "@/lib/types";
 import SortableTable from "@/components/SortableTable";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Column } from "@/components/SortableTable";
 import ConditionBadge from "@/components/ConditionBadge";
+
+const columns: Column<StationCurrentConditions>[] = [
+  {
+    key: "rank",
+    label: "#",
+    className: "w-10",
+    defaultSortDir: "desc",
+    getValue: (item) => item.pctOfNormal ?? -1,
+    render: (_item, i) => (
+      <span className="font-mono text-xs" style={{ color: theme.mediumGray }}>
+        {(i ?? 0) + 1}
+      </span>
+    ),
+  },
+  {
+    key: "name",
+    label: "Station",
+    defaultSortDir: "asc",
+    className: "min-w-[160px]",
+    getValue: (item) => item.name,
+    render: (item) => (
+      <div className="py-2.5">
+        <div className="font-sans text-sm font-medium" style={{ color: theme.darkGray }}>
+          {item.name}
+        </div>
+        <div className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>
+          {STATE_NAMES[item.state] || item.state}
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: "elevation",
+    label: "Elev",
+    align: "right",
+    defaultSortDir: "desc",
+    getValue: (item) => item.elevation,
+    render: (item) => (
+      <span className="font-mono text-sm" style={{ color: theme.darkGray }}>
+        {formatElevation(item.elevation)}
+      </span>
+    ),
+  },
+  {
+    key: "swe",
+    label: "SWE",
+    align: "right",
+    defaultSortDir: "desc",
+    getValue: (item) => item.swe ?? -1,
+    render: (item) => (
+      <span className="font-mono text-sm" style={{ color: theme.darkGray }}>
+        {formatSwe(item.swe)}
+      </span>
+    ),
+  },
+  {
+    key: "pctOfNormal",
+    label: "% Normal",
+    align: "right",
+    defaultSortDir: "desc",
+    getValue: (item) => item.pctOfNormal ?? -1,
+    render: (item) => (
+      <div className="flex items-center justify-end gap-2">
+        <span className="font-mono text-sm" style={{ color: theme.darkGray }}>
+          {formatPctOfNormal(item.pctOfNormal)}
+        </span>
+        <ConditionBadge pctOfNormal={item.pctOfNormal} size="small" />
+      </div>
+    ),
+  },
+  {
+    key: "snowDepth",
+    label: "Depth",
+    align: "right",
+    defaultSortDir: "desc",
+    getValue: (item) => item.snowDepth ?? -1,
+    render: (item) => (
+      <span className="font-mono text-sm" style={{ color: theme.darkGray }}>
+        {formatSnowDepth(item.snowDepth)}
+      </span>
+    ),
+  },
+  {
+    key: "sweChange7d",
+    label: "7d Change",
+    align: "right",
+    defaultSortDir: "desc",
+    getValue: (item) => item.sweChange7d ?? 0,
+    render: (item) => {
+      const val = item.sweChange7d;
+      const color =
+        val === null ? theme.mediumGray : val > 0 ? snowColors.above : val < 0 ? snowColors.wellBelow : theme.darkGray;
+      return (
+        <span className="font-mono text-sm" style={{ color }}>
+          {formatChange(val)}
+        </span>
+      );
+    },
+  },
+];
 
 function StateFilter({
   selected,
@@ -93,123 +194,8 @@ export default function RankingsPage() {
 
   const hasFilters = search !== "" || selectedStates.size > 0;
 
-  const columns: Column<StationCurrentConditions>[] = useMemo(
-    () => [
-      {
-        key: "rank",
-        label: "#",
-        className: "w-10",
-        defaultSortDir: "desc",
-        getValue: (item) => item.pctOfNormal ?? -1,
-        render: (_item, i) => (
-          <span className="font-mono text-xs" style={{ color: theme.mediumGray }}>
-            {(i ?? 0) + 1}
-          </span>
-        ),
-      },
-      {
-        key: "name",
-        label: "Station",
-        defaultSortDir: "asc",
-        className: "min-w-[160px]",
-        getValue: (item) => item.name,
-        render: (item) => (
-          <div className="py-2.5">
-            <div className="font-sans text-sm font-medium" style={{ color: theme.darkGray }}>
-              {item.name}
-            </div>
-            <div className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>
-              {STATE_NAMES[item.state] || item.state}
-            </div>
-          </div>
-        ),
-      },
-      {
-        key: "elevation",
-        label: "Elev",
-        align: "right",
-        defaultSortDir: "desc",
-        getValue: (item) => item.elevation,
-        render: (item) => (
-          <span className="font-mono text-sm" style={{ color: theme.darkGray }}>
-            {formatElevation(item.elevation)}
-          </span>
-        ),
-      },
-      {
-        key: "swe",
-        label: "SWE",
-        align: "right",
-        defaultSortDir: "desc",
-        getValue: (item) => item.swe ?? -1,
-        render: (item) => (
-          <span className="font-mono text-sm" style={{ color: theme.darkGray }}>
-            {formatSwe(item.swe)}
-          </span>
-        ),
-      },
-      {
-        key: "pctOfNormal",
-        label: "% Normal",
-        align: "right",
-        defaultSortDir: "desc",
-        getValue: (item) => item.pctOfNormal ?? -1,
-        render: (item) => (
-          <div className="flex items-center justify-end gap-2">
-            <span className="font-mono text-sm" style={{ color: theme.darkGray }}>
-              {formatPctOfNormal(item.pctOfNormal)}
-            </span>
-            <ConditionBadge pctOfNormal={item.pctOfNormal} size="small" />
-          </div>
-        ),
-      },
-      {
-        key: "snowDepth",
-        label: "Depth",
-        align: "right",
-        defaultSortDir: "desc",
-        getValue: (item) => item.snowDepth ?? -1,
-        render: (item) => (
-          <span className="font-mono text-sm" style={{ color: theme.darkGray }}>
-            {formatSnowDepth(item.snowDepth)}
-          </span>
-        ),
-      },
-      {
-        key: "sweChange7d",
-        label: "7d Change",
-        align: "right",
-        defaultSortDir: "desc",
-        getValue: (item) => item.sweChange7d ?? 0,
-        render: (item) => {
-          const val = item.sweChange7d;
-          const color =
-            val === null ? theme.mediumGray : val > 0 ? snowColors.above : val < 0 ? snowColors.wellBelow : theme.darkGray;
-          return (
-            <span className="font-mono text-sm" style={{ color }}>
-              {formatChange(val)}
-            </span>
-          );
-        },
-      },
-    ],
-    []
-  );
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div
-            className="inline-block w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mb-4"
-            style={{ borderColor: snowColors.swe, borderTopColor: "transparent" }}
-          />
-          <p className="font-mono text-sm" style={{ color: theme.gray }}>
-            Loading stations...
-          </p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading stations..." fullScreen />;
   }
 
   return (

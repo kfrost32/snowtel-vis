@@ -26,9 +26,22 @@ interface ChartPoint {
   sweMedian: number | null;
 }
 
-function CustomTooltip({ active, payload }: any) {
+interface TooltipPayloadEntry {
+  value: number;
+  name: string;
+  stroke?: string;
+  color?: string;
+  payload: ChartPoint;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+}
+
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
-  const point = payload[0]?.payload as ChartPoint;
+  const point = payload[0]?.payload;
   if (!point) return null;
 
   const date = new Date(point.date + "T00:00:00");

@@ -26,9 +26,19 @@ interface ChartBar {
   aboveAvg: boolean;
 }
 
-function CustomTooltip({ active, payload }: any) {
+interface TooltipPayloadEntry {
+  value: number;
+  payload: ChartBar;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+}
+
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
-  const bar = payload[0]?.payload as ChartBar;
+  const bar = payload[0]?.payload;
   if (!bar) return null;
 
   return (

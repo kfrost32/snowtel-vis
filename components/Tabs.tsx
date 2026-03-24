@@ -19,10 +19,12 @@ export default function Tabs({ tabs, activeTab, onChange, controls }: TabsProps)
   return (
     <div className="border-b overflow-x-auto overflow-y-hidden" style={{ borderColor: theme.borderGray }}>
       <div className="px-4 sm:px-6 flex items-center min-w-max">
-        <div className="flex gap-1">
+        <div className="flex gap-1" role="tablist">
           {tabs.map((tab) => (
             <button
               key={tab.key}
+              role="tab"
+              aria-selected={activeTab === tab.key}
               onClick={() => onChange(tab.key)}
               className="px-3 py-3 sm:px-4 text-xs sm:text-sm font-medium transition-colors duration-150 whitespace-nowrap font-sans min-h-[44px] cursor-pointer"
               style={{

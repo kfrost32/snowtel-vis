@@ -78,6 +78,7 @@ export default function SortableTable<T>({
                   className={`py-3 text-xs font-medium tracking-wider font-mono cursor-pointer select-none hover:opacity-70 ${col.align === "right" ? "text-right" : "text-left"} ${col.className || ""}`}
                   style={{ color: isActive ? theme.black : theme.gray }}
                   onClick={() => handleSort(col.key)}
+                  aria-sort={isActive ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
                 >
                   <div className={`flex items-center gap-1 ${col.align === "right" ? "justify-end" : ""}`}>
                     {col.label}

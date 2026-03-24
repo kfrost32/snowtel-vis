@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { X, MapPin, Mountain } from "lucide-react";
-import { theme, snowColors } from "@/lib/theme";
+import { theme } from "@/lib/theme";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { getStation, getAllStations } from "@/lib/stations";
 import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip } from "@/lib/formatting";
 import { getConditionColor, getConditionLabel } from "@/lib/colors";
@@ -10,8 +11,6 @@ import { findNearestStations } from "@/lib/geo";
 import { useSeasonData } from "@/hooks/useSeasonData";
 import { useHistoricalData } from "@/hooks/useHistoricalData";
 import { useEnvelopeData } from "@/hooks/useEnvelopeData";
-import StatCard from "@/components/StatCard";
-import ConditionBadge from "@/components/ConditionBadge";
 import ChartCard from "@/components/ChartCard";
 import SeasonChart from "@/components/SeasonChart";
 import PeakSweChart from "@/components/PeakSweChart";
@@ -25,6 +24,10 @@ interface StationDetailPanelProps {
 
 export default function StationDetailPanel({ triplet, onClose, onStationClick }: StationDetailPanelProps) {
   const station = getStation(triplet);
+  const stationId = triplet.split(/[:-]/)[0];
+  const imageUrl = `https://www.wcc.nrcs.usda.gov/siteimages/${stationId}.jpg`;
+  const [imageError, setImageError] = useState(false);
+  useEffect(() => { setImageError(false); }, [triplet]);
   const { data: seasonData, loading: seasonLoading } = useSeasonData(triplet);
   const { data: historicalData, loading: historicalLoading } = useHistoricalData(triplet);
   const { data: envelopeData, loading: envelopeLoading } = useEnvelopeData(triplet);
@@ -38,7 +41,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick }:
   if (!station) {
     return (
       <div
-        className="w-[400px] h-full flex items-center justify-center border-l"
+        className="w-full h-full flex items-center justify-center"
         style={{ background: theme.white, borderColor: theme.borderGray }}
       >
         <p className="font-mono text-sm" style={{ color: theme.gray }}>
@@ -49,106 +52,102 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick }:
   }
 
   if (seasonLoading) {
-    return (
-      <div
-        className="w-[400px] h-full flex items-center justify-center border-l"
-        style={{ background: theme.white, borderColor: theme.borderGray }}
-      >
-        <div className="text-center">
-          <div
-            className="inline-block w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mb-3"
-            style={{ borderColor: snowColors.swe, borderTopColor: "transparent" }}
-          />
-          <p className="font-mono text-xs" style={{ color: theme.gray }}>
-            Loading station data...
-          </p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading station data..." />;
   }
 
   const current = seasonData?.current;
 
   return (
     <div
-      className="w-[400px] h-full flex flex-col border-l"
-      style={{ background: theme.white, borderColor: theme.borderGray }}
+      className="w-full h-full flex flex-col overflow-hidden"
+      style={{ background: theme.white }}
     >
       <div
-        className="shrink-0 flex items-start justify-between gap-3 px-4 pt-4 pb-3 border-b"
-        style={{ borderColor: theme.borderGray }}
+        className="shrink-0 relative flex flex-col justify-end border-b overflow-hidden"
+        style={{
+          minHeight: imageError ? undefined : 160,
+          borderColor: theme.borderGray,
+          background: imageError ? theme.white : theme.black,
+        }}
       >
-        <div className="min-w-0">
-          <h2
-            className="text-lg font-semibold tracking-tight font-sans truncate"
-            style={{ color: theme.black }}
-          >
-            {station.name}
-          </h2>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[11px] mt-1" style={{ color: theme.gray }}>
-            <span className="flex items-center gap-1">
-              <MapPin size={11} /> {station.state}
-            </span>
-            <span className="flex items-center gap-1">
-              <Mountain size={11} /> {formatElevation(station.elevation)}
-            </span>
-            <span>
-              {station.latitude.toFixed(4)}°N, {Math.abs(station.longitude).toFixed(4)}°W
-            </span>
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="shrink-0 p-1 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer"
-          style={{ color: theme.gray }}
-          aria-label="Close panel"
+        {!imageError && (
+          <img
+            src={imageUrl}
+            alt={`${station.name} site photo`}
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ display: "block", opacity: 0.72 }}
+            onError={() => setImageError(true)}
+          />
+        )}
+        {!imageError && (
+          <div
+            className="absolute inset-0"
+            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 55%, transparent 100%)" }}
+          />
+        )}
+        <div
+          className="relative flex items-end justify-between gap-3 px-4 pt-10 pb-3"
         >
-          <X size={18} />
-        </button>
+          <div className="min-w-0">
+            <h2
+              className="text-lg font-semibold tracking-tight font-sans truncate"
+              style={{ color: imageError ? theme.black : "#FFFFFF" }}
+            >
+              {station.name}
+            </h2>
+            <div
+              className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[11px] mt-0.5"
+              style={{ color: imageError ? theme.gray : "rgba(255,255,255,0.7)" }}
+            >
+              <span className="flex items-center gap-1">
+                <MapPin size={11} /> {station.state}
+              </span>
+              <span className="flex items-center gap-1">
+                <Mountain size={11} /> {formatElevation(station.elevation)}
+              </span>
+              <span>
+                {station.latitude.toFixed(4)}°N, {Math.abs(station.longitude).toFixed(4)}°W
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="shrink-0 p-1 rounded-md transition-colors duration-150 cursor-pointer"
+            style={{
+              color: imageError ? theme.gray : "rgba(255,255,255,0.8)",
+              background: imageError ? "transparent" : "rgba(0,0,0,0.25)",
+            }}
+            aria-label="Close panel"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {current && (
-          <div className="px-4 pt-4 pb-2">
-            <h3 className="font-mono text-[11px] uppercase tracking-wide mb-2" style={{ color: theme.mediumGray }}>
-              Current Conditions
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              <StatCard
-                label="SWE"
-                value={formatSwe(current.swe)}
-                size="small"
-                subtitle={current.sweNormal !== null ? {
-                  text: `Normal: ${formatSwe(current.sweNormal)}`,
-                  color: theme.gray,
-                } : undefined}
-              />
-              <StatCard
-                label="Snow Depth"
-                value={formatSnowDepth(current.snowDepth)}
-                size="small"
-              />
-              <StatCard
-                label="% of Normal"
-                value={formatPctOfNormal(current.pctOfNormal)}
-                size="small"
-                subtitle={{
-                  text: getConditionLabel(current.pctOfNormal),
-                  color: getConditionColor(current.pctOfNormal),
-                }}
-                labelAdornment={<ConditionBadge pctOfNormal={current.pctOfNormal} size="small" />}
-              />
-              <StatCard
-                label="Temperature"
-                value={formatTemp(current.temp)}
-                size="small"
-              />
-              <StatCard
-                label="Season Precip"
-                value={formatPrecip(current.precipAccum)}
-                size="small"
-              />
-            </div>
+          <div className="border-b" style={{ borderColor: theme.borderGray }}>
+            {[
+              { label: "SWE", value: formatSwe(current.swe), sub: current.sweNormal !== null ? `Normal ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray },
+              { label: "% of Normal", value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal) },
+              { label: "Snow Depth", value: formatSnowDepth(current.snowDepth), sub: null, subColor: null },
+              { label: "Temperature", value: formatTemp(current.temp), sub: null, subColor: null },
+              { label: "Season Precip", value: formatPrecip(current.precipAccum), sub: null, subColor: null },
+            ].map((row, i) => (
+              <div
+                key={row.label}
+                className="flex items-center justify-between px-4 py-2"
+                style={{ borderTop: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}
+              >
+                <span className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>{row.label}</span>
+                <div className="text-right">
+                  <span className="font-mono text-[13px] font-semibold" style={{ color: theme.black }}>{row.value}</span>
+                  {row.sub && (
+                    <span className="font-mono text-[10px] ml-2" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -161,16 +160,13 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick }:
         )}
 
         <div className="px-4 pt-4">
-          <ChartCard title="Historical Range" height={280} exportable={false}>
+          <ChartCard title={`Historical Range — ${station.name}`} height={300} exportable={false}>
             {envelopeLoading ? (
               <div className="flex items-center justify-center h-full">
-                <div
-                  className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
-                  style={{ borderColor: snowColors.swe, borderTopColor: "transparent" }}
-                />
+                <LoadingSpinner />
               </div>
             ) : envelopeData ? (
-              <EnvelopeChart data={envelopeData} />
+              <EnvelopeChart data={envelopeData} stationName={station.name} />
             ) : (
               <div className="flex items-center justify-center h-full font-mono text-xs" style={{ color: theme.mediumGray }}>
                 No historical data available
@@ -183,10 +179,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick }:
           <ChartCard title="Peak SWE by Year" height={220} exportable={false}>
             {historicalLoading ? (
               <div className="flex items-center justify-center h-full">
-                <div
-                  className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
-                  style={{ borderColor: snowColors.swe, borderTopColor: "transparent" }}
-                />
+                <LoadingSpinner />
               </div>
             ) : (
               <PeakSweChart data={historicalData} />

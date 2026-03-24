@@ -107,9 +107,19 @@ export default function CommandSearch() {
     else if (e.key === "Enter" && filtered[selectedIndex]) { e.preventDefault(); navigate(filtered[selectedIndex].href); }
   };
 
-  if (!open) return null;
+  // Build a flat index map before render to avoid mutating variables during render
+  const itemIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    let i = 0;
+    for (const items of grouped.values()) {
+      for (const item of items) {
+        map.set(item.href, i++);
+      }
+    }
+    return map;
+  }, [grouped]);
 
-  let flatIndex = -1;
+  if (!open) return null;
 
   return (
     <div
@@ -162,9 +172,8 @@ export default function CommandSearch() {
                   {group}
                 </div>
                 {items.map((item) => {
-                  flatIndex++;
-                  const isSelected = flatIndex === selectedIndex;
-                  const idx = flatIndex;
+                  const idx = itemIndexMap.get(item.href) ?? 0;
+                  const isSelected = idx === selectedIndex;
                   return (
                     <button
                       key={item.href}

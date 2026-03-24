@@ -22,6 +22,7 @@ import { useSeasonData } from "@/hooks/useSeasonData";
 import type { StationSeasonData } from "@/lib/types";
 import ChartCard from "@/components/ChartCard";
 import ConditionBadge from "@/components/ConditionBadge";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const MAX_STATIONS = 5;
 
@@ -351,12 +352,7 @@ function CompareContent() {
               height={350}
             >
               {anyLoading ? (
-                <div className="h-full flex items-center justify-center">
-                  <div
-                    className="inline-block w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
-                    style={{ borderColor: snowColors.swe, borderTopColor: "transparent" }}
-                  />
-                </div>
+                <LoadingSpinner />
               ) : chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
@@ -429,19 +425,7 @@ function CompareContent() {
 export default function ComparePage() {
   return (
     <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div
-              className="inline-block w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mb-4"
-              style={{ borderColor: snowColors.swe, borderTopColor: "transparent" }}
-            />
-            <p className="font-mono text-sm" style={{ color: theme.gray }}>
-              Loading...
-            </p>
-          </div>
-        </div>
-      }
+      fallback={<LoadingSpinner message="Loading..." fullScreen />}
     >
       <CompareContent />
     </Suspense>

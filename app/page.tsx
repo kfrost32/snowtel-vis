@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
-import { getMapMarkerColor, getMetricMapColor } from "@/lib/colors";
-import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip } from "@/lib/formatting";
 import { theme } from "@/lib/theme";
 import { computeBasinSummaries, computeBasinCentroid } from "@/lib/basins";
 import { getStation } from "@/lib/stations";
@@ -14,6 +12,37 @@ import StationDetailPanel from "@/components/StationDetailPanel";
 import BasinDetailPanel from "@/components/BasinDetailPanel";
 import type { BasinMarker } from "@/components/StationMap";
 import type { BasinSummary } from "@/lib/types";
+
+const METRIC_LEGEND: Record<string, { label: string; color: string }[]> = {
+  WTEQ: [
+    { label: "<50%", color: "#DC2626" },
+    { label: "50–75%", color: "#F59E0B" },
+    { label: "75–110%", color: "#22C55E" },
+    { label: "110–150%", color: "#3B82F6" },
+    { label: ">150%", color: "#1D4ED8" },
+  ],
+  SNWD: [
+    { label: '0"', color: "#CBD5E1" },
+    { label: "1'", color: "#C4B5FD" },
+    { label: "3'", color: "#A78BFA" },
+    { label: "6'", color: "#8B5CF6" },
+    { label: "10'+", color: "#6D28D9" },
+  ],
+  PREC: [
+    { label: '0"', color: "#CBD5E1" },
+    { label: '10"', color: "#A5F3FC" },
+    { label: '20"', color: "#67E8F9" },
+    { label: '35"', color: "#22D3EE" },
+    { label: '50"+', color: "#0891B2" },
+  ],
+  TOBS: [
+    { label: "<10°", color: "#1D4ED8" },
+    { label: "25°", color: "#3B82F6" },
+    { label: "32°", color: "#93C5FD" },
+    { label: "40°", color: "#FDE68A" },
+    { label: "55°+", color: "#EF4444" },
+  ],
+};
 
 const StationMap = dynamic(() => import("@/components/StationMap"), {
   ssr: false,
@@ -30,55 +59,44 @@ export default function HomePage() {
   const [selectedStates, setSelectedStates] = useState<Set<string>>(new Set());
   const [elevMin, setElevMin] = useState("");
   const [elevMax, setElevMax] = useState("");
-  const [visibleTriplets, setVisibleTriplets] = useState<Set<string>>(new Set());
   const [flyTo, setFlyTo] = useState<{ lng: number; lat: number; triplet: string } | null>(null);
-  const [viewMode, setViewMode] = useState<"stations" | "basins">("stations");
-  const [basinLevel, setBasinLevel] = useState<2 | 4>(2);
+  const [showStations, setShowStations] = useState(true);
+  const [showHuc2, setShowHuc2] = useState(false);
+  const [showHuc4, setShowHuc4] = useState(false);
+  const [activeOnly, setActiveOnly] = useState(false);
   const [metric, setMetric] = useState("WTEQ");
   const [selectedTriplet, setSelectedTriplet] = useState<string | null>(null);
   const [selectedBasinHuc, setSelectedBasinHuc] = useState<string | null>(null);
+  const [panelExpanded, setPanelExpanded] = useState(false);
 
   const filteredStations = useMemo(() => {
     return stations.filter((s) => {
       if (selectedStates.size > 0 && !selectedStates.has(s.state)) return false;
       if (elevMin && s.elevation < Number(elevMin)) return false;
       if (elevMax && s.elevation > Number(elevMax)) return false;
+      if (activeOnly && s.swe === null) return false;
       return true;
     });
-  }, [stations, selectedStates, elevMin, elevMax]);
+  }, [stations, selectedStates, elevMin, elevMax, activeOnly]);
 
-  const visibleFilteredStations = useMemo(() => {
-    if (visibleTriplets.size === 0) return filteredStations;
-    return filteredStations.filter((s) => visibleTriplets.has(s.triplet));
-  }, [filteredStations, visibleTriplets]);
+  const huc2Basins = useMemo(() => (!stations.length ? [] : computeBasinSummaries(stations, 2)), [stations]);
+  const huc4Basins = useMemo(() => (!stations.length ? [] : computeBasinSummaries(stations, 4)), [stations]);
 
-  const basins = useMemo(() => {
-    if (!stations.length) return [];
-    return computeBasinSummaries(stations, basinLevel);
-  }, [stations, basinLevel]);
-
-  const basinMarkers: BasinMarker[] = useMemo(() => {
-    return basins.map((b) => {
+  const toMarkers = (basins: ReturnType<typeof computeBasinSummaries>): BasinMarker[] =>
+    basins.map((b) => {
       const centroid = computeBasinCentroid(b.stations);
-      return {
-        huc: b.huc,
-        name: b.name,
-        latitude: centroid.latitude,
-        longitude: centroid.longitude,
-        medianPctOfNormal: b.medianPctOfNormal,
-        stationCount: b.stationCount,
-      };
+      return { huc: b.huc, name: b.name, latitude: centroid.latitude, longitude: centroid.longitude, medianPctOfNormal: b.medianPctOfNormal, stationCount: b.stationCount };
     });
-  }, [basins]);
+
+  const huc2Markers = useMemo(() => toMarkers(huc2Basins), [huc2Basins]);
+  const huc4Markers = useMemo(() => toMarkers(huc4Basins), [huc4Basins]);
+
+  const allBasins = useMemo(() => [...huc2Basins, ...huc4Basins], [huc2Basins, huc4Basins]);
 
   const selectedBasin: BasinSummary | null = useMemo(() => {
     if (!selectedBasinHuc) return null;
-    return basins.find((b) => b.huc === selectedBasinHuc) || null;
-  }, [basins, selectedBasinHuc]);
-
-  const handleVisibleStationsChange = useCallback((triplets: Set<string>) => {
-    setVisibleTriplets(triplets);
-  }, []);
+    return allBasins.find((b) => b.huc === selectedBasinHuc) || null;
+  }, [allBasins, selectedBasinHuc]);
 
   const handleStationClick = (triplet: string) => {
     const station = getStation(triplet);
@@ -89,24 +107,12 @@ export default function HomePage() {
     setSelectedBasinHuc(null);
   };
 
-  const handleStationListClick = (s: (typeof stations)[0]) => {
-    setFlyTo({ lng: s.longitude, lat: s.latitude, triplet: s.triplet });
-    setSelectedTriplet(s.triplet);
-    setSelectedBasinHuc(null);
-  };
-
   const handleBasinClick = (huc: string) => {
-    const marker = basinMarkers.find((b) => b.huc === huc);
+    const marker = [...huc2Markers, ...huc4Markers].find((b) => b.huc === huc);
     if (marker) {
       setFlyTo({ lng: marker.longitude, lat: marker.latitude, triplet: huc });
     }
     setSelectedBasinHuc(huc);
-    setSelectedTriplet(null);
-  };
-
-  const handleBasinListClick = (b: BasinMarker) => {
-    setFlyTo({ lng: b.longitude, lat: b.latitude, triplet: b.huc });
-    setSelectedBasinHuc(b.huc);
     setSelectedTriplet(null);
   };
 
@@ -140,9 +146,7 @@ export default function HomePage() {
               style={{ borderColor: theme.borderGray }}
             >
               <div className="text-xs font-mono" style={{ color: theme.mediumGray }}>
-                {viewMode === "stations"
-                  ? `${visibleFilteredStations.length} of ${filteredStations.length} visible`
-                  : `${basinMarkers.length} basins`}
+                {`${filteredStations.length} stations`}
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -153,14 +157,18 @@ export default function HomePage() {
               </button>
             </div>
 
-            <div className="flex-shrink-0 border-b" style={{ borderColor: theme.borderGray }}>
+            <div className="flex-shrink-0" style={{ borderColor: theme.borderGray }}>
               <MapControls
                 metric={metric}
                 onMetricChange={setMetric}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-                basinLevel={basinLevel}
-                onBasinLevelChange={setBasinLevel}
+                showStations={showStations}
+                onShowStationsChange={setShowStations}
+                showHuc2={showHuc2}
+                onShowHuc2Change={setShowHuc2}
+                showHuc4={showHuc4}
+                onShowHuc4Change={setShowHuc4}
+                activeOnly={activeOnly}
+                onActiveOnlyChange={setActiveOnly}
                 selectedStates={selectedStates}
                 onStatesChange={setSelectedStates}
                 elevMin={elevMin}
@@ -170,101 +178,6 @@ export default function HomePage() {
               />
             </div>
 
-            <div className="flex-1 overflow-y-auto min-h-0">
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="animate-spin" size={20} style={{ color: theme.mediumGray }} />
-                </div>
-              ) : error ? (
-                <div className="px-4 py-8 text-center text-xs font-sans" style={{ color: theme.mediumGray }}>
-                  Failed to load data
-                </div>
-              ) : viewMode === "basins" ? (
-                <div>
-                  {basinMarkers
-                    .slice()
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((b) => (
-                    <button
-                      key={b.huc}
-                      onClick={() => handleBasinListClick(b)}
-                      className="w-full text-left px-4 py-2.5 border-b flex items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer"
-                      style={{
-                        borderColor: theme.borderGray,
-                        background: selectedBasinHuc === b.huc ? theme.lightGray : undefined,
-                      }}
-                    >
-                      <div
-                        className="flex-shrink-0 w-2.5 h-2.5 rounded-full"
-                        style={{ background: getMapMarkerColor(b.medianPctOfNormal) }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold font-sans truncate" style={{ color: theme.black }}>
-                          {b.name}
-                        </div>
-                        <div className="text-[10px] font-mono" style={{ color: theme.mediumGray }}>
-                          {b.stationCount} stations
-                        </div>
-                      </div>
-                      <div
-                        className="flex-shrink-0 text-xs font-mono font-semibold"
-                        style={{ color: getMapMarkerColor(b.medianPctOfNormal) }}
-                      >
-                        {formatPctOfNormal(b.medianPctOfNormal)}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : visibleFilteredStations.length === 0 ? (
-                <div className="px-4 py-8 text-center text-xs font-sans" style={{ color: theme.mediumGray }}>
-                  No stations in view
-                </div>
-              ) : (
-                <div>
-                  {visibleFilteredStations
-                    .slice()
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((s) => (
-                    <button
-                      key={s.triplet}
-                      onClick={() => handleStationListClick(s)}
-                      className="w-full text-left px-4 py-2.5 border-b flex items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer"
-                      style={{
-                        borderColor: theme.borderGray,
-                        background: selectedTriplet === s.triplet ? theme.lightGray : undefined,
-                      }}
-                    >
-                      <div
-                        className="flex-shrink-0 w-2.5 h-2.5 rounded-full"
-                        style={{ background: getMetricMapColor(metric, s) }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold font-sans truncate" style={{ color: theme.black }}>
-                          {s.name}
-                        </div>
-                        <div className="text-[10px] font-mono" style={{ color: theme.mediumGray }}>
-                          {s.state} · {formatElevation(s.elevation)}
-                        </div>
-                      </div>
-                      <div className="flex-shrink-0 text-right">
-                        <div className="text-xs font-mono font-semibold" style={{ color: theme.black }}>
-                          {metric === "SNWD" ? formatSnowDepth(s.snowDepth)
-                            : metric === "PREC" ? formatPrecip(s.precipAccum)
-                            : metric === "TAVG" ? formatTemp(s.temp)
-                            : formatSwe(s.swe)}
-                        </div>
-                        <div
-                          className="text-[10px] font-mono font-medium"
-                          style={{ color: getMetricMapColor(metric, s) }}
-                        >
-                          {metric === "WTEQ" ? formatPctOfNormal(s.pctOfNormal) : ""}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         )}
 
@@ -290,11 +203,12 @@ export default function HomePage() {
           ) : (
             <StationMap
               stations={filteredStations}
-              onVisibleStationsChange={handleVisibleStationsChange}
               flyTo={flyTo}
-              basinMarkers={basinMarkers}
-              viewMode={viewMode}
-              basinLevel={basinLevel}
+              huc2Markers={huc2Markers}
+              huc4Markers={huc4Markers}
+              showStations={showStations}
+              showHuc2={showHuc2}
+              showHuc4={showHuc4}
               metric={metric}
               onStationSelect={handleStationClick}
               onBasinSelect={handleBasinClick}
@@ -310,31 +224,7 @@ export default function HomePage() {
             }}
           >
             <div className="flex items-center gap-3 flex-wrap">
-              {(metric === "WTEQ" ? [
-                { label: "<50%", color: "#DC2626" },
-                { label: "50–75%", color: "#F59E0B" },
-                { label: "75–110%", color: "#22C55E" },
-                { label: "110–150%", color: "#3B82F6" },
-                { label: ">150%", color: "#1D4ED8" },
-              ] : metric === "SNWD" ? [
-                { label: '0"', color: "#CBD5E1" },
-                { label: '1\'', color: "#C4B5FD" },
-                { label: '3\'', color: "#A78BFA" },
-                { label: '6\'', color: "#8B5CF6" },
-                { label: '10\'+', color: "#6D28D9" },
-              ] : metric === "PREC" ? [
-                { label: '0"', color: "#CBD5E1" },
-                { label: '10"', color: "#A5F3FC" },
-                { label: '20"', color: "#67E8F9" },
-                { label: '35"', color: "#22D3EE" },
-                { label: '50"+', color: "#0891B2" },
-              ] : [
-                { label: "<10°", color: "#1D4ED8" },
-                { label: "25°", color: "#3B82F6" },
-                { label: "32°", color: "#93C5FD" },
-                { label: "40°", color: "#FDE68A" },
-                { label: "55°+", color: "#EF4444" },
-              ]).map(({ label, color }) => (
+              {(METRIC_LEGEND[metric] ?? METRIC_LEGEND.TOBS).map(({ label, color }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
                   <span className="text-[10px] font-mono" style={{ color: theme.gray }}>
@@ -348,13 +238,25 @@ export default function HomePage() {
 
         {hasDetailPanel && (
           <div
-            className="flex-shrink-0 flex flex-col border-l overflow-hidden z-10"
+            className="flex-shrink-0 flex flex-col border-l overflow-hidden z-10 relative transition-[width] duration-200"
             style={{
-              width: 400,
+              width: panelExpanded ? 800 : 520,
               borderColor: theme.borderGray,
               background: theme.white,
             }}
           >
+            <button
+              onClick={() => setPanelExpanded(!panelExpanded)}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full z-20 flex items-center justify-center w-6 h-12 rounded-l-md shadow-md cursor-pointer"
+              style={{ background: theme.white, border: `1px solid ${theme.borderGray}`, borderRight: "none" }}
+              aria-label={panelExpanded ? "Collapse panel" : "Expand panel"}
+            >
+              {panelExpanded ? (
+                <ChevronRight size={14} style={{ color: theme.gray }} />
+              ) : (
+                <ChevronLeft size={14} style={{ color: theme.gray }} />
+              )}
+            </button>
             {selectedTriplet ? (
               <StationDetailPanel
                 triplet={selectedTriplet}

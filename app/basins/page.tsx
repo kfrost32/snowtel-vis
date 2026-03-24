@@ -17,6 +17,7 @@ import SortableTable from "@/components/SortableTable";
 import type { Column } from "@/components/SortableTable";
 import PercentOfNormalGauge from "@/components/PercentOfNormalGauge";
 import ConditionBadge from "@/components/ConditionBadge";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const HUC_TABS = [
   { key: "2", label: "Major Basins (HUC-2)" },
@@ -243,22 +244,7 @@ export default function BasinsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div
-            className="inline-block w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mb-4"
-            style={{
-              borderColor: snowColors.swe,
-              borderTopColor: "transparent",
-            }}
-          />
-          <p className="font-mono text-sm" style={{ color: theme.gray }}>
-            Loading basin data...
-          </p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading basin data..." fullScreen />;
   }
 
   return (

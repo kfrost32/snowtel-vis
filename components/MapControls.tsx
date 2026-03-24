@@ -13,10 +13,14 @@ const METRICS = [
 interface MapControlsProps {
   metric: string;
   onMetricChange: (metric: string) => void;
-  viewMode: "stations" | "basins";
-  onViewModeChange: (mode: "stations" | "basins") => void;
-  basinLevel: 2 | 4;
-  onBasinLevelChange: (level: 2 | 4) => void;
+  showStations: boolean;
+  onShowStationsChange: (v: boolean) => void;
+  showHuc2: boolean;
+  onShowHuc2Change: (v: boolean) => void;
+  showHuc4: boolean;
+  onShowHuc4Change: (v: boolean) => void;
+  activeOnly: boolean;
+  onActiveOnlyChange: (v: boolean) => void;
   selectedStates: Set<string>;
   onStatesChange: (states: Set<string>) => void;
   elevMin: string;
@@ -36,13 +40,21 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function Divider() {
+  return <div className="mx-4 border-t" style={{ borderColor: theme.borderGray }} />;
+}
+
 export default function MapControls({
   metric,
   onMetricChange,
-  viewMode,
-  onViewModeChange,
-  basinLevel,
-  onBasinLevelChange,
+  showStations,
+  onShowStationsChange,
+  showHuc2,
+  onShowHuc2Change,
+  showHuc4,
+  onShowHuc4Change,
+  activeOnly,
+  onActiveOnlyChange,
   selectedStates,
   onStatesChange,
   elevMin,
@@ -61,10 +73,7 @@ export default function MapControls({
     <div className="flex flex-col gap-0">
       <div className="px-4 py-3">
         <SectionLabel>Metric</SectionLabel>
-        <div
-          className="flex rounded-lg p-0.5"
-          style={{ background: theme.lightGray }}
-        >
+        <div className="flex rounded-lg p-0.5" style={{ background: theme.lightGray }}>
           {METRICS.map((m) => {
             const active = metric === m.key;
             return (
@@ -85,74 +94,65 @@ export default function MapControls({
         </div>
       </div>
 
-      <div
-        className="mx-4 border-t"
-        style={{ borderColor: theme.borderGray }}
-      />
+      <Divider />
 
       <div className="px-4 py-3">
-        <SectionLabel>View</SectionLabel>
-        <div
-          className="flex rounded-lg p-0.5"
-          style={{ background: theme.lightGray }}
-        >
-          {(["stations", "basins"] as const).map((mode) => {
-            const active = viewMode === mode;
-            return (
+        <SectionLabel>Layers</SectionLabel>
+        <div className="flex flex-col gap-3">
+          {([
+            { label: "Stations", sub: "Individual sites", value: showStations, onChange: onShowStationsChange },
+            { label: "HUC-4 Basins", sub: "Sub-basin fill", value: showHuc4, onChange: onShowHuc4Change },
+            { label: "HUC-2 Basins", sub: "Major region outlines", value: showHuc2, onChange: onShowHuc2Change },
+          ] as const).map(({ label, sub, value, onChange }) => (
+            <div key={label} className="flex items-center justify-between gap-2">
+              <div>
+                <div className="font-sans text-xs font-medium" style={{ color: theme.darkGray }}>{label}</div>
+                <div className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>{sub}</div>
+              </div>
               <button
-                key={mode}
-                onClick={() => onViewModeChange(mode)}
-                className="flex-1 px-2 py-1.5 text-[11px] font-sans font-medium rounded-md transition-all duration-150 cursor-pointer capitalize"
-                style={{
-                  background: active ? theme.white : "transparent",
-                  color: active ? theme.black : theme.mediumGray,
-                  boxShadow: active ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-                }}
+                role="switch"
+                aria-checked={value}
+                onClick={() => onChange(!value)}
+                className="relative w-8 h-4 rounded-full transition-colors duration-150 cursor-pointer shrink-0"
+                style={{ background: value ? theme.black : theme.borderGray }}
               >
-                {mode}
+                <span
+                  className="absolute top-0.5 w-3 h-3 rounded-full transition-transform duration-150"
+                  style={{ background: theme.white, transform: value ? "translateX(18px)" : "translateX(2px)" }}
+                />
               </button>
-            );
-          })}
-        </div>
-        <div
-          className="overflow-hidden transition-all duration-200"
-          style={{
-            maxHeight: viewMode === "basins" ? 40 : 0,
-            opacity: viewMode === "basins" ? 1 : 0,
-            marginTop: viewMode === "basins" ? 8 : 0,
-          }}
-        >
-          <div className="flex gap-1.5">
-            {([2, 4] as const).map((level) => {
-              const active = basinLevel === level;
-              return (
-                <button
-                  key={level}
-                  onClick={() => onBasinLevelChange(level)}
-                  className="px-2.5 py-1 text-[10px] font-mono font-medium rounded-md transition-all duration-150 cursor-pointer"
-                  style={{
-                    background: active ? theme.darkGray : theme.lightGray,
-                    color: active ? theme.white : theme.mediumGray,
-                  }}
-                >
-                  HUC-{level}
-                </button>
-              );
-            })}
-            <span
-              className="text-[10px] font-sans self-center ml-0.5"
-              style={{ color: theme.mediumGray }}
-            >
-              {basinLevel === 2 ? "Major Basins" : "Sub-Basins"}
-            </span>
-          </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div
-        className="mx-4 border-t"
-        style={{ borderColor: theme.borderGray }}
-      />
+      <Divider />
+
+      <div className="px-4 py-3">
+        <SectionLabel>Filters</SectionLabel>
+        <label className="flex items-center justify-between cursor-pointer">
+          <span className="font-sans text-xs font-medium" style={{ color: theme.darkGray }}>
+            Active stations only
+            <span className="block font-mono text-[10px] font-normal" style={{ color: theme.mediumGray }}>
+              Has SWE data this season
+            </span>
+          </span>
+          <button
+            role="switch"
+            aria-checked={activeOnly}
+            onClick={() => onActiveOnlyChange(!activeOnly)}
+            className="relative w-8 h-4 rounded-full transition-colors duration-150 cursor-pointer shrink-0"
+            style={{ background: activeOnly ? theme.black : theme.borderGray }}
+          >
+            <span
+              className="absolute top-0.5 w-3 h-3 rounded-full transition-transform duration-150"
+              style={{ background: theme.white, transform: activeOnly ? "translateX(18px)" : "translateX(2px)" }}
+            />
+          </button>
+        </label>
+      </div>
+
+      <Divider />
 
       <div className="px-4 py-3">
         <div className="flex items-center justify-between mb-2">
@@ -162,12 +162,8 @@ export default function MapControls({
               onClick={() => onStatesChange(new Set())}
               className="text-[10px] font-sans cursor-pointer transition-colors duration-150"
               style={{ color: theme.mediumGray }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.color = theme.gray)
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.color = theme.mediumGray)
-              }
+              onMouseEnter={(e) => (e.currentTarget.style.color = theme.gray)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = theme.mediumGray)}
             >
               Clear
             </button>
@@ -205,58 +201,34 @@ export default function MapControls({
         </div>
       </div>
 
-      <div
-        className="mx-4 border-t"
-        style={{ borderColor: theme.borderGray }}
-      />
+      <Divider />
 
       <div className="px-4 py-3">
         <SectionLabel>Elevation (ft)</SectionLabel>
         <div className="flex gap-2 items-center">
-          <div className="flex-1 relative">
+          <div className="flex-1">
             <input
               type="number"
               placeholder="Min"
               value={elevMin}
               onChange={(e) => onElevMinChange(e.target.value)}
               className="w-full px-2.5 py-1.5 text-[11px] font-mono rounded-lg border outline-none transition-all duration-150"
-              style={{
-                borderColor: theme.borderGray,
-                color: theme.black,
-                background: theme.white,
-              }}
-              onFocus={(e) =>
-                (e.currentTarget.style.borderColor = theme.mediumGray)
-              }
-              onBlur={(e) =>
-                (e.currentTarget.style.borderColor = theme.borderGray)
-              }
+              style={{ borderColor: theme.borderGray, color: theme.black, background: theme.white }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = theme.mediumGray)}
+              onBlur={(e) => (e.currentTarget.style.borderColor = theme.borderGray)}
             />
           </div>
-          <span
-            className="text-[10px] font-sans flex-shrink-0"
-            style={{ color: theme.borderGray }}
-          >
-            to
-          </span>
-          <div className="flex-1 relative">
+          <span className="text-[10px] font-sans flex-shrink-0" style={{ color: theme.borderGray }}>to</span>
+          <div className="flex-1">
             <input
               type="number"
               placeholder="Max"
               value={elevMax}
               onChange={(e) => onElevMaxChange(e.target.value)}
               className="w-full px-2.5 py-1.5 text-[11px] font-mono rounded-lg border outline-none transition-all duration-150"
-              style={{
-                borderColor: theme.borderGray,
-                color: theme.black,
-                background: theme.white,
-              }}
-              onFocus={(e) =>
-                (e.currentTarget.style.borderColor = theme.mediumGray)
-              }
-              onBlur={(e) =>
-                (e.currentTarget.style.borderColor = theme.borderGray)
-              }
+              style={{ borderColor: theme.borderGray, color: theme.black, background: theme.white }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = theme.mediumGray)}
+              onBlur={(e) => (e.currentTarget.style.borderColor = theme.borderGray)}
             />
           </div>
         </div>

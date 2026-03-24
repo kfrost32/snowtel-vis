@@ -41,7 +41,13 @@ export default function PercentOfNormalGauge({ value, size = 120 }: PercentOfNor
 
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        role="img"
+        aria-label={displayValue !== null ? `${displayValue}% of normal` : "No data"}
+      >
         <path d={bgArc} fill="none" stroke="#E2E8F0" strokeWidth={8} strokeLinecap="round" />
         {value !== null && (
           <path d={fillArc} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round" />

@@ -12,6 +12,7 @@ import { useSeasonData } from "@/hooks/useSeasonData";
 import { useHistoricalData } from "@/hooks/useHistoricalData";
 import { useEnvelopeData } from "@/hooks/useEnvelopeData";
 import Section from "@/components/Section";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import StatCard from "@/components/StatCard";
 import ConditionBadge from "@/components/ConditionBadge";
 import ChartCard from "@/components/ChartCard";
@@ -57,19 +58,7 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
   }
 
   if (seasonLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div
-            className="inline-block w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mb-4"
-            style={{ borderColor: snowColors.swe, borderTopColor: "transparent" }}
-          />
-          <p className="font-mono text-sm" style={{ color: theme.gray }}>
-            Loading station data...
-          </p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading station data..." fullScreen />;
   }
 
   if (seasonError) {
@@ -173,16 +162,11 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
       )}
 
       <Section title="Historical SWE Envelope" description="Current water year vs period of record min/max range and recent years">
-        <ChartCard title="Snow Water Equivalent — Historical Range" height={420}>
+        <ChartCard title={`Snow Water Equivalent — ${station.name}`} height={420} exportable={false}>
           {envelopeLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <div
-                className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
-                style={{ borderColor: snowColors.swe, borderTopColor: "transparent" }}
-              />
-            </div>
+            <LoadingSpinner />
           ) : envelopeData ? (
-            <EnvelopeChart data={envelopeData} />
+            <EnvelopeChart data={envelopeData} stationName={station.name} />
           ) : (
             <div className="flex items-center justify-center h-full font-mono text-sm" style={{ color: theme.mediumGray }}>
               No historical data available
@@ -197,12 +181,7 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
           height={320}
         >
           {historicalLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <div
-                className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
-                style={{ borderColor: snowColors.swe, borderTopColor: "transparent" }}
-              />
-            </div>
+            <LoadingSpinner />
           ) : (
             <PeakSweChart data={historicalData} />
           )}

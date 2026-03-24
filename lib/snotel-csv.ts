@@ -12,7 +12,7 @@ export function buildStationSeasonUrl(triplet: string, waterYearStart: string): 
 
 export function buildStationHistoricalUrl(triplet: string): string {
   const encoded = encodeURIComponent(triplet);
-  return `${REPORT_GENERATOR_BASE}/customSingleStationReport/daily/start_of_period/${encoded}%7Cid=%22%22%7Cname/POR_BEGIN,POR_END/WTEQ::value,PREC::value`;
+  return `${REPORT_GENERATOR_BASE}/customSingleStationReport/daily/start_of_period/${encoded}%7Cid=%22%22%7Cname/POR_BEGIN,POR_END/WTEQ::value,WTEQ::median_1991,PREC::value`;
 }
 
 export function buildMultiStationCurrentUrl(triplets: string[]): string {

@@ -63,15 +63,15 @@ export async function GET(
 
     const dateKey = headers.find((h) => h.toLowerCase() === "date") || headers[0];
     const sweKey = headers.find((h) => h.includes("Snow Water Equivalent") && !h.includes("Median") && !h.includes("%"));
+    const medianKey = headers.find((h) => h.includes("Snow Water Equivalent") && h.includes("Median"));
 
     const currentWY = getCurrentWaterYear();
     const yearData = new Map<number, Map<number, number>>();
+    const medianByWyDay = new Map<number, number>();
 
     for (const row of rows) {
       const dateStr = row[dateKey];
       if (!dateStr) continue;
-      const swe = sweKey ? parseNumericValue(row[sweKey]) : null;
-      if (swe === null) continue;
 
       const date = new Date(dateStr + "T00:00:00");
       const month = date.getMonth();
@@ -84,10 +84,16 @@ export async function GET(
 
       if (wyDay < 1 || wyDay > 366) continue;
 
-      if (!yearData.has(waterYear)) {
-        yearData.set(waterYear, new Map());
+      const swe = sweKey ? parseNumericValue(row[sweKey]) : null;
+      if (swe !== null) {
+        if (!yearData.has(waterYear)) yearData.set(waterYear, new Map());
+        yearData.get(waterYear)!.set(wyDay, swe);
       }
-      yearData.get(waterYear)!.set(wyDay, swe);
+
+      if (medianKey && !medianByWyDay.has(wyDay)) {
+        const med = parseNumericValue(row[medianKey]);
+        if (med !== null) medianByWyDay.set(wyDay, med);
+      }
     }
 
     const completedYears = Array.from(yearData.keys())
@@ -102,8 +108,10 @@ export async function GET(
         if (swe !== undefined) values.push(swe);
       }
 
+      const officialMedian = medianByWyDay.get(day) ?? null;
+
       if (values.length < 3) {
-        envelope.push({ wyDay: day, min: null, max: null, median: null, p10: null, p90: null });
+        envelope.push({ wyDay: day, min: null, max: null, median: officialMedian, p10: null, p90: null });
         continue;
       }
 
@@ -112,7 +120,7 @@ export async function GET(
         wyDay: day,
         min: values[0],
         max: values[values.length - 1],
-        median: percentile(values, 50),
+        median: officialMedian ?? percentile(values, 50),
         p10: percentile(values, 10),
         p90: percentile(values, 90),
       });
