@@ -8,6 +8,10 @@ import { getConditionColor, getConditionLabel } from "@/lib/colors";
 import type { BasinSummary } from "@/lib/types";
 import PercentOfNormalGauge from "@/components/PercentOfNormalGauge";
 import ConditionBadge from "@/components/ConditionBadge";
+import ChartCard from "@/components/ChartCard";
+import SweEnvelopeChart from "@/components/SweEnvelopeChart";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { useBasinEnvelopeData } from "@/hooks/useBasinEnvelopeData";
 
 interface BasinDetailPanelProps {
   basin: BasinSummary;
@@ -48,6 +52,17 @@ export default function BasinDetailPanel({
       setExporting(false);
     }
   };
+
+  const { data: envelopeData, loading: envelopeLoading } = useBasinEnvelopeData(basin.huc);
+
+  const basinSeasonMap = useMemo(() => {
+    if (!envelopeData?.currentSeason) return undefined;
+    const m = new Map<number, number>();
+    for (const d of envelopeData.currentSeason) {
+      m.set(d.wyDay, d.swe);
+    }
+    return m;
+  }, [envelopeData]);
 
   const sortedStations = useMemo(
     () =>
@@ -200,6 +215,25 @@ export default function BasinDetailPanel({
             {formatDateFull(new Date().toISOString().slice(0, 10))} · Source: USDA NRCS
           </span>
         </div>
+      </div>
+
+      <div className="px-5 pt-3 pb-2">
+        <ChartCard
+          title={<span>{basin.name} <span className="font-normal text-base" style={{ color: theme.gray }}>SWE Envelope</span></span>}
+          description={envelopeData ? `${envelopeData.stationCount} stations averaged` : undefined}
+          height={240}
+          exportable={false}
+        >
+          {envelopeLoading ? (
+            <LoadingSpinner />
+          ) : envelopeData ? (
+            <SweEnvelopeChart
+              envelope={envelopeData}
+              seasonMap={basinSeasonMap}
+              lastUpdated={new Date().toISOString().split("T")[0]}
+            />
+          ) : null}
+        </ChartCard>
       </div>
 
       <div

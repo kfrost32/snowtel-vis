@@ -18,9 +18,10 @@ import { formatSwe } from "@/lib/formatting";
 import type { DailyObservation, StationEnvelope } from "@/lib/types";
 
 interface SweEnvelopeChartProps {
-  season: DailyObservation[];
+  season?: DailyObservation[];
   envelope: StationEnvelope;
   lastUpdated: string | null;
+  seasonMap?: Map<number, number>;
 }
 
 interface ChartPoint {
@@ -101,10 +102,11 @@ export default function SweEnvelopeChart({
   season,
   envelope,
   lastUpdated,
+  seasonMap: externalSeasonMap,
 }: SweEnvelopeChartProps) {
   const wy = getCurrentWaterYear();
 
-  const seasonMap = useMemo(() => buildSeasonMap(season), [season]);
+  const seasonMap = useMemo(() => externalSeasonMap ?? buildSeasonMap(season ?? []), [season, externalSeasonMap]);
 
   const chartData = useMemo((): ChartPoint[] => {
     return envelope.envelope.map((e) => ({

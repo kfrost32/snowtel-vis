@@ -114,6 +114,17 @@ function StationMapInner({
         },
         layout: { visibility: "none" },
       });
+      map.addLayer({
+        id: "huc4-hover",
+        type: "fill",
+        source: "huc4-polygons",
+        paint: {
+          "fill-color": ["coalesce", ["get", "fillColor"], theme.mediumGray],
+          "fill-opacity": 0.4,
+        },
+        filter: ["==", ["get", "hucId"], ""],
+        layout: { visibility: "none" },
+      });
       map.addSource("huc4-labels", {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
@@ -143,6 +154,17 @@ function StationMapInner({
           "line-width": 2.5,
           "line-opacity": 0.75,
         },
+        layout: { visibility: "none" },
+      });
+      map.addLayer({
+        id: "huc2-hover",
+        type: "fill",
+        source: "huc2-polygons",
+        paint: {
+          "fill-color": ["coalesce", ["get", "fillColor"], theme.mediumGray],
+          "fill-opacity": 0.25,
+        },
+        filter: ["==", ["get", "hucId"], ""],
         layout: { visibility: "none" },
       });
       map.addSource("huc2-labels", {
@@ -255,9 +277,23 @@ function StationMapInner({
       map.on("click", "huc4-fill", basinClickHandler("huc4-fill"));
       map.on("click", "huc2-fill", basinClickHandler("huc2-fill"));
       map.on("mouseenter", "huc4-fill", () => { map.getCanvas().style.cursor = "pointer"; });
-      map.on("mouseleave", "huc4-fill", () => { map.getCanvas().style.cursor = ""; });
+      map.on("mousemove", "huc4-fill", (e) => {
+        const f = e.features?.[0];
+        if (f) map.setFilter("huc4-hover", ["==", ["get", "hucId"], f.properties?.hucId ?? ""]);
+      });
+      map.on("mouseleave", "huc4-fill", () => {
+        map.getCanvas().style.cursor = "";
+        map.setFilter("huc4-hover", ["==", ["get", "hucId"], ""]);
+      });
       map.on("mouseenter", "huc2-fill", () => { map.getCanvas().style.cursor = "pointer"; });
-      map.on("mouseleave", "huc2-fill", () => { map.getCanvas().style.cursor = ""; });
+      map.on("mousemove", "huc2-fill", (e) => {
+        const f = e.features?.[0];
+        if (f) map.setFilter("huc2-hover", ["==", ["get", "hucId"], f.properties?.hucId ?? ""]);
+      });
+      map.on("mouseleave", "huc2-fill", () => {
+        map.getCanvas().style.cursor = "";
+        map.setFilter("huc2-hover", ["==", ["get", "hucId"], ""]);
+      });
 
       map.on("click", "station-circles", (e) => {
         const features = map.queryRenderedFeatures(e.point, { layers: ["station-circles"] });
@@ -548,9 +584,11 @@ function StationMapInner({
     if (map.getLayer("station-labels")) map.setLayoutProperty("station-labels", "visibility", vis(showStations));
     if (map.getLayer("huc4-fill")) map.setLayoutProperty("huc4-fill", "visibility", vis(showHuc4));
     if (map.getLayer("huc4-outline")) map.setLayoutProperty("huc4-outline", "visibility", vis(showHuc4));
+    if (map.getLayer("huc4-hover")) map.setLayoutProperty("huc4-hover", "visibility", vis(showHuc4));
     if (map.getLayer("huc4-label-text")) map.setLayoutProperty("huc4-label-text", "visibility", vis(showHuc4));
     if (map.getLayer("huc2-fill")) map.setLayoutProperty("huc2-fill", "visibility", vis(showHuc2));
     if (map.getLayer("huc2-outline")) map.setLayoutProperty("huc2-outline", "visibility", vis(showHuc2));
+    if (map.getLayer("huc2-hover")) map.setLayoutProperty("huc2-hover", "visibility", vis(showHuc2));
     if (map.getLayer("huc2-label-text")) map.setLayoutProperty("huc2-label-text", "visibility", vis(showHuc2));
   }, [showStations, showHuc2, showHuc4, mapLoaded]);
 

@@ -1,0 +1,133 @@
+import { NextResponse } from "next/server";
+import { getAllStations } from "@/lib/stations";
+import { fetchPorData, fetchWaterYearMedian } from "@/lib/snotel-api";
+import { getWaterYearDay, getCurrentWaterYear } from "@/lib/water-year";
+import type { EnvelopeDay, StationEnvelope } from "@/lib/types";
+
+const CACHE_HEADER = { "Cache-Control": "public, max-age=3600, s-maxage=21600, stale-while-revalidate=3600" };
+const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
+
+const MAX_STATIONS = 30;
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ huc: string }> }
+) {
+  const { huc } = await params;
+
+  const stations = getAllStations()
+    .filter((s) => s.network === "SNOTEL" && s.huc.startsWith(huc))
+    .slice(0, MAX_STATIONS);
+
+  if (stations.length === 0) {
+    return NextResponse.json({ error: "No stations found for this basin" }, { status: 404, headers: NO_CACHE_HEADER });
+  }
+
+  try {
+    const endDate = new Date().toISOString().split("T")[0];
+
+    const triplets = stations.map((s) => s.triplet);
+    const earliestBegin = stations
+      .map((s) => s.beginDate || "1980-01-01")
+      .sort()[0];
+
+    const [stationResults, medianMap] = await Promise.all([
+      Promise.all(
+        stations.map((s) =>
+          fetchPorData(s.triplet, "WTEQ", s.beginDate || "1980-01-01", endDate)
+            .catch(() => ({ dates: [] as string[], values: [] as (number | null)[] }))
+        )
+      ),
+      fetchWaterYearMedian(triplets, "WTEQ"),
+    ]);
+
+    const byWyDay = new Map<number, number[]>();
+    const currentWy = getCurrentWaterYear();
+    const currentByWyDay = new Map<number, number[]>();
+
+    for (let si = 0; si < stationResults.length; si++) {
+      const { dates, values } = stationResults[si];
+      for (let i = 0; i < dates.length; i++) {
+        const swe = values[i];
+        if (swe === null) continue;
+        const dateStr = dates[i];
+        const wyDay = getWaterYearDay(dateStr);
+
+        if (!byWyDay.has(wyDay)) byWyDay.set(wyDay, []);
+        byWyDay.get(wyDay)!.push(swe);
+
+        const year = new Date(dateStr + "T12:00:00Z").getUTCFullYear();
+        const month = new Date(dateStr + "T12:00:00Z").getUTCMonth() + 1;
+        const wy = month >= 10 ? year + 1 : year;
+        if (wy === currentWy) {
+          if (!currentByWyDay.has(wyDay)) currentByWyDay.set(wyDay, []);
+          currentByWyDay.get(wyDay)!.push(swe);
+        }
+      }
+    }
+
+    const medianByDay = new Map<number, number[]>();
+    for (const triplet of triplets) {
+      const vals = medianMap.get(triplet) || [];
+      for (let d = 0; d < vals.length; d++) {
+        const v = vals[d];
+        if (v === null) continue;
+        const wyDay = d + 1;
+        if (!medianByDay.has(wyDay)) medianByDay.set(wyDay, []);
+        medianByDay.get(wyDay)!.push(v);
+      }
+    }
+
+    const envelope: EnvelopeDay[] = [];
+    let medianPeakDay = 1;
+    let medianPeakSwe = 0;
+
+    for (let wyDay = 1; wyDay <= 366; wyDay++) {
+      const vals = byWyDay.get(wyDay);
+      const medianVals = medianByDay.get(wyDay);
+      const median = medianVals && medianVals.length > 0
+        ? medianVals.reduce((a, b) => a + b, 0) / medianVals.length
+        : null;
+
+      if (median !== null && median > medianPeakSwe) {
+        medianPeakSwe = median;
+        medianPeakDay = wyDay;
+      }
+
+      if (!vals || vals.length === 0) {
+        envelope.push({ wyDay, max: null, min: null, median });
+        continue;
+      }
+
+      let max = vals[0];
+      let min = vals[0];
+      for (const v of vals) {
+        if (v > max) max = v;
+        if (v < min) min = v;
+      }
+
+      envelope.push({ wyDay, max, min, median });
+    }
+
+    const currentSeason: { wyDay: number; swe: number }[] = [];
+    for (let wyDay = 1; wyDay <= 366; wyDay++) {
+      const vals = currentByWyDay.get(wyDay);
+      if (vals && vals.length > 0) {
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        currentSeason.push({ wyDay, swe: Math.round(avg * 10) / 10 });
+      }
+    }
+
+    const result = {
+      envelope,
+      medianPeakDay,
+      medianPeakSwe: Math.round(medianPeakSwe * 10) / 10,
+      currentSeason,
+      stationCount: stations.length,
+    };
+
+    return NextResponse.json(result, { headers: CACHE_HEADER });
+  } catch {
+    return NextResponse.json({ error: "Failed to fetch basin envelope data" }, { status: 500, headers: NO_CACHE_HEADER });
+  }
+}
