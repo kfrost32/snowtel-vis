@@ -162,11 +162,11 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="overflow-x-auto border-b" style={{ borderColor: theme.borderGray, WebkitOverflowScrolling: "touch" }}>
-          <div className="flex items-stretch min-w-min">
+        <div className="border-b" style={{ borderColor: theme.borderGray }}>
+          <div className="grid grid-cols-2 md:flex md:items-stretch md:overflow-x-auto md:min-w-min" style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
             {seasonLoading ? (
               ["SWE", "% Normal", "Depth", "Density", "Precip", "SWE ∆"].map((label, i) => (
-                <div key={label} className="flex flex-col gap-1 px-3 py-2.5 min-w-[64px]" style={{ borderLeft: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}>
+                <div key={label} className="flex flex-col gap-1 px-3 py-2.5 min-w-[64px] border-b md:border-b-0" style={{ borderLeft: i % 2 !== 0 ? `1px solid ${theme.borderGray}` : undefined, borderTop: i >= 2 ? `1px solid ${theme.borderGray}` : undefined, borderBottom: `1px solid ${theme.borderGray}` }}>
                   <span className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>{label}</span>
                   <div className="h-4 w-10 rounded animate-pulse" style={{ background: theme.borderGray }} />
                 </div>
@@ -179,38 +179,53 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
               const change7d = n >= 7 && season[n].swe !== null && season[n - 7].swe !== null ? season[n].swe! - season[n - 7].swe! : null;
               const deltaDepth = n >= 3 && season[n].snowDepth !== null && season[n - 3].snowDepth !== null ? season[n].snowDepth! - season[n - 3].snowDepth! : null;
               const depthChange1d = n >= 1 && season[n].snowDepth !== null && season[n - 1].snowDepth !== null ? Math.round(season[n].snowDepth! - season[n - 1].snowDepth!) : null;
+              const depthChange7d = n >= 7 && season[n].snowDepth !== null && season[n - 7].snowDepth !== null ? Math.round(season[n].snowDepth! - season[n - 7].snowDepth!) : null;
               const newSnowDensity = deltaSwe !== null && deltaSwe > 0.2 && deltaDepth !== null && deltaDepth > 2 ? (deltaSwe / deltaDepth) * 100 : null;
+              const sweDeltas = [change1d, deltaSwe, change7d] as (number | null)[];
+              const depthDeltas = [depthChange1d, deltaDepth !== null ? Math.round(deltaDepth) : null, depthChange7d] as (number | null)[];
               const stats = [
-                { label: "SWE", tip: metricDescriptions.swe, value: formatSwe(current.swe), sub: current.sweNormal !== null ? `nml ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray },
-                { label: "% Normal", tip: metricDescriptions.pctOfNormal, value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal) },
-                { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: (depthChange1d !== null || deltaDepth !== null) ? `${depthChange1d !== null ? (depthChange1d >= 0 ? "+" : "") + depthChange1d + "″" : "—"} / ${deltaDepth !== null ? (Math.round(deltaDepth) >= 0 ? "+" : "") + Math.round(deltaDepth) + "″" : "—"} (1/3d)` : null, subColor: getDepthChangeColor(depthChange1d) },
-                { label: "Density", tip: metricDescriptions.newSnowDensity, value: newSnowDensity !== null ? `${newSnowDensity.toFixed(0)}%` : "—", sub: null, subColor: null },
-                { label: "Precip", tip: metricDescriptions.precip, value: formatPrecip(current.precipAccum), sub: null, subColor: null },
+                { label: "SWE", tip: metricDescriptions.swe, value: formatSwe(current.swe), sub: current.sweNormal !== null ? `nml ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray, custom: null },
+                { label: "% Normal", tip: metricDescriptions.pctOfNormal, value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal), custom: null },
+                { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: (depthChange1d !== null || deltaDepth !== null) ? `${depthChange1d !== null ? (depthChange1d >= 0 ? "+" : "") + depthChange1d + "″" : "—"} / ${deltaDepth !== null ? (Math.round(deltaDepth) >= 0 ? "+" : "") + Math.round(deltaDepth) + "″" : "—"} (1/3d)` : null, subColor: getDepthChangeColor(depthChange1d), custom: null },
+                { label: "Density", tip: metricDescriptions.newSnowDensity, value: newSnowDensity !== null ? `${newSnowDensity.toFixed(0)}%` : "—", sub: null, subColor: null, custom: null },
+                { label: "Snow ∆ (1/3/7d)", tip: "Snow depth change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "depthDeltas" },
+                { label: "SWE ∆ (1/3/7d)", tip: "SWE change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "sweDeltas" },
               ];
               return (
                 <>
                   {stats.map((row, i) => (
-                    <div key={row.label} className="flex-1 min-w-[64px] flex flex-col px-3 py-2.5" style={{ borderLeft: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}>
+                    <div
+                      key={row.label}
+                      className="flex-1 min-w-[64px] flex flex-col px-3 py-2.5"
+                      style={{
+                        borderRight: i % 2 === 0 ? `1px solid ${theme.borderGray}` : undefined,
+                        borderTop: i >= 2 ? `1px solid ${theme.borderGray}` : undefined,
+                      }}
+                    >
                       <span className="font-mono text-[10px] whitespace-nowrap flex items-center gap-0.5" style={{ color: theme.mediumGray }}>{row.label}<InfoTooltip text={row.tip} size={10} /></span>
-                      <span className="font-mono text-[13px] font-semibold mt-0.5 whitespace-nowrap" style={{ color: theme.black }}>{row.value}</span>
-                      {row.label === "Density" && row.value !== "—" ? (
-                        <DensityScale density={parseFloat(row.value)} />
-                      ) : row.sub ? (
-                        <span className="font-mono text-[10px] mt-0.5 whitespace-nowrap" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>
-                      ) : null}
+                      {row.custom === "sweDeltas" || row.custom === "depthDeltas" ? (
+                        <div className="flex items-baseline mt-0.5">
+                          {(row.custom === "depthDeltas" ? depthDeltas : sweDeltas).map((val, j) => (
+                            <span key={j} className="flex items-baseline">
+                              {j > 0 && <span className="font-mono text-[11px] mx-1" style={{ color: theme.borderGray }}>/</span>}
+                              <span className="font-mono text-[13px] font-semibold whitespace-nowrap" style={{ color: row.custom === "depthDeltas" ? getDepthChangeColor(val) : getChangeColor(val) }}>
+                                {row.custom === "depthDeltas" ? (val !== null ? `${val > 0 ? "+" : ""}${val}″` : "—") : formatChange(val)}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <>
+                          <span className="font-mono text-[13px] font-semibold mt-0.5 whitespace-nowrap" style={{ color: theme.black }}>{row.value}</span>
+                          {row.label === "Density" && row.value !== "—" ? (
+                            <DensityScale density={parseFloat(row.value!)} />
+                          ) : row.sub ? (
+                            <span className="font-mono text-[10px] mt-0.5 whitespace-nowrap" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>
+                          ) : null}
+                        </>
+                      )}
                     </div>
                   ))}
-                  <div className="flex-1 min-w-[120px] flex flex-col px-3 py-2.5" style={{ borderLeft: `1px solid ${theme.borderGray}` }}>
-                    <span className="font-mono text-[10px] whitespace-nowrap flex items-center gap-0.5" style={{ color: theme.mediumGray }}>SWE ∆ (1/3/7d)<InfoTooltip text="SWE change over 1, 3, and 7 days." size={10} /></span>
-                    <div className="flex items-baseline mt-0.5">
-                      {([change1d, deltaSwe, change7d] as (number | null)[]).map((val, i) => (
-                        <span key={i} className="flex items-baseline">
-                          {i > 0 && <span className="font-mono text-[11px] mx-1" style={{ color: theme.borderGray }}>/</span>}
-                          <span className="font-mono text-[13px] font-semibold whitespace-nowrap" style={{ color: getChangeColor(val) }}>{formatChange(val)}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
                 </>
               );
             })() : null}
