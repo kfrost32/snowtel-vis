@@ -6,7 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@/lib/types";
 import { getMapMarkerColor, getMetricMapColor, getChangeColor } from "@/lib/colors";
 import { computePolygonCentroid } from "@/lib/basins";
-import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip, formatChange } from "@/lib/formatting";
+import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip, formatChange, calcDensity, formatDensity, getDensityLabel } from "@/lib/formatting";
 import { urlTriplet } from "@/lib/stations";
 import { prefetchStation } from "@/lib/prefetch";
 import { theme } from "@/lib/theme";
@@ -305,6 +305,10 @@ function StationMapInner({
       case "SNWD": return s.snowDepth !== null ? `${Math.round(s.snowDepth)}"` : "";
       case "PREC": return s.precipAccum !== null ? `${Math.round(s.precipAccum)}"` : "";
       case "TAVG": return s.temp !== null ? `${Math.round(s.temp)}°` : "";
+      case "DENSITY": {
+        const d = calcDensity(s.swe, s.snowDepth);
+        return d !== null ? `${d.toFixed(0)}%` : "";
+      }
       default: return "";
     }
   }
@@ -314,6 +318,7 @@ function StationMapInner({
       case "SNWD": return formatSnowDepth(val);
       case "PREC": return formatPrecip(val);
       case "TAVG": return formatTemp(val);
+      case "DENSITY": return formatDensity(val);
       default: return formatSwe(val);
     }
   }
@@ -323,6 +328,7 @@ function StationMapInner({
       case "SNWD": return "Snow Depth";
       case "PREC": return "Precip";
       case "TAVG": return "Temp";
+      case "DENSITY": return "Density";
       default: return "SWE";
     }
   }
@@ -375,6 +381,12 @@ function StationMapInner({
       rows += statRow("Season Precip", formatPrecip(precipAccum), color);
       rows += statRow("SWE", formatSwe(swe));
       rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal));
+    } else if (m === "DENSITY") {
+      const dens = calcDensity(swe, snowDepth);
+      rows += statRow("Density", formatDensity(dens), color);
+      rows += statRow("Quality", getDensityLabel(dens));
+      rows += statRow("SWE", formatSwe(swe));
+      rows += statRow("Depth", formatSnowDepth(snowDepth));
     } else {
       rows += statRow("Temperature", formatTemp(temp), color);
       rows += statRow("SWE", formatSwe(swe));

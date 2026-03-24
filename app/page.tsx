@@ -37,6 +37,7 @@ const METRIC_LABELS: Record<string, string> = {
   CHANGE_1D: "1-Day Change",
   CHANGE_7D: "7-Day Change",
   SNWD: "Snow Depth",
+  DENSITY: "Snow Density",
   PREC: "Season Precip",
   TAVG: "Temperature",
 };
@@ -59,6 +60,12 @@ const METRIC_LEGEND: Record<string, { label: string; color: string }[]> = {
     { label: '20"', color: "#67E8F9" },
     { label: '35"', color: "#22D3EE" },
     { label: '50"+', color: "#0891B2" },
+  ],
+  DENSITY: [
+    { label: "<8%", color: "#93C5FD" },
+    { label: "8–12%", color: "#3B82F6" },
+    { label: "12–18%", color: "#F59E0B" },
+    { label: ">18%", color: "#DC2626" },
   ],
   TAVG: [
     { label: "<10°", color: "#1D4ED8" },

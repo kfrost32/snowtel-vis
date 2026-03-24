@@ -5,8 +5,10 @@ import Link from "next/link";
 import { ArrowLeft, MapPin, Mountain } from "lucide-react";
 import { theme, snowColors } from "@/lib/theme";
 import { parseTripletFromUrl, getStation, getAllStations, urlTriplet } from "@/lib/stations";
-import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip } from "@/lib/formatting";
-import { getConditionColor, getConditionLabel } from "@/lib/colors";
+import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip, calcDensity, formatDensity, getDensityLabel } from "@/lib/formatting";
+import { getConditionColor, getConditionLabel, getDensityColor } from "@/lib/colors";
+import InfoTooltip from "@/components/InfoTooltip";
+import { metricDescriptions } from "@/lib/metric-descriptions";
 import { findNearestStations } from "@/lib/geo";
 import { useSeasonData } from "@/hooks/useSeasonData";
 import { useHistoricalData } from "@/hooks/useHistoricalData";
@@ -92,8 +94,8 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
 
       <Section title="Current Conditions" showTopBorder>
         {seasonLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-            {["SWE", "Snow Depth", "% of Normal", "Temperature", "Season Precip"].map((label) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            {["SWE", "Snow Depth", "% of Normal", "Snow Density", "Temperature", "Season Precip"].map((label) => (
               <div key={label} className="rounded-lg border p-4" style={{ borderColor: theme.borderGray }}>
                 <div className="font-mono text-[11px] mb-2" style={{ color: theme.mediumGray }}>{label}</div>
                 <div className="h-7 w-20 rounded animate-pulse" style={{ background: theme.borderGray }} />
@@ -105,7 +107,7 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
             <p className="font-mono text-sm" style={{ color: theme.gray }}>{seasonError}</p>
           </div>
         ) : current ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
             <StatCard
               label="SWE"
               value={formatSwe(current.swe)}
@@ -113,10 +115,12 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
                 text: `Normal: ${formatSwe(current.sweNormal)}`,
                 color: theme.gray,
               } : undefined}
+              labelAdornment={<InfoTooltip text={metricDescriptions.swe} />}
             />
             <StatCard
               label="Snow Depth"
               value={formatSnowDepth(current.snowDepth)}
+              labelAdornment={<InfoTooltip text={metricDescriptions.snowDepth} />}
             />
             <StatCard
               label="% of Normal"
@@ -125,15 +129,31 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
                 text: getConditionLabel(current.pctOfNormal),
                 color: getConditionColor(current.pctOfNormal),
               }}
-              labelAdornment={<ConditionBadge pctOfNormal={current.pctOfNormal} size="small" />}
+              labelAdornment={<><ConditionBadge pctOfNormal={current.pctOfNormal} size="small" /><InfoTooltip text={metricDescriptions.pctOfNormal} /></>}
             />
+            {(() => {
+              const density = calcDensity(current.swe, current.snowDepth);
+              return (
+                <StatCard
+                  label="Snow Density"
+                  value={formatDensity(density)}
+                  subtitle={{
+                    text: getDensityLabel(density),
+                    color: getDensityColor(density),
+                  }}
+                  labelAdornment={<InfoTooltip text={metricDescriptions.density} />}
+                />
+              );
+            })()}
             <StatCard
               label="Temperature"
               value={formatTemp(current.temp)}
+              labelAdornment={<InfoTooltip text={metricDescriptions.temp} />}
             />
             <StatCard
               label="Season Precip"
               value={formatPrecip(current.precipAccum)}
+              labelAdornment={<InfoTooltip text={metricDescriptions.precip} />}
             />
           </div>
         ) : null}

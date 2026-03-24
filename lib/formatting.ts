@@ -57,3 +57,36 @@ export const formatDateFull = (dateStr: string): string => {
     year: "numeric",
   });
 };
+
+export function calcDensity(swe: number | null, depth: number | null): number | null {
+  if (swe === null || depth === null || depth <= 0) return null;
+  if (swe <= 0) return null;
+  return (swe / depth) * 100;
+}
+
+export const formatDensity = (density: number | null): string => {
+  if (density === null) return "—";
+  return `${density.toFixed(0)}%`;
+};
+
+export type DensityLevel = "light" | "average" | "heavy" | "veryHeavy";
+
+export function getDensityLevel(density: number | null): DensityLevel | null {
+  if (density === null) return null;
+  if (density < 8) return "light";
+  if (density <= 12) return "average";
+  if (density <= 18) return "heavy";
+  return "veryHeavy";
+}
+
+export function getDensityLabel(density: number | null): string {
+  if (density === null) return "No Data";
+  const level = getDensityLevel(density);
+  const labels: Record<DensityLevel, string> = {
+    light: "Light / Dry",
+    average: "Average",
+    heavy: "Heavy / Wet",
+    veryHeavy: "Very Heavy",
+  };
+  return labels[level!];
+}

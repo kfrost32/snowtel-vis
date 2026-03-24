@@ -3,8 +3,8 @@
 import { useState, useMemo } from "react";
 import { Search, X, ChevronDown } from "lucide-react";
 import { theme, snowColors } from "@/lib/theme";
-import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange } from "@/lib/formatting";
-import { getConditionColor } from "@/lib/colors";
+import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, calcDensity, formatDensity, getDensityLabel } from "@/lib/formatting";
+import { getConditionColor, getDensityColor } from "@/lib/colors";
 import { SNOTEL_STATES, STATE_NAMES } from "@/lib/constants";
 import { urlTriplet } from "@/lib/stations";
 import { useStationList } from "@/hooks/useStationList";
@@ -95,6 +95,28 @@ const columns: Column<StationCurrentConditions>[] = [
         {formatSnowDepth(item.snowDepth)}
       </span>
     ),
+  },
+  {
+    key: "density",
+    label: "Density",
+    align: "right",
+    defaultSortDir: "desc",
+    getValue: (item) => calcDensity(item.swe, item.snowDepth) ?? -1,
+    render: (item) => {
+      const d = calcDensity(item.swe, item.snowDepth);
+      return (
+        <div className="flex items-center justify-end gap-1.5">
+          <span className="font-mono text-sm" style={{ color: theme.darkGray }}>
+            {formatDensity(d)}
+          </span>
+          {d !== null && (
+            <span className="font-mono text-[10px]" style={{ color: getDensityColor(d) }}>
+              {getDensityLabel(d)}
+            </span>
+          )}
+        </div>
+      );
+    },
   },
   {
     key: "sweChange7d",
