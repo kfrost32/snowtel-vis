@@ -10,7 +10,7 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
-import { theme, chartTooltipStyle } from "@/lib/theme";
+import { theme, snowColors, chartTooltipStyle } from "@/lib/theme";
 import type { HourlyObservation } from "@/hooks/useHourlyData";
 
 interface ChartPoint {
@@ -41,13 +41,13 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
       {depth?.value != null && (
         <div className="flex items-center gap-2 font-mono text-[11px]">
           <span style={{ color: theme.gray }}>Snow Depth</span>
-          <span className="ml-auto font-medium" style={{ color: "#8B5CF6" }}>{depth.value}"</span>
+          <span className="ml-auto font-medium" style={{ color: snowColors.snowDepth }}>{depth.value}"</span>
         </div>
       )}
       {temp?.value != null && (
         <div className="flex items-center gap-2 font-mono text-[11px]">
           <span style={{ color: theme.gray }}>Temp</span>
-          <span className="ml-auto font-medium" style={{ color: temp.value <= 32 ? "#3B82F6" : "#EF4444" }}>{temp.value}°F</span>
+          <span className="ml-auto font-medium" style={{ color: temp.value <= 32 ? snowColors.swe : snowColors.temp }}>{temp.value}°F</span>
         </div>
       )}
     </div>
@@ -73,7 +73,9 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
   const tickInterval = Math.max(1, Math.floor(chartData.length / 7));
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <div className="flex flex-col w-full h-full">
+      <div className="flex-1 min-h-0">
+      <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={chartData} margin={{ top: 4, right: 40, bottom: 0, left: -12 }}>
         <XAxis
           dataKey="label"
@@ -104,7 +106,7 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
         <ReferenceLine
           yAxisId="temp"
           y={32}
-          stroke="#93C5FD"
+          stroke={snowColors.freezing}
           strokeDasharray="4 3"
           strokeWidth={1}
         />
@@ -112,9 +114,9 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
           yAxisId="depth"
           dataKey="snowDepth"
           type="stepAfter"
-          stroke="#8B5CF6"
+          stroke={snowColors.snowDepth}
           strokeWidth={1.5}
-          fill="#8B5CF6"
+          fill={snowColors.snowDepth}
           fillOpacity={0.15}
           dot={false}
           connectNulls
@@ -122,12 +124,28 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
         <Line
           yAxisId="temp"
           dataKey="temp"
-          stroke="#F59E0B"
+          stroke={snowColors.currentYear}
           strokeWidth={1.5}
           dot={false}
           connectNulls
         />
       </ComposedChart>
-    </ResponsiveContainer>
+      </ResponsiveContainer>
+      </div>
+      <div className="flex items-center justify-center gap-4 pt-1.5 pb-1 flex-wrap">
+        <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+          <div className="w-4 border-t-2" style={{ borderColor: snowColors.snowDepth }} />
+          Snow Depth
+        </div>
+        <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+          <div className="w-4 border-t-2" style={{ borderColor: snowColors.currentYear }} />
+          Temperature
+        </div>
+        <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+          <div className="w-4 border-t border-dashed" style={{ borderColor: snowColors.freezing }} />
+          Freezing (32°F)
+        </div>
+      </div>
+    </div>
   );
 }

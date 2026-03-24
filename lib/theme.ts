@@ -22,6 +22,11 @@ export const snowColors = {
   temp: "#EF4444",
   median: "#64748B",
   envelope: "#E2E8F0",
+  envelopeMax: "#3B82F6",
+  envelopeMin: "#F87171",
+  medianPeak: "#16A34A",
+  freezing: "#93C5FD",
+  currentYear: "#F59E0B",
 };
 
 export const chartColors = {

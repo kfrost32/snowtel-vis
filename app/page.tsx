@@ -313,13 +313,14 @@ export default function HomePage() {
             style={{ left: sidebarOpen ? 320 : 0 }}
           >
             <div
-              className="absolute inset-4 pointer-events-auto rounded-xl shadow-2xl overflow-hidden transition-all duration-200"
+              className="absolute inset-4 pointer-events-auto rounded-xl shadow-2xl overflow-hidden transition-all duration-200 mx-auto"
               style={{
                 background: theme.white,
                 border: `1px solid ${theme.borderGray}`,
                 opacity: overlayVisible ? 1 : 0,
                 transform: overlayVisible ? "scale(1)" : "scale(0.97)",
                 transformOrigin: "center center",
+                maxWidth: 1200,
               }}
             >
               {selectedTriplet ? (

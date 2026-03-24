@@ -65,6 +65,19 @@ export interface BasinSummary {
   stations: StationCurrentConditions[];
 }
 
+export interface EnvelopeDay {
+  wyDay: number;
+  max: number | null;
+  min: number | null;
+  median: number | null;
+}
+
+export interface StationEnvelope {
+  envelope: EnvelopeDay[];
+  medianPeakDay: number;
+  medianPeakSwe: number;
+}
+
 export type ConditionLevel =
   | "wellBelow"
   | "below"

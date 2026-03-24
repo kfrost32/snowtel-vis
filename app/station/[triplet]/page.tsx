@@ -10,12 +10,14 @@ import { getConditionColor, getConditionLabel } from "@/lib/colors";
 import { findNearestStations } from "@/lib/geo";
 import { useSeasonData } from "@/hooks/useSeasonData";
 import { useHistoricalData } from "@/hooks/useHistoricalData";
+import { useEnvelopeData } from "@/hooks/useEnvelopeData";
 import Section from "@/components/Section";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import StatCard from "@/components/StatCard";
 import ConditionBadge from "@/components/ConditionBadge";
 import ChartCard from "@/components/ChartCard";
 import SeasonChart from "@/components/SeasonChart";
+import SweEnvelopeChart from "@/components/SweEnvelopeChart";
 import PeakSweChart from "@/components/PeakSweChart";
 
 export default function StationPage({ params }: { params: Promise<{ triplet: string }> }) {
@@ -25,6 +27,7 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
 
   const { data: seasonData, loading: seasonLoading, error: seasonError } = useSeasonData(triplet);
   const { data: historicalData, loading: historicalLoading } = useHistoricalData(triplet);
+  const { data: envelopeData, loading: envelopeLoading } = useEnvelopeData(triplet);
   const nearbyStations = useMemo(() => {
     if (!station) return [];
     const all = getAllStations().filter((s) => s.triplet !== triplet);
@@ -136,10 +139,16 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
         ) : null}
       </Section>
 
-      <Section title="Season to Date" description="Current water year SWE compared to 1991-2020 median">
-        <ChartCard title="Snow Water Equivalent" height={360}>
-          {seasonLoading ? (
+      <Section title="Season to Date" description="Current water year SWE vs 1991-2020 median, all-time max and min">
+        <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Snow Water Equivalent</span></span>} height={360}>
+          {seasonLoading || envelopeLoading ? (
             <LoadingSpinner />
+          ) : seasonData && envelopeData ? (
+            <SweEnvelopeChart
+              season={seasonData.season}
+              envelope={envelopeData}
+              lastUpdated={current?.lastUpdated ?? null}
+            />
           ) : seasonData && seasonData.season.length > 0 ? (
             <SeasonChart season={seasonData.season} />
           ) : (
@@ -152,7 +161,7 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
 
       <Section title="Historical Peak SWE" description="Maximum SWE recorded each water year">
         <ChartCard
-          title="Peak SWE by Water Year"
+          title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Peak SWE</span></span>}
           height={320}
         >
           {historicalLoading ? (
