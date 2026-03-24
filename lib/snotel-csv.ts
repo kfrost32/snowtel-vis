@@ -17,7 +17,7 @@ export function buildStationHistoricalUrl(triplet: string): string {
 
 export function buildStationHourlyUrl(triplet: string): string {
   const encoded = encodeURIComponent(triplet);
-  return `${REPORT_GENERATOR_BASE}/customSingleStationReport/hourly/start_of_period/${encoded}%7Cid=%22%22%7Cname/-6,0/SNWD::value,TOBS::value`;
+  return `${REPORT_GENERATOR_BASE}/customSingleStationReport/hourly/start_of_period/${encoded}%7Cid=%22%22%7Cname/-7,0/SNWD::value,TOBS::value`;
 }
 
 export function buildMultiStationCurrentUrl(triplets: string[]): string {

@@ -31,6 +31,16 @@ const CHANGE_LEGEND = [
   { label: "+2″+", color: "#1D4ED8" },
 ];
 
+const METRIC_LABELS: Record<string, string> = {
+  WTEQ: "SWE",
+  WTEQ_PCT: "% of Normal",
+  CHANGE_1D: "1-Day Change",
+  CHANGE_7D: "7-Day Change",
+  SNWD: "Snow Depth",
+  PREC: "Season Precip",
+  TAVG: "Temperature",
+};
+
 const METRIC_LEGEND: Record<string, { label: string; color: string }[]> = {
   WTEQ: PCT_LEGEND,
   WTEQ_PCT: PCT_LEGEND,
@@ -78,7 +88,7 @@ export default function HomePage() {
   const [showStations, setShowStations] = useState(true);
   const [showHuc2, setShowHuc2] = useState(false);
   const [showHuc4, setShowHuc4] = useState(false);
-  const [activeOnly, setActiveOnly] = useState(false);
+  const [activeOnly, setActiveOnly] = useState(true);
   const [metric, setMetric] = useState("WTEQ");
   const [selectedTriplet, setSelectedTriplet] = useState<string | null>(null);
   const [selectedBasinHuc, setSelectedBasinHuc] = useState<string | null>(null);
@@ -175,37 +185,37 @@ export default function HomePage() {
               </button>
             </div>
 
-            {(favorites.stations.length > 0 || favorites.basins.length > 0) && (
-              <SidebarSection label="Favorites" flush>
-                {favorites.stations.map((triplet) => {
-                  const s = getStation(triplet);
-                  if (!s) return null;
-                  return (
-                    <SidebarFavoriteItem
-                      key={triplet}
-                      name={s.name}
-                      detail={s.state}
-                      onClick={() => handleStationClick(triplet)}
-                      onRemove={() => toggleStation(triplet)}
-                    />
-                  );
-                })}
-                {favorites.basins.map((huc) => {
-                  const b = allBasins.find((b) => b.huc === huc);
-                  if (!b) return null;
-                  return (
-                    <SidebarFavoriteItem
-                      key={huc}
-                      name={b.name}
-                      onClick={() => handleBasinClick(huc)}
-                      onRemove={() => toggleBasin(huc)}
-                    />
-                  );
-                })}
-              </SidebarSection>
-            )}
-
             <div className="flex-1 min-h-0 overflow-y-auto" style={{ borderColor: theme.borderGray }}>
+              {(favorites.stations.length > 0 || favorites.basins.length > 0) && (
+                <SidebarSection label="Favorites" flush>
+                  {favorites.stations.map((triplet) => {
+                    const s = getStation(triplet);
+                    if (!s) return null;
+                    return (
+                      <SidebarFavoriteItem
+                        key={triplet}
+                        name={s.name}
+                        detail={s.state}
+                        onClick={() => handleStationClick(triplet)}
+                        onRemove={() => toggleStation(triplet)}
+                      />
+                    );
+                  })}
+                  {favorites.basins.map((huc) => {
+                    const b = allBasins.find((b) => b.huc === huc);
+                    if (!b) return null;
+                    return (
+                      <SidebarFavoriteItem
+                        key={huc}
+                        name={b.name}
+                        onClick={() => handleBasinClick(huc)}
+                        onRemove={() => toggleBasin(huc)}
+                      />
+                    );
+                  })}
+                </SidebarSection>
+              )}
+
               <MapControls
                 metric={metric}
                 onMetricChange={setMetric}
@@ -261,6 +271,20 @@ export default function HomePage() {
               onBasinSelect={handleBasinClick}
             />
           )}
+
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+            <div
+              className="px-3 py-1 rounded-full text-xs font-mono shadow-sm"
+              style={{
+                background: `${theme.white}ee`,
+                border: `1px solid ${theme.borderGray}`,
+                backdropFilter: "blur(8px)",
+                color: theme.darkGray,
+              }}
+            >
+              {METRIC_LABELS[metric] ?? metric}
+            </div>
+          </div>
 
           <div
             className="absolute bottom-4 left-4 rounded-lg px-3 py-2 shadow-sm z-10"

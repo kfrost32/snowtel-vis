@@ -60,8 +60,8 @@ interface DepthTempChartProps {
 
 export default function DepthTempChart({ data }: DepthTempChartProps) {
   const chartData: ChartPoint[] = data.map((d) => {
-    const dt = new Date(d.datetime + (d.datetime.includes("T") ? "" : "T00:00:00"));
-    const label = dt.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", hour12: true });
+    const dt = new Date(d.datetime.replace(" ", "T"));
+    const label = dt.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", hour12: true });
     return { label, snowDepth: d.snowDepth, temp: d.temp };
   });
 
@@ -111,6 +111,7 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
         <Area
           yAxisId="depth"
           dataKey="snowDepth"
+          type="stepAfter"
           stroke="#8B5CF6"
           strokeWidth={1.5}
           fill="#8B5CF6"
