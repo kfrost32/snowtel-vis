@@ -82,8 +82,14 @@ export default function BasinDetailPanel({
         <div className="absolute top-3 right-3 flex items-center gap-2">
           <button
             onClick={onToggleFavorite}
-            className="p-2 rounded-md transition-colors duration-150 cursor-pointer"
-            style={{ color: isFavorite ? "#FBBF24" : "rgba(255,255,255,0.8)", background: "rgba(0,0,0,0.25)" }}
+            className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
+            style={{
+              color: isFavorite ? "#FBBF24" : "rgba(255,255,255,0.9)",
+              background: "rgba(255,255,255,0.18)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              border: "1px solid rgba(255,255,255,0.3)",
+            }}
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             <Star size={18} fill={isFavorite ? "#FBBF24" : "none"} />

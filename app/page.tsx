@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, Suspense } from "react";
+import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
@@ -105,7 +105,7 @@ function HomePageInner() {
   const [elevMin, setElevMin] = useState("");
   const [elevMax, setElevMax] = useState("");
   const [showStations, setShowStations] = useState(true);
-  const [showHuc2, setShowHuc2] = useState(false);
+  const [showHuc2, setShowHuc2] = useState(true);
   const [showHuc4, setShowHuc4] = useState(false);
   const [activeOnly, setActiveOnly] = useState(true);
   const [metric, setMetric] = useState("WTEQ");
@@ -167,19 +167,19 @@ function HomePageInner() {
     router.replace(`/?${params.toString()}`, { scroll: false });
   };
 
-  const closeDetailPanel = () => {
+  const closeDetailPanel = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("station");
     params.delete("basin");
     const qs = params.toString();
     router.replace(qs ? `/?${qs}` : "/", { scroll: false });
-  };
+  }, [searchParams, router]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeDetailPanel(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [closeDetailPanel]);
 
   useEffect(() => {
     if (selectedTriplet || selectedBasinHuc) {

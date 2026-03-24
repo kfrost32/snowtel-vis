@@ -120,10 +120,13 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
         <div className="absolute top-3 right-3 flex items-center gap-2">
           <button
             onClick={onToggleFavorite}
-            className="p-2 rounded-md transition-colors duration-150 cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
             style={{
-              color: isFavorite ? "#FBBF24" : imageError ? theme.gray : "rgba(255,255,255,0.8)",
-              background: imageError ? "transparent" : "rgba(0,0,0,0.25)",
+              color: isFavorite ? "#FBBF24" : imageError ? theme.darkGray : "rgba(255,255,255,0.9)",
+              background: imageError ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.18)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              border: imageError ? `1px solid ${theme.borderGray}` : "1px solid rgba(255,255,255,0.3)",
             }}
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
