@@ -7,6 +7,7 @@ import type { StationCurrentConditions } from "@/lib/types";
 import { getMapMarkerColor, getMetricMapColor, getChangeColor } from "@/lib/colors";
 import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip, formatChange } from "@/lib/formatting";
 import { urlTriplet } from "@/lib/stations";
+import { prefetchStation } from "@/lib/prefetch";
 import { theme } from "@/lib/theme";
 import huc2Boundaries from "@/data/huc2-boundaries.json";
 import huc4Boundaries from "@/data/huc4-boundaries.json";
@@ -264,7 +265,13 @@ function StationMapInner({
           onStationSelectRef.current(props.triplet as string);
         }
       });
-      map.on("mouseenter", "station-circles", () => { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseenter", "station-circles", (e) => {
+        map.getCanvas().style.cursor = "pointer";
+        const features = map.queryRenderedFeatures(e.point, { layers: ["station-circles"] });
+        if (features.length && features[0].properties?.triplet) {
+          prefetchStation(features[0].properties.triplet as string);
+        }
+      });
       map.on("mouseleave", "station-circles", () => { map.getCanvas().style.cursor = ""; });
 
       map.on("moveend", updateVisibleStations);

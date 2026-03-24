@@ -25,6 +25,8 @@ interface EnvelopeResponse {
 
 const basinEnvelopeCache = new Map<string, { data: EnvelopeResponse; timestamp: number }>();
 const CACHE_TTL = 6 * 60 * 60 * 1000;
+const CACHE_HEADER = { "Cache-Control": "public, max-age=3600, s-maxage=21600, stale-while-revalidate=3600" };
+const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
 
 function percentile(sorted: number[], p: number): number {
   const idx = (p / 100) * (sorted.length - 1);
@@ -95,7 +97,7 @@ export async function GET(
 
   const cached = basinEnvelopeCache.get(huc);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return NextResponse.json(cached.data);
+    return NextResponse.json(cached.data, { headers: CACHE_HEADER });
   }
 
   const hucLevel = huc.length as 2 | 4;
@@ -104,7 +106,7 @@ export async function GET(
   );
 
   if (stations.length === 0) {
-    return NextResponse.json({ error: "No stations found for this basin" }, { status: 404 });
+    return NextResponse.json({ error: "No stations found for this basin" }, { status: 404, headers: NO_CACHE_HEADER });
   }
 
   const MAX_STATIONS = 30;
@@ -122,7 +124,7 @@ export async function GET(
   );
 
   if (validStationData.length === 0) {
-    return NextResponse.json({ error: "Failed to fetch basin data" }, { status: 502 });
+    return NextResponse.json({ error: "Failed to fetch basin data" }, { status: 502, headers: NO_CACHE_HEADER });
   }
 
   const currentWY = getCurrentWaterYear();
@@ -216,5 +218,5 @@ export async function GET(
   };
 
   basinEnvelopeCache.set(huc, { data: result, timestamp: Date.now() });
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers: CACHE_HEADER });
 }

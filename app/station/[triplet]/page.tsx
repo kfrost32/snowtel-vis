@@ -57,32 +57,6 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
     );
   }
 
-  if (seasonLoading) {
-    return <LoadingSpinner message="Loading station data..." fullScreen />;
-  }
-
-  if (seasonError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="font-sans text-lg font-medium mb-2" style={{ color: theme.darkGray }}>
-            Failed to load data
-          </p>
-          <p className="font-mono text-sm mb-4" style={{ color: theme.gray }}>
-            {seasonError}
-          </p>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 font-sans text-sm font-medium hover:opacity-70 transition-opacity"
-            style={{ color: theme.darkGray }}
-          >
-            <ArrowLeft size={14} /> Back to dashboard
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   const current = seasonData?.current;
 
   return (
@@ -117,8 +91,21 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
         </div>
       </div>
 
-      {current && (
-        <Section title="Current Conditions" showTopBorder>
+      <Section title="Current Conditions" showTopBorder>
+        {seasonLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            {["SWE", "Snow Depth", "% of Normal", "Temperature", "Season Precip"].map((label) => (
+              <div key={label} className="rounded-lg border p-4" style={{ borderColor: theme.borderGray }}>
+                <div className="font-mono text-[11px] mb-2" style={{ color: theme.mediumGray }}>{label}</div>
+                <div className="h-7 w-20 rounded animate-pulse" style={{ background: theme.borderGray }} />
+              </div>
+            ))}
+          </div>
+        ) : seasonError ? (
+          <div className="text-center py-8">
+            <p className="font-mono text-sm" style={{ color: theme.gray }}>{seasonError}</p>
+          </div>
+        ) : current ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <StatCard
               label="SWE"
@@ -150,16 +137,22 @@ export default function StationPage({ params }: { params: Promise<{ triplet: str
               value={formatPrecip(current.precipAccum)}
             />
           </div>
-        </Section>
-      )}
+        ) : null}
+      </Section>
 
-      {seasonData && seasonData.season.length > 0 && (
-        <Section title="Season to Date" description="Current water year SWE compared to 1991-2020 median">
-          <ChartCard title="Snow Water Equivalent" height={360}>
+      <Section title="Season to Date" description="Current water year SWE compared to 1991-2020 median">
+        <ChartCard title="Snow Water Equivalent" height={360}>
+          {seasonLoading ? (
+            <LoadingSpinner />
+          ) : seasonData && seasonData.season.length > 0 ? (
             <SeasonChart season={seasonData.season} />
-          </ChartCard>
-        </Section>
-      )}
+          ) : (
+            <div className="flex items-center justify-center h-full font-mono text-sm" style={{ color: theme.mediumGray }}>
+              No season data available
+            </div>
+          )}
+        </ChartCard>
+      </Section>
 
       <Section title="Historical SWE Envelope" description="Current water year vs period of record min/max range and recent years">
         <ChartCard title={`Snow Water Equivalent — ${station.name}`} height={420} exportable={false}>

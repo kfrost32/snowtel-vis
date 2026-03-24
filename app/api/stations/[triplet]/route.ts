@@ -6,6 +6,8 @@ import type { DailyObservation, StationSeasonData } from "@/lib/types";
 
 const seasonCache = new Map<string, { data: StationSeasonData; timestamp: number }>();
 const CACHE_TTL = 4 * 60 * 60 * 1000;
+const CACHE_HEADER = { "Cache-Control": "public, max-age=1800, s-maxage=14400, stale-while-revalidate=3600" };
+const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
 
 export async function GET(
   _request: Request,
@@ -16,12 +18,12 @@ export async function GET(
   const station = getStation(triplet);
 
   if (!station) {
-    return NextResponse.json({ error: "Station not found" }, { status: 404 });
+    return NextResponse.json({ error: "Station not found" }, { status: 404, headers: NO_CACHE_HEADER });
   }
 
   const cached = seasonCache.get(triplet);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return NextResponse.json(cached.data);
+    return NextResponse.json(cached.data, { headers: CACHE_HEADER });
   }
 
   try {
@@ -31,7 +33,7 @@ export async function GET(
 
     const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) {
-      return NextResponse.json({ error: "Failed to fetch SNOTEL data" }, { status: 502 });
+      return NextResponse.json({ error: "Failed to fetch SNOTEL data" }, { status: 502, headers: NO_CACHE_HEADER });
     }
 
     const text = await response.text();
@@ -78,8 +80,8 @@ export async function GET(
     };
 
     seasonCache.set(triplet, { data: result, timestamp: Date.now() });
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers: CACHE_HEADER });
   } catch {
-    return NextResponse.json({ error: "Failed to fetch station data" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch station data" }, { status: 500, headers: NO_CACHE_HEADER });
   }
 }

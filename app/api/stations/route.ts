@@ -10,6 +10,10 @@ interface CacheEntry {
 
 const CACHE_TTL = 60 * 60 * 1000;
 let cache: CacheEntry | null = null;
+let fetchInProgress: Promise<StationCurrentConditions[]> | null = null;
+
+const CACHE_HEADER = { "Cache-Control": "public, max-age=900, s-maxage=3600, stale-while-revalidate=1800" };
+const WARM_CACHE_HEADER = { "Cache-Control": "public, max-age=15, s-maxage=30, stale-while-revalidate=30" };
 
 async function fetchStationData(triplet: string): Promise<Partial<StationCurrentConditions>> {
   try {
@@ -112,14 +116,25 @@ function buildFallback(): StationCurrentConditions[] {
 
 export async function GET() {
   if (cache && Date.now() - cache.timestamp < CACHE_TTL) {
-    return NextResponse.json(cache.data);
+    return NextResponse.json(cache.data, { headers: CACHE_HEADER });
   }
 
-  try {
-    const data = await fetchAllStationData();
-    cache = { data, timestamp: Date.now() };
-    return NextResponse.json(data);
-  } catch {
-    return NextResponse.json(cache?.data || buildFallback());
+  if (!fetchInProgress) {
+    fetchInProgress = fetchAllStationData()
+      .then((data) => {
+        cache = { data, timestamp: Date.now() };
+        fetchInProgress = null;
+        return data;
+      })
+      .catch(() => {
+        fetchInProgress = null;
+        return cache?.data || buildFallback();
+      });
   }
+
+  if (cache) {
+    return NextResponse.json(cache.data, { headers: { "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=60" } });
+  }
+
+  return NextResponse.json(buildFallback(), { headers: WARM_CACHE_HEADER });
 }

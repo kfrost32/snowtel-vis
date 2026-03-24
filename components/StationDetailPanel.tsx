@@ -142,10 +142,6 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
     );
   }
 
-  if (seasonLoading) {
-    return <LoadingSpinner message="Loading station data..." />;
-  }
-
   const current = seasonData?.current;
 
   return (
@@ -225,38 +221,51 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {current && (
-          <div className="border-b" style={{ borderColor: theme.borderGray }}>
-            {[
-              { label: "SWE", value: formatSwe(current.swe), sub: current.sweNormal !== null ? `Normal ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray },
-              { label: "% of Normal", value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal) },
-              { label: "Snow Depth", value: formatSnowDepth(current.snowDepth), sub: null, subColor: null },
-              { label: "Temperature", value: formatTemp(current.temp), sub: null, subColor: null },
-              { label: "Season Precip", value: formatPrecip(current.precipAccum), sub: null, subColor: null },
-            ].map((row, i) => (
+        <div className="border-b" style={{ borderColor: theme.borderGray }}>
+          {seasonLoading ? (
+            ["SWE", "% of Normal", "Snow Depth", "Temperature", "Season Precip"].map((label, i) => (
               <div
-                key={row.label}
+                key={label}
                 className="flex items-center justify-between px-4 py-2"
                 style={{ borderTop: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}
               >
-                <span className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>{row.label}</span>
-                <div className="text-right">
-                  <span className="font-mono text-[13px] font-semibold" style={{ color: theme.black }}>{row.value}</span>
-                  {row.sub && (
-                    <span className="font-mono text-[10px] ml-2" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>
-                  )}
+                <span className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>{label}</span>
+                <div className="h-4 w-16 rounded animate-pulse" style={{ background: theme.borderGray }} />
+              </div>
+            ))
+          ) : current ? (
+            <>
+              {[
+                { label: "SWE", value: formatSwe(current.swe), sub: current.sweNormal !== null ? `Normal ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray },
+                { label: "% of Normal", value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal) },
+                { label: "Snow Depth", value: formatSnowDepth(current.snowDepth), sub: null, subColor: null },
+                { label: "Temperature", value: formatTemp(current.temp), sub: null, subColor: null },
+                { label: "Season Precip", value: formatPrecip(current.precipAccum), sub: null, subColor: null },
+              ].map((row, i) => (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between px-4 py-2"
+                  style={{ borderTop: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}
+                >
+                  <span className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>{row.label}</span>
+                  <div className="text-right">
+                    <span className="font-mono text-[13px] font-semibold" style={{ color: theme.black }}>{row.value}</span>
+                    {row.sub && (
+                      <span className="font-mono text-[10px] ml-2" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-            {seasonData?.current?.lastUpdated && (
-              <div className="px-4 py-1.5 border-t" style={{ borderColor: theme.borderGray }}>
-                <span className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>
-                  Updated {seasonData.current.lastUpdated}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
+              ))}
+              {seasonData?.current?.lastUpdated && (
+                <div className="px-4 py-1.5 border-t" style={{ borderColor: theme.borderGray }}>
+                  <span className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+                    Updated {seasonData.current.lastUpdated}
+                  </span>
+                </div>
+              )}
+            </>
+          ) : null}
+        </div>
 
         <div className="px-4 pt-4">
           <div className="rounded-lg border overflow-hidden" style={{ borderColor: theme.borderGray }}>
