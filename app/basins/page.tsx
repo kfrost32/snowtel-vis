@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { Suspense, useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, X } from "lucide-react";
@@ -194,6 +194,14 @@ const basinColumns: Column<BasinSummary>[] = [
 ];
 
 export default function BasinsPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner message="Loading basin data..." fullScreen />}>
+      <BasinsPageInner />
+    </Suspense>
+  );
+}
+
+function BasinsPageInner() {
   const { stations, loading } = useStationList();
   const searchParams = useSearchParams();
   const router = useRouter();

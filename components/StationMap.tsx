@@ -4,8 +4,8 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@/lib/types";
-import { getMapMarkerColor, getMetricMapColor } from "@/lib/colors";
-import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip } from "@/lib/formatting";
+import { getMapMarkerColor, getMetricMapColor, getChangeColor } from "@/lib/colors";
+import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatTemp, formatPrecip, formatChange } from "@/lib/formatting";
 import { urlTriplet } from "@/lib/stations";
 import { theme } from "@/lib/theme";
 import huc2Boundaries from "@/data/huc2-boundaries.json";
@@ -193,10 +193,28 @@ function StationMapInner({
         source: "stations",
         paint: {
           "circle-color": ["get", "color"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 4, 6, 6, 10, 10],
-          "circle-stroke-width": 1.5,
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 5, 6, 8, 8, 14, 10, 18],
+          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 6, 1, 8, 1.5],
           "circle-stroke-color": theme.white,
           "circle-opacity": 0.95,
+        },
+      });
+      map.addLayer({
+        id: "station-labels",
+        type: "symbol",
+        source: "stations",
+        minzoom: 7,
+        layout: {
+          "text-field": ["get", "label"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 7, 8, 10, 11],
+          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+        paint: {
+          "text-color": theme.white,
+          "text-halo-color": "rgba(0,0,0,0.15)",
+          "text-halo-width": 0.5,
         },
       });
 
@@ -265,6 +283,20 @@ function StationMapInner({
   const onBasinSelectRef = useRef(onBasinSelect);
   onBasinSelectRef.current = onBasinSelect;
 
+  function metricDotLabel(m: string, s: StationCurrentConditions): string {
+    const fmtChange = (v: number | null) => v === null ? "" : `${v > 0 ? "+" : ""}${v.toFixed(1)}"`;
+    switch (m) {
+      case "WTEQ": return s.swe !== null ? `${s.swe.toFixed(1)}"` : "";
+      case "WTEQ_PCT": return s.pctOfNormal !== null ? `${Math.round(s.pctOfNormal)}%` : "";
+      case "CHANGE_1D": return fmtChange(s.sweChange1d);
+      case "CHANGE_7D": return fmtChange(s.sweChange7d);
+      case "SNWD": return s.snowDepth !== null ? `${Math.round(s.snowDepth)}"` : "";
+      case "PREC": return s.precipAccum !== null ? `${Math.round(s.precipAccum)}"` : "";
+      case "TAVG": return s.temp !== null ? `${Math.round(s.temp)}°` : "";
+      default: return "";
+    }
+  }
+
   function formatMetricValue(m: string, val: number | null): string {
     switch (m) {
       case "SNWD": return formatSnowDepth(val);
@@ -283,38 +315,68 @@ function StationMapInner({
     }
   }
 
+  function parseVal(v: unknown): number | null {
+    if (v === null || v === undefined || v === "null") return null;
+    const n = Number(v);
+    return isNaN(n) ? null : n;
+  }
+
   function showPopup(map: maplibregl.Map, coords: [number, number], props: Record<string, any>) {
     if (popupRef.current) popupRef.current.remove();
-    const triplet = props.triplet;
     const m = metricRef.current;
     const color = props.color;
-    const swe = props.swe !== "null" && props.swe !== undefined ? Number(props.swe) : null;
-    const pctOfNormal = props.pctOfNormal !== "null" && props.pctOfNormal !== undefined ? Number(props.pctOfNormal) : null;
-    const snowDepth = props.snowDepth !== "null" && props.snowDepth !== undefined ? Number(props.snowDepth) : null;
-    const precipAccum = props.precipAccum !== "null" && props.precipAccum !== undefined ? Number(props.precipAccum) : null;
-    const temp = props.temp !== "null" && props.temp !== undefined ? Number(props.temp) : null;
-    const primaryVal = m === "SNWD" ? snowDepth : m === "PREC" ? precipAccum : m === "TAVG" ? temp : swe;
-    const secondaryVal = m === "WTEQ" ? formatPctOfNormal(pctOfNormal) : formatSwe(swe);
-    const secondaryColor = m === "WTEQ" ? color : theme.black;
+    const swe = parseVal(props.swe);
+    const pctOfNormal = parseVal(props.pctOfNormal);
+    const snowDepth = parseVal(props.snowDepth);
+    const precipAccum = parseVal(props.precipAccum);
+    const temp = parseVal(props.temp);
+    const change1d = parseVal(props.sweChange1d);
+    const change7d = parseVal(props.sweChange7d);
+
+    const statRow = (label: string, val: string, valColor = theme.darkGray) =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-top:1px solid ${theme.borderGray};">
+        <span style="font-size:10px;color:${theme.mediumGray};font-family:var(--font-ibm-plex-mono),monospace;">${label}</span>
+        <span style="font-size:11px;font-weight:600;font-family:var(--font-ibm-plex-mono),monospace;color:${valColor};">${val}</span>
+      </div>`;
+
+    let rows = "";
+    if (m === "WTEQ" || m === "WTEQ_PCT") {
+      rows += statRow("SWE", formatSwe(swe));
+      rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal), color);
+      rows += statRow("1-day change", formatChange(change1d), getChangeColor(change1d));
+      rows += statRow("7-day change", formatChange(change7d), getChangeColor(change7d));
+    } else if (m === "CHANGE_1D") {
+      rows += statRow("1-day change", formatChange(change1d), color);
+      rows += statRow("7-day change", formatChange(change7d), getChangeColor(change7d));
+      rows += statRow("SWE", formatSwe(swe));
+      rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal));
+    } else if (m === "CHANGE_7D") {
+      rows += statRow("7-day change", formatChange(change7d), color);
+      rows += statRow("1-day change", formatChange(change1d), getChangeColor(change1d));
+      rows += statRow("SWE", formatSwe(swe));
+      rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal));
+    } else if (m === "SNWD") {
+      rows += statRow("Snow Depth", formatSnowDepth(snowDepth), color);
+      rows += statRow("SWE", formatSwe(swe));
+      rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal));
+    } else if (m === "PREC") {
+      rows += statRow("Season Precip", formatPrecip(precipAccum), color);
+      rows += statRow("SWE", formatSwe(swe));
+      rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal));
+    } else {
+      rows += statRow("Temperature", formatTemp(temp), color);
+      rows += statRow("SWE", formatSwe(swe));
+      rows += statRow("% of Normal", formatPctOfNormal(pctOfNormal));
+    }
 
     const html = `
-      <div style="font-family: var(--font-dm-sans), sans-serif; min-width: 180px;">
-        <div style="font-weight: 600; font-size: 13px; color: ${theme.black}; margin-bottom: 4px;">${props.name}</div>
-        <div style="font-size: 11px; color: ${theme.mediumGray}; margin-bottom: 8px;">${props.state} · ${formatElevation(Number(props.elevation))}</div>
-        <div style="display: flex; gap: 12px; margin-bottom: 8px;">
-          <div>
-            <div style="font-size: 10px; color: ${theme.mediumGray}; text-transform: uppercase; letter-spacing: 0.05em;">${metricLabel(m)}</div>
-            <div style="font-size: 14px; font-weight: 600; font-family: var(--font-ibm-plex-mono), monospace; color: ${color};">${formatMetricValue(m, primaryVal)}</div>
-          </div>
-          <div>
-            <div style="font-size: 10px; color: ${theme.mediumGray}; text-transform: uppercase; letter-spacing: 0.05em;">${m === "WTEQ" ? "% Normal" : "SWE"}</div>
-            <div style="font-size: 14px; font-weight: 600; font-family: var(--font-ibm-plex-mono), monospace; color: ${secondaryColor};">${secondaryVal}</div>
-          </div>
-        </div>
-        <a href="/station/${urlTriplet(triplet)}" style="font-size: 11px; color: #3B82F6; text-decoration: none; font-weight: 500;">View Details →</a>
+      <div style="font-family:var(--font-dm-sans),sans-serif;min-width:200px;">
+        <div style="font-weight:600;font-size:13px;color:${theme.black};margin-bottom:2px;">${props.name}</div>
+        <div style="font-size:10px;color:${theme.mediumGray};margin-bottom:8px;font-family:var(--font-ibm-plex-mono),monospace;">${props.state} · ${formatElevation(Number(props.elevation))}</div>
+        ${rows}
       </div>
     `;
-    popupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "240px", offset: 10 })
+    popupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "260px", offset: 10 })
       .setLngLat(coords).setHTML(html).addTo(map);
   }
 
@@ -332,7 +394,9 @@ function StationMapInner({
         properties: {
           triplet: s.triplet, name: s.name, state: s.state, elevation: s.elevation,
           swe: s.swe, snowDepth: s.snowDepth, precipAccum: s.precipAccum, temp: s.temp,
-          pctOfNormal: s.pctOfNormal, color: getMetricMapColor(metric, s),
+          pctOfNormal: s.pctOfNormal, sweChange1d: s.sweChange1d, sweChange7d: s.sweChange7d,
+          color: getMetricMapColor(metric, s),
+          label: metricDotLabel(metric, s),
         },
       })),
     });
@@ -351,6 +415,7 @@ function StationMapInner({
         triplet: station.triplet, name: station.name, state: station.state,
         elevation: station.elevation, swe: station.swe, snowDepth: station.snowDepth,
         precipAccum: station.precipAccum, temp: station.temp, pctOfNormal: station.pctOfNormal,
+        sweChange1d: station.sweChange1d, sweChange7d: station.sweChange7d,
         color: getMetricMapColor(metricRef.current, station),
       });
     });
@@ -436,6 +501,7 @@ function StationMapInner({
     if (!map || !mapLoaded) return;
     const vis = (v: boolean) => (v ? "visible" : "none");
     if (map.getLayer("station-circles")) map.setLayoutProperty("station-circles", "visibility", vis(showStations));
+    if (map.getLayer("station-labels")) map.setLayoutProperty("station-labels", "visibility", vis(showStations));
     if (map.getLayer("huc4-fill")) map.setLayoutProperty("huc4-fill", "visibility", vis(showHuc4));
     if (map.getLayer("huc4-outline")) map.setLayoutProperty("huc4-outline", "visibility", vis(showHuc4));
     if (map.getLayer("huc4-label-text")) map.setLayoutProperty("huc4-label-text", "visibility", vis(showHuc4));

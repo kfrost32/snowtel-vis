@@ -496,16 +496,6 @@ export default function EnvelopeChart({ data, stationName }: EnvelopeChartProps)
               />
             )}
 
-            {todayDot && !hiddenYears.has(currentYear) && (
-              <ReferenceDot
-                x={todayDot.wyDay}
-                y={todayDot.swe}
-                r={5}
-                fill={theme.black}
-                stroke={theme.white}
-                strokeWidth={2}
-              />
-            )}
           </ComposedChart>
         </ResponsiveContainer>
       </div>

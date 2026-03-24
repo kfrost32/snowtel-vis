@@ -2,7 +2,7 @@ import { REPORT_GENERATOR_BASE } from "./constants";
 
 export function buildStationCurrentUrl(triplet: string): string {
   const encoded = encodeURIComponent(triplet);
-  return `${REPORT_GENERATOR_BASE}/customSingleStationReport/daily/end_of_period/${encoded}%7Cid=%22%22%7Cname/-2,0/WTEQ::value,WTEQ::median_1991,WTEQ::pctOfMedian_1991,SNWD::value,PREC::value,TOBS::value,TMAX::value,TMIN::value,TAVG::value`;
+  return `${REPORT_GENERATOR_BASE}/customSingleStationReport/daily/end_of_period/${encoded}%7Cid=%22%22%7Cname/-8,0/WTEQ::value,WTEQ::median_1991,WTEQ::pctOfMedian_1991,SNWD::value,PREC::value,TOBS::value,TMAX::value,TMIN::value,TAVG::value`;
 }
 
 export function buildStationSeasonUrl(triplet: string, waterYearStart: string): string {
@@ -13,6 +13,11 @@ export function buildStationSeasonUrl(triplet: string, waterYearStart: string): 
 export function buildStationHistoricalUrl(triplet: string): string {
   const encoded = encodeURIComponent(triplet);
   return `${REPORT_GENERATOR_BASE}/customSingleStationReport/daily/start_of_period/${encoded}%7Cid=%22%22%7Cname/POR_BEGIN,POR_END/WTEQ::value,WTEQ::median_1991,PREC::value`;
+}
+
+export function buildStationHourlyUrl(triplet: string): string {
+  const encoded = encodeURIComponent(triplet);
+  return `${REPORT_GENERATOR_BASE}/customSingleStationReport/hourly/start_of_period/${encoded}%7Cid=%22%22%7Cname/-6,0/SNWD::value,TOBS::value`;
 }
 
 export function buildMultiStationCurrentUrl(triplets: string[]): string {

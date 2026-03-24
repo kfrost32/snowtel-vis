@@ -72,6 +72,7 @@ export async function GET(
         snowDepth: latest?.snowDepth ?? null,
         temp: latest?.tavg ?? null,
         precipAccum: latest?.precip ?? null,
+        lastUpdated: latest?.date ?? null,
       },
       season,
     };

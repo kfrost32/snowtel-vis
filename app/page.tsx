@@ -4,22 +4,38 @@ import { useState, useMemo, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
+import { useFavorites } from "@/hooks/useFavorites";
 import { theme } from "@/lib/theme";
 import { computeBasinSummaries, computeBasinCentroid } from "@/lib/basins";
+import { getStation } from "@/lib/stations";
 import MapControls from "@/components/MapControls";
 import StationDetailPanel from "@/components/StationDetailPanel";
 import BasinDetailPanel from "@/components/BasinDetailPanel";
+import { SidebarSection, SidebarFavoriteItem } from "@/components/sidebar";
 import type { BasinMarker } from "@/components/StationMap";
 import type { BasinSummary } from "@/lib/types";
 
+const PCT_LEGEND = [
+  { label: "<50%", color: "#DC2626" },
+  { label: "50–75%", color: "#F59E0B" },
+  { label: "75–110%", color: "#22C55E" },
+  { label: "110–150%", color: "#3B82F6" },
+  { label: ">150%", color: "#1D4ED8" },
+];
+
+const CHANGE_LEGEND = [
+  { label: "−2″+", color: "#DC2626" },
+  { label: "−0.5″", color: "#F59E0B" },
+  { label: "0", color: "#94A3B8" },
+  { label: "+0.5″", color: "#3B82F6" },
+  { label: "+2″+", color: "#1D4ED8" },
+];
+
 const METRIC_LEGEND: Record<string, { label: string; color: string }[]> = {
-  WTEQ: [
-    { label: "<50%", color: "#DC2626" },
-    { label: "50–75%", color: "#F59E0B" },
-    { label: "75–110%", color: "#22C55E" },
-    { label: "110–150%", color: "#3B82F6" },
-    { label: ">150%", color: "#1D4ED8" },
-  ],
+  WTEQ: PCT_LEGEND,
+  WTEQ_PCT: PCT_LEGEND,
+  CHANGE_1D: CHANGE_LEGEND,
+  CHANGE_7D: CHANGE_LEGEND,
   SNWD: [
     { label: '0"', color: "#CBD5E1" },
     { label: "1'", color: "#C4B5FD" },
@@ -34,7 +50,7 @@ const METRIC_LEGEND: Record<string, { label: string; color: string }[]> = {
     { label: '35"', color: "#22D3EE" },
     { label: '50"+', color: "#0891B2" },
   ],
-  TOBS: [
+  TAVG: [
     { label: "<10°", color: "#1D4ED8" },
     { label: "25°", color: "#3B82F6" },
     { label: "32°", color: "#93C5FD" },
@@ -54,6 +70,7 @@ const StationMap = dynamic(() => import("@/components/StationMap"), {
 
 export default function HomePage() {
   const { stations, loading, error } = useStationList();
+  const { favorites, toggleStation, toggleBasin, isStationFav, isBasinFav } = useFavorites();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedStates, setSelectedStates] = useState<Set<string>>(new Set());
   const [elevMin, setElevMin] = useState("");
@@ -158,7 +175,37 @@ export default function HomePage() {
               </button>
             </div>
 
-            <div className="flex-shrink-0" style={{ borderColor: theme.borderGray }}>
+            {(favorites.stations.length > 0 || favorites.basins.length > 0) && (
+              <SidebarSection label="Favorites" flush>
+                {favorites.stations.map((triplet) => {
+                  const s = getStation(triplet);
+                  if (!s) return null;
+                  return (
+                    <SidebarFavoriteItem
+                      key={triplet}
+                      name={s.name}
+                      detail={s.state}
+                      onClick={() => handleStationClick(triplet)}
+                      onRemove={() => toggleStation(triplet)}
+                    />
+                  );
+                })}
+                {favorites.basins.map((huc) => {
+                  const b = allBasins.find((b) => b.huc === huc);
+                  if (!b) return null;
+                  return (
+                    <SidebarFavoriteItem
+                      key={huc}
+                      name={b.name}
+                      onClick={() => handleBasinClick(huc)}
+                      onRemove={() => toggleBasin(huc)}
+                    />
+                  );
+                })}
+              </SidebarSection>
+            )}
+
+            <div className="flex-1 min-h-0 overflow-y-auto" style={{ borderColor: theme.borderGray }}>
               <MapControls
                 metric={metric}
                 onMetricChange={setMetric}
@@ -224,7 +271,7 @@ export default function HomePage() {
             }}
           >
             <div className="flex items-center gap-3 flex-wrap">
-              {(METRIC_LEGEND[metric] ?? METRIC_LEGEND.TOBS).map(({ label, color }) => (
+              {(METRIC_LEGEND[metric] ?? METRIC_LEGEND.TAVG).map(({ label, color }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
                   <span className="text-[10px] font-mono" style={{ color: theme.gray }}>
@@ -256,12 +303,16 @@ export default function HomePage() {
                   triplet={selectedTriplet}
                   onClose={closeDetailPanel}
                   onStationClick={handleStationClick}
+                  isFavorite={isStationFav(selectedTriplet)}
+                  onToggleFavorite={() => toggleStation(selectedTriplet)}
                 />
               ) : selectedBasin ? (
                 <BasinDetailPanel
                   basin={selectedBasin}
                   onClose={closeDetailPanel}
                   onStationClick={handleStationClick}
+                  isFavorite={isBasinFav(selectedBasin.huc)}
+                  onToggleFavorite={() => toggleBasin(selectedBasin.huc)}
                 />
               ) : null}
             </div>

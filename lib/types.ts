@@ -17,6 +17,7 @@ export interface StationCurrentConditions extends Station {
   snowDepth: number | null;
   temp: number | null;
   precipAccum: number | null;
+  sweChange1d: number | null;
   sweChange7d: number | null;
   lastUpdated: string;
 }
@@ -49,6 +50,7 @@ export interface StationSeasonData {
     snowDepth: number | null;
     temp: number | null;
     precipAccum: number | null;
+    lastUpdated: string | null;
   };
   season: DailyObservation[];
 }

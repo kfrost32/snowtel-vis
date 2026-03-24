@@ -8,8 +8,6 @@ import { theme } from "@/lib/theme";
 
 const sections = [
   { href: "/", label: "Map", shortLabel: "Map" },
-  { href: "/rankings", label: "Rankings", shortLabel: "Rankings" },
-  { href: "/compare", label: "Compare", shortLabel: "Compare" },
 ];
 
 export default function GlobalHeader() {

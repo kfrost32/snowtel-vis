@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { X, Star } from "lucide-react";
 import { theme } from "@/lib/theme";
 import { formatSwe, formatPctOfNormal, formatDateFull } from "@/lib/formatting";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -17,12 +17,16 @@ interface BasinDetailPanelProps {
   basin: BasinSummary;
   onClose: () => void;
   onStationClick: (triplet: string) => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
 export default function BasinDetailPanel({
   basin,
   onClose,
   onStationClick,
+  isFavorite,
+  onToggleFavorite,
 }: BasinDetailPanelProps) {
   const snapshotRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
@@ -64,53 +68,53 @@ export default function BasinDetailPanel({
       style={{ background: theme.white }}
     >
       <div
-        className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 border-b"
+        className="relative px-5 pt-10 pb-4 border-b"
         style={{ borderColor: theme.borderGray }}
       >
-        <div className="min-w-0">
-          <h2
-            className="text-lg font-semibold tracking-tight font-sans leading-snug"
-            style={{ color: theme.black }}
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          <button
+            onClick={onToggleFavorite}
+            className="p-2 rounded-md hover:bg-black/[0.05] transition-colors cursor-pointer"
+            style={{ color: isFavorite ? "#FBBF24" : theme.gray }}
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
-            {basin.name}
-          </h2>
-          {basin.region && (
-            <p
-              className="font-mono text-[11px] mt-0.5"
-              style={{ color: theme.mediumGray }}
-            >
-              {basin.region}
-            </p>
-          )}
-          <p
-            className="font-mono text-[11px] mt-0.5"
-            style={{ color: theme.mediumGray }}
-          >
-            {basin.stationCount} station{basin.stationCount !== 1 ? "s" : ""}
-          </p>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
+            <Star size={18} fill={isFavorite ? "#FBBF24" : "none"} />
+          </button>
           <button
             onClick={handleExport}
             disabled={exporting}
-            className="p-1.5 rounded-md hover:bg-black/[0.05] transition-colors cursor-pointer"
+            className="p-2 rounded-md hover:bg-black/[0.05] transition-colors cursor-pointer"
             style={{ color: theme.gray }}
             aria-label="Export basin snapshot"
             title="Save as image"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M7 1v8M4 6l3 3 3-3M2 10v1.5A1.5 1.5 0 0 0 3.5 13h7a1.5 1.5 0 0 0 1.5-1.5V10" />
             </svg>
           </button>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-black/[0.05] transition-colors cursor-pointer"
+            className="p-2 rounded-md hover:bg-black/[0.05] transition-colors cursor-pointer"
             style={{ color: theme.gray }}
             aria-label="Close basin detail"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
+        <h2
+          className="text-lg font-semibold tracking-tight font-sans leading-snug"
+          style={{ color: theme.black }}
+        >
+          {basin.name}
+        </h2>
+        {basin.region && (
+          <p className="font-mono text-[11px] mt-0.5" style={{ color: theme.mediumGray }}>
+            {basin.region}
+          </p>
+        )}
+        <p className="font-mono text-[11px] mt-0.5" style={{ color: theme.mediumGray }}>
+          {basin.stationCount} station{basin.stationCount !== 1 ? "s" : ""}
+        </p>
       </div>
 
       <div ref={snapshotRef} className="bg-white">
