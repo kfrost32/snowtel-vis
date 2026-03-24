@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { X, Star } from "lucide-react";
 import { theme, glassmorphicButtonStyle } from "@/lib/theme";
 import { formatSwe, formatPctOfNormal, formatSnowDepth, formatChange } from "@/lib/formatting";
@@ -27,31 +27,6 @@ export default function BasinDetailPanel({
   isFavorite,
   onToggleFavorite,
 }: BasinDetailPanelProps) {
-  const snapshotRef = useRef<HTMLDivElement>(null);
-  const [exporting, setExporting] = useState(false);
-
-  const handleExport = async () => {
-    if (!snapshotRef.current || exporting) return;
-    setExporting(true);
-    try {
-      const { toPng } = await import("html-to-image");
-      const dataUrl = await toPng(snapshotRef.current, {
-        quality: 1,
-        backgroundColor: "#FFFFFF",
-        pixelRatio: 2,
-      });
-      const name = basin.name.toLowerCase().replace(/\s+/g, "-");
-      const link = document.createElement("a");
-      link.download = `swe-${name}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error("Export failed:", err);
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const { data: envelopeData, loading: envelopeLoading } = useBasinEnvelopeData(basin.huc);
 
   const basinSeasonMap = useMemo(() => {
@@ -87,17 +62,6 @@ export default function BasinDetailPanel({
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             <Star size={18} fill={isFavorite ? "#FBBF24" : "none"} />
-          </button>
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="p-2 rounded-md transition-colors duration-150 cursor-pointer"
-            style={{ color: "rgba(255,255,255,0.8)", background: "rgba(0,0,0,0.25)" }}
-            aria-label="Export basin snapshot"
-          >
-            <svg width="18" height="18" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M7 1v8M4 6l3 3 3-3M2 10v1.5A1.5 1.5 0 0 0 3.5 13h7a1.5 1.5 0 0 0 1.5-1.5V10" />
-            </svg>
           </button>
           <button
             onClick={onClose}
