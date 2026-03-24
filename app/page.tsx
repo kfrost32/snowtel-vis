@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
 import { useFavorites } from "@/hooks/useFavorites";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { theme } from "@/lib/theme";
 import { computeBasinSummaries, computeBasinCentroid } from "@/lib/basins";
 import { getStation, urlTriplet, parseTripletFromUrl } from "@/lib/stations";
@@ -146,6 +147,9 @@ function HomePageInner() {
     if (!selectedBasinHuc) return null;
     return allBasins.find((b) => b.huc === selectedBasinHuc) || null;
   }, [allBasins, selectedBasinHuc]);
+
+  const selectedStation = selectedTriplet ? getStation(selectedTriplet) : null;
+  usePageTitle(selectedStation?.name ?? selectedBasin?.name ?? null);
 
   const handleStationClick = (triplet: string) => {
     if (isMobile) setSidebarOpen(false);

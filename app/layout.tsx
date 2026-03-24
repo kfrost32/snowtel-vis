@@ -19,7 +19,17 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "SNOTEL Explorer",
-  description: "Interactive visualization of SNOTEL snowpack data across the western United States.",
+  description: "Interactive map of SNOTEL snowpack conditions across the western United States. Current SWE, snow depth, and percent of normal for 900+ mountain stations.",
+  openGraph: {
+    title: "SNOTEL Explorer",
+    description: "Interactive map of SNOTEL snowpack conditions across the western United States.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "SNOTEL Explorer",
+    description: "Interactive map of SNOTEL snowpack conditions across the western United States.",
+  },
 };
 
 export default function RootLayout({
