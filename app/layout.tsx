@@ -3,6 +3,7 @@ import { IBM_Plex_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
 import GlobalHeader from "@/components/GlobalHeader";
 import CommandSearch from "@/components/CommandSearch";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { SWRProvider } from "@/lib/swr-config";
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -42,6 +43,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${ibmPlexMono.variable} ${dmSans.variable} antialiased`}>
+        <GoogleAnalytics />
         <SWRProvider>
           <GlobalHeader />
           <CommandSearch />

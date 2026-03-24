@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
 import { useFavorites } from "@/hooks/useFavorites";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { theme } from "@/lib/theme";
 import { computeBasinSummaries, computeBasinCentroid } from "@/lib/basins";
 import { getStation, urlTriplet, parseTripletFromUrl } from "@/lib/stations";
@@ -162,6 +163,7 @@ function HomePageInner() {
 
   const selectedStation = selectedTriplet ? getStation(selectedTriplet) : null;
   usePageTitle(selectedStation?.name ?? selectedBasin?.name ?? null);
+  useAnalytics(selectedTriplet, selectedBasinHuc);
 
   const handleStationClick = (triplet: string) => {
     if (isMobile) setSidebarOpen(false);
