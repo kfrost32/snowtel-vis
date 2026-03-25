@@ -65,6 +65,9 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
     return { label, snowDepth: d.snowDepth, temp: d.temp };
   });
 
+  const depths = chartData.map((d) => d.snowDepth).filter((d): d is number => d !== null);
+  const depthMax = depths.length ? Math.ceil(Math.max(...depths) / 10) * 10 : 50;
+
   const temps = chartData.map((d) => d.temp).filter((t): t is number => t !== null);
   const tempMin = temps.length ? Math.min(...temps) - 5 : -10;
   const tempMax = temps.length ? Math.max(...temps) + 5 : 80;
@@ -86,11 +89,12 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
         />
         <YAxis
           yAxisId="depth"
+          domain={[0, depthMax]}
           tick={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={false}
           tickLine={false}
           tickFormatter={(v: number) => `${v}"`}
-          width={32}
+          width={42}
         />
         <YAxis
           yAxisId="temp"

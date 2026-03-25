@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStation, parseTripletFromUrl } from "@/lib/stations";
 import { fetchPorData, fetchWaterYearMedian } from "@/lib/snotel-api";
-import { getWaterYearDay } from "@/lib/water-year";
+import { getWaterYearDay, getCurrentWaterYear } from "@/lib/water-year";
 import type { EnvelopeDay, StationEnvelope } from "@/lib/types";
 
 const CACHE_HEADER = { "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=3600" };
@@ -66,11 +66,17 @@ export async function GET(
         continue;
       }
 
-      let max = vals[0].swe;
-      let min = vals[0].swe;
-      let maxYear = vals[0].wy;
-      let minYear = vals[0].wy;
-      for (const v of vals) {
+      const currentWy = getCurrentWaterYear();
+      const historical = vals.filter(v => v.wy !== currentWy);
+      if (historical.length === 0) {
+        envelope.push({ wyDay, max: null, min: null, median });
+        continue;
+      }
+      let max = historical[0].swe;
+      let min = historical[0].swe;
+      let maxYear = historical[0].wy;
+      let minYear = historical[0].wy;
+      for (const v of historical) {
         if (v.swe > max) { max = v.swe; maxYear = v.wy; }
         if (v.swe < min) { min = v.swe; minYear = v.wy; }
       }

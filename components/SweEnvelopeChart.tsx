@@ -56,7 +56,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   const date = waterYearDayToLabel(point.wyDay, wy);
 
   const rows: { label: string; value: number | null; color: string }[] = [
-    { label: "Current", value: point.current, color: snowColors.swe },
+    { label: "Current", value: point.current, color: theme.black },
     { label: "Median (′91-′20)", value: point.median, color: snowColors.median },
     { label: point.maxYear ? `Max (WY ${point.maxYear})` : "Max", value: point.max, color: theme.mediumGray },
     { label: point.minYear ? `Min (WY ${point.minYear})` : "Min", value: point.min, color: snowColors.envelopeMin },
@@ -210,10 +210,10 @@ export default function SweEnvelopeChart({
             <Line
               dataKey="current"
               type="monotone"
-              stroke={snowColors.swe}
+              stroke={theme.black}
               strokeWidth={2.5}
               dot={false}
-              activeDot={{ r: 4, fill: snowColors.swe, stroke: theme.white, strokeWidth: 2 }}
+              activeDot={{ r: 4, fill: theme.black, stroke: theme.white, strokeWidth: 2 }}
               connectNulls
             />
           </LineChart>
@@ -221,7 +221,7 @@ export default function SweEnvelopeChart({
       </div>
       <div className="flex items-center justify-center gap-4 pt-1.5 pb-1 flex-wrap">
         <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
-          <div className="w-4 border-t-2" style={{ borderColor: snowColors.swe }} />
+          <div className="w-4 border-t-2" style={{ borderColor: theme.black }} />
           Current
         </div>
         <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>

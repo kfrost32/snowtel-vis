@@ -88,6 +88,26 @@ function StationMapInner({
     mapRef.current = map;
 
     map.on("load", () => {
+      // ── Terrain hillshade ──────────────────────────────────────────────
+      map.addSource("terrain-dem", {
+        type: "raster-dem",
+        tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+        encoding: "terrarium",
+        tileSize: 256,
+        maxzoom: 15,
+      });
+      map.addLayer({
+        id: "hillshade",
+        type: "hillshade",
+        source: "terrain-dem",
+        paint: {
+          "hillshade-exaggeration": 0.3,
+          "hillshade-shadow-color": "#5a5a5a",
+          "hillshade-highlight-color": "#ffffff",
+          "hillshade-accent-color": "#4a4a4a",
+        },
+      });
+
       // ── HUC-4: colored fill + thin outline ────────────────────────────
       map.addSource("huc4-polygons", {
         type: "geojson",
@@ -181,30 +201,34 @@ function StationMapInner({
         id: "station-circles",
         type: "circle",
         source: "stations",
+        layout: {
+          "circle-sort-key": ["get", "sortKey"],
+        },
         paint: {
           "circle-color": ["get", "color"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 6, 6, 10, 8, 16, 10, 20],
-          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 6, 1.5, 8, 2],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 10, 5, 14, 7, 16, 10, 20],
+          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 3, 2, 7, 2.5],
           "circle-stroke-color": theme.white,
-          "circle-opacity": 0.95,
+          "circle-opacity": 1,
         },
       });
       map.addLayer({
         id: "station-labels",
         type: "symbol",
         source: "stations",
-        minzoom: 6,
+        minzoom: 5,
         layout: {
           "text-field": ["get", "label"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 6, 9, 10, 12],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 5, 8, 6, 9, 10, 12],
           "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          "text-allow-overlap": true,
-          "text-ignore-placement": true,
+          "text-allow-overlap": false,
+          "text-ignore-placement": false,
+          "symbol-sort-key": ["get", "sortKey"],
         },
         paint: {
           "text-color": theme.white,
-          "text-halo-color": "rgba(0,0,0,0.15)",
-          "text-halo-width": 0.5,
+          "text-halo-color": "rgba(0,0,0,0.5)",
+          "text-halo-width": 1,
         },
       });
 
@@ -384,6 +408,7 @@ function StationMapInner({
           pctOfNormal: s.pctOfNormal, sweChange1d: s.sweChange1d, sweChange3d: s.sweChange3d, sweChange7d: s.sweChange7d, depthChange1d: s.depthChange1d, depthChange3d: s.depthChange3d, depthChange7d: s.depthChange7d,
           color: getMetricMapColor(metric, s),
           label: metricDotLabel(metric, s),
+          sortKey: s.latitude,
         },
       })),
     });
