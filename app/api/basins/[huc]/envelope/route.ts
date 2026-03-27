@@ -8,7 +8,7 @@ import type { EnvelopeDay, StationEnvelope } from "@/lib/types";
 const CACHE_HEADER = { "Cache-Control": "public, max-age=3600, s-maxage=21600, stale-while-revalidate=3600" };
 const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
 
-const MAX_STATIONS = 30;
+const MAX_STATIONS = 150;
 
 export async function GET(
   _request: Request,
@@ -33,15 +33,22 @@ export async function GET(
       .map((s) => s.beginDate || "1980-01-01")
       .sort()[0];
 
-    const [stationResults, medianMap] = await Promise.all([
-      Promise.all(
-        stations.map((s) =>
+    const BATCH_SIZE = 10;
+    const stationResults: { dates: string[]; values: (number | null)[] }[] = [];
+    const medianPromise = fetchWaterYearMedian(triplets, "WTEQ");
+
+    for (let i = 0; i < stations.length; i += BATCH_SIZE) {
+      const batch = stations.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map((s) =>
           fetchPorData(s.triplet, "WTEQ", s.beginDate || "1980-01-01", endDate)
             .catch(() => ({ dates: [] as string[], values: [] as (number | null)[] }))
         )
-      ),
-      fetchWaterYearMedian(triplets, "WTEQ"),
-    ]);
+      );
+      stationResults.push(...results);
+    }
+
+    const medianMap = await medianPromise;
 
     const byWyDayYear = new Map<number, Map<number, number[]>>();
     const currentWy = getCurrentWaterYear();
