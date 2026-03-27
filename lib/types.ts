@@ -82,6 +82,9 @@ export interface StationEnvelope {
   envelope: EnvelopeDay[];
   medianPeakDay: number;
   medianPeakSwe: number;
+  depthEnvelope: EnvelopeDay[];
+  medianPeakDepthDay: number;
+  medianPeakDepth: number;
 }
 
 export type ConditionLevel =

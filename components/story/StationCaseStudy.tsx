@@ -57,7 +57,7 @@ export default function StationCaseStudy({ station }: StationCaseStudyProps) {
         </div>
         <div>
           <div className="font-mono text-[10px] uppercase tracking-wide" style={{ color: theme.mediumGray }}>
-            % of Normal
+            % of Median
           </div>
           <div className="font-sans font-semibold text-sm" style={{ color: theme.black }}>
             {formatPctOfNormal(station.pctOfNormal)}

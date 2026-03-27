@@ -286,7 +286,7 @@ function CompareContent() {
                       },
                     },
                     {
-                      label: "% of Normal",
+                      label: "% of Median",
                       getValue: (t: string) => {
                         const d = seasonDataMap[t]?.data;
                         return d ? formatPctOfNormal(d.current.pctOfNormal) : "—";

@@ -32,7 +32,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { payl
         {d.name}
       </div>
       <div className="font-mono text-[11px]" style={{ color: theme.gray }}>
-        {Math.round(d.temp)}°F / {Math.round(d.pctOfNormal)}% of normal
+        {Math.round(d.temp)}°F / {Math.round(d.pctOfNormal)}% of median
       </div>
     </div>
   );
@@ -55,12 +55,12 @@ export default function TempScatter({ data }: TempScatterProps) {
         <YAxis
           type="number"
           dataKey="pctOfNormal"
-          name="% of Normal"
+          name="% of Median"
           tick={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={false}
           tickLine={false}
           tickFormatter={(v: number) => `${v}%`}
-          label={{ value: "% of Normal", angle: -90, position: "insideLeft", offset: 16, fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
+          label={{ value: "% of Median", angle: -90, position: "insideLeft", offset: 16, fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
         />
         <Tooltip content={<CustomTooltip />} cursor={chartCursorStyle} />
         <ReferenceLine y={100} stroke={theme.darkGray} strokeWidth={1} strokeDasharray="4 2" />

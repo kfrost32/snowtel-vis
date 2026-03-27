@@ -33,7 +33,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { payl
         {d.stateName}
       </div>
       <div className="font-mono text-[11px]" style={{ color: theme.gray }}>
-        {Math.round(d.pctOfNormal)}% of normal ({d.stationCount} stations)
+        {Math.round(d.pctOfNormal)}% of median ({d.stationCount} stations)
       </div>
     </div>
   );

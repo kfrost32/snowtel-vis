@@ -88,7 +88,7 @@ export default function BasinDetailPanel({
       <div className="overflow-x-auto border-b shrink-0" style={{ borderColor: theme.borderGray, WebkitOverflowScrolling: "touch" }}>
         <div className="flex items-stretch min-w-min">
           {[
-            { label: "% Normal", value: formatPctOfNormal(basin.medianPctOfNormal), color: getConditionColor(basin.medianPctOfNormal) },
+            { label: "% Median", value: formatPctOfNormal(basin.medianPctOfNormal), color: getConditionColor(basin.medianPctOfNormal) },
             { label: "Avg SWE", value: formatSwe(basin.avgSwe), color: theme.black },
             { label: "Avg Depth", value: formatSnowDepth(basin.stations.reduce((s, st) => s + (st.snowDepth ?? 0), 0) / (basin.stations.filter(s => s.snowDepth !== null).length || 1)), color: theme.black },
             { label: "Stations", value: String(basin.stationCount), color: theme.black },

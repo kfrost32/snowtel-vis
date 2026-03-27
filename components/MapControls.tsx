@@ -10,7 +10,7 @@ const METRIC_GROUPS = [
     label: "SWE",
     metrics: [
       { key: "WTEQ", label: "SWE" },
-      { key: "WTEQ_PCT", label: "% of Normal" },
+      { key: "WTEQ_PCT", label: "% of Median" },
       { key: "CHANGE_1D", label: "1-Day Δ" },
       { key: "CHANGE_3D", label: "3-Day Δ" },
       { key: "CHANGE_7D", label: "7-Day Δ" },

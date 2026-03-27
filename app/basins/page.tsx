@@ -104,7 +104,7 @@ const stationColumns: Column<StationCurrentConditions>[] = [
   },
   {
     key: "pctOfNormal",
-    label: "% Normal",
+    label: "% Median",
     align: "right",
     defaultSortDir: "desc",
     getValue: (item) => item.pctOfNormal ?? -1,
@@ -166,7 +166,7 @@ const basinColumns: Column<BasinSummary>[] = [
   },
   {
     key: "medianPctOfNormal",
-    label: "% Normal",
+    label: "% Median",
     align: "right",
     defaultSortDir: "desc",
     getValue: (item) => item.medianPctOfNormal ?? -1,
@@ -289,7 +289,7 @@ function BasinsPageInner() {
             <strong style={{ color: getConditionColor(overallMedian) }}>
               {formatPctOfNormal(overallMedian)}
             </strong>{" "}
-            of normal
+            of median
           </span>
         )}
       </div>

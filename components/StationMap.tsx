@@ -285,7 +285,7 @@ function StationMapInner({
             <div style="font-weight: 600; font-size: 13px; color: ${theme.black}; margin-bottom: 4px;">${props.name}</div>
             <div style="font-size: 11px; color: ${theme.mediumGray}; margin-bottom: 8px;">${props.stationCount || ""} stations</div>
             <div>
-              <div style="font-size: 10px; color: ${theme.mediumGray}; text-transform: uppercase; letter-spacing: 0.05em;">Median % Normal</div>
+              <div style="font-size: 10px; color: ${theme.mediumGray}; text-transform: uppercase; letter-spacing: 0.05em;">% of Median</div>
               <div style="font-size: 14px; font-weight: 600; font-family: var(--font-ibm-plex-mono), monospace; color: ${color};">${formatPctOfNormal(pct)}</div>
             </div>
           </div>

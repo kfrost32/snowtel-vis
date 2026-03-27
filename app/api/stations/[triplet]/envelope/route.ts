@@ -8,6 +8,60 @@ import type { EnvelopeDay, StationEnvelope } from "@/lib/types";
 const CACHE_HEADER = { "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=3600" };
 const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
 
+function buildEnvelope(por: { dates: string[]; values: (number | null)[] }, medianValues: (number | null)[]) {
+  const byWyDay = new Map<number, { val: number; wy: number }[]>();
+  for (let i = 0; i < por.dates.length; i++) {
+    const val = por.values[i];
+    if (val === null) continue;
+    const dateStr = por.dates[i];
+    const wyDay = getWaterYearDay(dateStr);
+    const date = new Date(dateStr + "T12:00:00Z");
+    const month = date.getUTCMonth();
+    const wy = month >= 9 ? date.getUTCFullYear() + 1 : date.getUTCFullYear();
+    if (!byWyDay.has(wyDay)) byWyDay.set(wyDay, []);
+    byWyDay.get(wyDay)!.push({ val, wy });
+  }
+
+  const envelope: EnvelopeDay[] = [];
+  let peakDay = 1;
+  let peakVal = 0;
+  const currentWy = getCurrentWaterYear();
+
+  for (let wyDay = 1; wyDay <= 366; wyDay++) {
+    const vals = byWyDay.get(wyDay);
+    const medianIdx = wyDay - 1;
+    const median = medianIdx < medianValues.length ? medianValues[medianIdx] : null;
+
+    if (median !== null && median > peakVal) {
+      peakVal = median;
+      peakDay = wyDay;
+    }
+
+    if (!vals || vals.length === 0) {
+      envelope.push({ wyDay, max: null, min: null, median });
+      continue;
+    }
+
+    const historical = vals.filter(v => v.wy !== currentWy);
+    if (historical.length === 0) {
+      envelope.push({ wyDay, max: null, min: null, median });
+      continue;
+    }
+    let max = historical[0].val;
+    let min = historical[0].val;
+    let maxYear = historical[0].wy;
+    let minYear = historical[0].wy;
+    for (const v of historical) {
+      if (v.val > max) { max = v.val; maxYear = v.wy; }
+      if (v.val < min) { min = v.val; minYear = v.wy; }
+    }
+
+    envelope.push({ wyDay, max, min, median, maxYear, minYear });
+  }
+
+  return { envelope, peakDay, peakVal };
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ triplet: string }> }
@@ -25,68 +79,31 @@ export async function GET(
     const beginDate = station.beginDate || "1980-01-01";
     const endDate = new Date().toISOString().split("T")[0];
 
-    const [wteq, medianMap] = await Promise.all([
+    const [wteq, wteqMedianMap, snwd, snwdMedianMap] = await Promise.all([
       fetchPorData(triplet, "WTEQ", beginDate, endDate),
       fetchWaterYearMedian([triplet], "WTEQ"),
+      fetchPorData(triplet, "SNWD", beginDate, endDate),
+      fetchWaterYearMedian([triplet], "SNWD"),
     ]);
 
     if (!wteq.dates.length) {
-      return NextResponse.json({ envelope: [], medianPeakDay: 0, medianPeakSwe: 0 }, { headers: CACHE_HEADER });
+      return NextResponse.json({ envelope: [], medianPeakDay: 0, medianPeakSwe: 0, depthEnvelope: [], medianPeakDepthDay: 0, medianPeakDepth: 0 }, { headers: CACHE_HEADER });
     }
 
-    const medianValues = medianMap.get(triplet) || [];
+    const wteqMedianValues = wteqMedianMap.get(triplet) || [];
+    const sweResult = buildEnvelope(wteq, wteqMedianValues);
 
-    const byWyDay = new Map<number, { swe: number; wy: number }[]>();
-    for (let i = 0; i < wteq.dates.length; i++) {
-      const swe = wteq.values[i];
-      if (swe === null) continue;
-      const dateStr = wteq.dates[i];
-      const wyDay = getWaterYearDay(dateStr);
-      const date = new Date(dateStr + "T12:00:00Z");
-      const month = date.getUTCMonth();
-      const wy = month >= 9 ? date.getUTCFullYear() + 1 : date.getUTCFullYear();
-      if (!byWyDay.has(wyDay)) byWyDay.set(wyDay, []);
-      byWyDay.get(wyDay)!.push({ swe, wy });
-    }
+    const snwdMedianValues = snwdMedianMap.get(triplet) || [];
+    const depthResult = buildEnvelope(snwd, snwdMedianValues);
 
-    const envelope: EnvelopeDay[] = [];
-    let medianPeakDay = 1;
-    let medianPeakSwe = 0;
-
-    for (let wyDay = 1; wyDay <= 366; wyDay++) {
-      const vals = byWyDay.get(wyDay);
-      const medianIdx = wyDay - 1;
-      const median = medianIdx < medianValues.length ? medianValues[medianIdx] : null;
-
-      if (median !== null && median > medianPeakSwe) {
-        medianPeakSwe = median;
-        medianPeakDay = wyDay;
-      }
-
-      if (!vals || vals.length === 0) {
-        envelope.push({ wyDay, max: null, min: null, median });
-        continue;
-      }
-
-      const currentWy = getCurrentWaterYear();
-      const historical = vals.filter(v => v.wy !== currentWy);
-      if (historical.length === 0) {
-        envelope.push({ wyDay, max: null, min: null, median });
-        continue;
-      }
-      let max = historical[0].swe;
-      let min = historical[0].swe;
-      let maxYear = historical[0].wy;
-      let minYear = historical[0].wy;
-      for (const v of historical) {
-        if (v.swe > max) { max = v.swe; maxYear = v.wy; }
-        if (v.swe < min) { min = v.swe; minYear = v.wy; }
-      }
-
-      envelope.push({ wyDay, max, min, median, maxYear, minYear });
-    }
-
-    const result: StationEnvelope = { envelope, medianPeakDay, medianPeakSwe };
+    const result: StationEnvelope = {
+      envelope: sweResult.envelope,
+      medianPeakDay: sweResult.peakDay,
+      medianPeakSwe: sweResult.peakVal,
+      depthEnvelope: depthResult.envelope,
+      medianPeakDepthDay: depthResult.peakDay,
+      medianPeakDepth: depthResult.peakVal,
+    };
     setCache(cacheKey, result);
     return NextResponse.json(wrapFresh(result), { headers: CACHE_HEADER });
   } catch {

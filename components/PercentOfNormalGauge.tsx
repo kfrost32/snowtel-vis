@@ -46,7 +46,7 @@ export default function PercentOfNormalGauge({ value, size = 120 }: PercentOfNor
         height={size}
         viewBox={`0 0 ${size} ${size}`}
         role="img"
-        aria-label={displayValue !== null ? `${displayValue}% of normal` : "No data"}
+        aria-label={displayValue !== null ? `${displayValue}% of median` : "No data"}
       >
         <path d={bgArc} fill="none" stroke="#E2E8F0" strokeWidth={8} strokeLinecap="round" />
         {value !== null && (
@@ -61,7 +61,7 @@ export default function PercentOfNormalGauge({ value, size = 120 }: PercentOfNor
           {displayValue !== null ? `${displayValue}%` : "—"}
         </span>
         <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "#8A9BA3" }}>
-          of normal
+          of median
         </span>
       </div>
     </div>

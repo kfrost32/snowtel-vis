@@ -29,7 +29,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { payl
   return (
     <div style={chartTooltipStyle}>
       <div className="font-mono text-[11px] font-medium" style={{ color: theme.darkGray }}>
-        {d.bin}% of normal
+        {d.bin}% of median
       </div>
       <div className="font-mono text-[11px]" style={{ color: theme.gray }}>
         {d.count} station{d.count !== 1 ? "s" : ""}

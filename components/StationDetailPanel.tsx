@@ -17,6 +17,7 @@ import { useHistoricalData } from "@/hooks/useHistoricalData";
 import { useHourlyData } from "@/hooks/useHourlyData";
 import { useEnvelopeData } from "@/hooks/useEnvelopeData";
 import SweEnvelopeChart from "@/components/SweEnvelopeChart";
+import EnvelopeChart from "@/components/EnvelopeChart";
 import PeakSweChart from "@/components/PeakSweChart";
 import DepthTempChart from "@/components/DepthTempChart";
 
@@ -28,24 +29,16 @@ interface StationDetailPanelProps {
   onToggleFavorite: () => void;
 }
 
-function DensityScale({ density }: { density: number }) {
-  const stops = [
-    { pct: 0, color: "#BAE6FD" },
-    { pct: 40, color: "#60A5FA" },
-    { pct: 70, color: "#F59E0B" },
-    { pct: 100, color: "#EF4444" },
-  ];
-  const gradient = `linear-gradient(to right, ${stops.map(s => `${s.color} ${s.pct}%`).join(", ")})`;
-  const MAX_DENSITY = 25;
-  const position = Math.min(Math.max(density / MAX_DENSITY, 0), 1) * 100;
+function DepthEnvelope({ season, envelopeData, lastUpdated }: { season: import("@/lib/types").DailyObservation[]; envelopeData: import("@/lib/types").StationEnvelope; lastUpdated: string | null }) {
+  const depthSeasonMap = useMemo(() => buildSeasonMap(season, (d) => d.snowDepth), [season]);
   return (
-    <div className="mt-1.5 relative" style={{ width: "100%" }}>
-      <div className="h-1.5 rounded-full" style={{ background: gradient }} />
-      <div
-        className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-white shadow-sm"
-        style={{ left: `calc(${position}% - 4px)`, background: "#1E293B" }}
-      />
-    </div>
+    <EnvelopeChart
+      envelope={envelopeData.depthEnvelope}
+      medianPeakDay={envelopeData.medianPeakDepthDay}
+      seasonMap={depthSeasonMap}
+      lastUpdated={lastUpdated}
+      formatValue={formatSnowDepth}
+    />
   );
 }
 
@@ -159,7 +152,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
         <div className="border-b" style={{ borderColor: theme.borderGray }}>
           <div className="grid grid-cols-2 md:flex md:items-stretch md:overflow-x-auto md:min-w-min" style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
             {seasonLoading ? (
-              ["SWE", "% Normal", "Depth", "Density", "Precip", "SWE ∆"].map((label, i) => (
+              ["SWE", "% Median", "Depth", "Precip", "Snow ∆", "SWE ∆"].map((label, i) => (
                 <div key={label} className="flex flex-col gap-1 px-3 py-2.5 min-w-[64px] border-b md:border-b-0" style={{ borderLeft: i % 2 !== 0 ? `1px solid ${theme.borderGray}` : undefined, borderTop: i >= 2 ? `1px solid ${theme.borderGray}` : undefined, borderBottom: `1px solid ${theme.borderGray}` }}>
                   <span className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>{label}</span>
                   <div className="h-4 w-10 rounded animate-pulse" style={{ background: theme.borderGray }} />
@@ -174,14 +167,13 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
               const deltaDepth = n >= 3 && season[n].snowDepth !== null && season[n - 3].snowDepth !== null ? season[n].snowDepth! - season[n - 3].snowDepth! : null;
               const depthChange1d = n >= 1 && season[n].snowDepth !== null && season[n - 1].snowDepth !== null ? Math.round(season[n].snowDepth! - season[n - 1].snowDepth!) : null;
               const depthChange7d = n >= 7 && season[n].snowDepth !== null && season[n - 7].snowDepth !== null ? Math.round(season[n].snowDepth! - season[n - 7].snowDepth!) : null;
-              const newSnowDensity = deltaSwe !== null && deltaSwe > 0.2 && deltaDepth !== null && deltaDepth > 2 ? (deltaSwe / deltaDepth) * 100 : null;
               const sweDeltas = [change1d, deltaSwe, change7d] as (number | null)[];
               const depthDeltas = [depthChange1d, deltaDepth !== null ? Math.round(deltaDepth) : null, depthChange7d] as (number | null)[];
               const stats = [
                 { label: "SWE", tip: metricDescriptions.swe, value: formatSwe(current.swe), sub: current.sweNormal !== null ? `nml ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray, custom: null },
-                { label: "% Normal", tip: metricDescriptions.pctOfNormal, value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal), custom: null },
+                { label: "% Median", tip: metricDescriptions.pctOfNormal, value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal), custom: null },
                 { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: (depthChange1d !== null || deltaDepth !== null) ? `${formatDepthChange(depthChange1d)} / ${formatDepthChange(deltaDepth !== null ? Math.round(deltaDepth) : null)} (1/3d)` : null, subColor: getDepthChangeColor(depthChange1d), custom: null },
-                { label: "Density", tip: metricDescriptions.newSnowDensity, value: newSnowDensity !== null ? `${newSnowDensity.toFixed(0)}%` : "—", sub: null, subColor: null, custom: null },
+                { label: "Precip", tip: metricDescriptions.precip, value: current.precipAccum !== null ? `${current.precipAccum.toFixed(1)}"` : "—", sub: null, subColor: null, custom: null },
                 { label: "Snow ∆ (1/3/7d)", tip: "Snow depth change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "depthDeltas" },
                 { label: "SWE ∆ (1/3/7d)", tip: "SWE change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "sweDeltas" },
               ];
@@ -211,9 +203,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
                       ) : (
                         <>
                           <span className="font-mono text-[13px] font-semibold mt-0.5 whitespace-nowrap" style={{ color: theme.black }}>{row.value}</span>
-                          {row.label === "Density" && row.value !== "—" ? (
-                            <DensityScale density={parseFloat(row.value!)} />
-                          ) : row.sub ? (
+                          {row.sub ? (
                             <span className="font-mono text-[10px] mt-0.5 whitespace-nowrap" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>
                           ) : null}
                         </>
@@ -239,6 +229,22 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
             ) : null}
           </ChartCard>
         </div>
+
+        {envelopeData && envelopeData.depthEnvelope.length > 0 && (
+          <div className="px-4 pt-3">
+            <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Snow Depth</span></span>} height={280} exportable={false}>
+              {seasonLoading || envelopeLoading ? (
+                <LoadingSpinner />
+              ) : seasonData ? (
+                <DepthEnvelope
+                  season={seasonData.season}
+                  envelopeData={envelopeData}
+                  lastUpdated={current?.lastUpdated ?? null}
+                />
+              ) : null}
+            </ChartCard>
+          </div>
+        )}
 
         <div className="px-4 pt-3">
           <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Snow Depth & Temp</span></span>} description="Last 7 days" height={180} exportable={false}>

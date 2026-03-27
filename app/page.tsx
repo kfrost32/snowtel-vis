@@ -45,7 +45,7 @@ const DEPTH_CHANGE_LEGEND = [
 
 const METRIC_LABELS: Record<string, string> = {
   WTEQ: "SWE",
-  WTEQ_PCT: "% of Normal",
+  WTEQ_PCT: "% of Median",
   CHANGE_1D: "1-Day Change",
   CHANGE_3D: "3-Day Change",
   CHANGE_7D: "7-Day Change",
