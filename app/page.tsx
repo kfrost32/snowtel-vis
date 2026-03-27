@@ -194,24 +194,15 @@ function HomePageInner() {
     setSelectedBasinHuc(null);
   }, []);
 
-  const lastUrlRef = useRef(typeof window !== "undefined" ? window.location.search : "");
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (selectedTriplet) {
-      params.set("station", urlTriplet(selectedTriplet));
-      params.delete("basin");
-    } else if (selectedBasinHuc) {
-      params.set("basin", selectedBasinHuc);
-      params.delete("station");
-    } else {
-      params.delete("station");
-      params.delete("basin");
-    }
-    const qs = params.toString();
-    const newSearch = qs ? `?${qs}` : "";
-    if (newSearch === lastUrlRef.current) return;
-    lastUrlRef.current = newSearch;
-    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+    const qs = selectedTriplet
+      ? `station=${urlTriplet(selectedTriplet)}`
+      : selectedBasinHuc
+        ? `basin=${selectedBasinHuc}`
+        : "";
+    const url = qs ? `/?${qs}` : "/";
+    if (window.location.pathname + window.location.search === url) return;
+    router.replace(url, { scroll: false });
   }, [selectedTriplet, selectedBasinHuc, router]);
 
   useEffect(() => {
