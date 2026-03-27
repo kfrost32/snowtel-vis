@@ -170,7 +170,8 @@ function HomePageInner() {
 
   const handleStationClick = (triplet: string) => {
     if (isMobile) setSidebarOpen(false);
-    const params = new URLSearchParams(searchParams.toString());
+    setForceClose(false);
+    const params = new URLSearchParams(window.location.search);
     params.set("station", urlTriplet(triplet));
     params.delete("basin");
     router.replace(`/?${params.toString()}`, { scroll: false });
@@ -178,7 +179,8 @@ function HomePageInner() {
 
   const handleBasinClick = (huc: string) => {
     if (isMobile) setSidebarOpen(false);
-    const params = new URLSearchParams(searchParams.toString());
+    setForceClose(false);
+    const params = new URLSearchParams(window.location.search);
     params.set("basin", huc);
     params.delete("station");
     router.replace(`/?${params.toString()}`, { scroll: false });
