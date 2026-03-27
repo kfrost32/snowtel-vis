@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
@@ -133,11 +133,16 @@ function HomePageInner() {
   const [selectedBasinHuc, setSelectedBasinHuc] = useState<string | null>(() => searchParams.get("basin"));
 
   useEffect(() => {
-    const station = searchParams.get("station");
-    const basin = searchParams.get("basin");
-    setSelectedTriplet(station ? parseTripletFromUrl(station) : null);
-    setSelectedBasinHuc(basin);
-  }, [searchParams]);
+    const onPop = () => {
+      const params = new URLSearchParams(window.location.search);
+      const station = params.get("station");
+      const basin = params.get("basin");
+      setSelectedTriplet(station ? parseTripletFromUrl(station) : null);
+      setSelectedBasinHuc(basin);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const filteredStations = useMemo(() => {
     return stations.filter((s) => {
@@ -189,6 +194,7 @@ function HomePageInner() {
     setSelectedBasinHuc(null);
   }, []);
 
+  const lastUrlRef = useRef(typeof window !== "undefined" ? window.location.search : "");
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (selectedTriplet) {
@@ -202,6 +208,9 @@ function HomePageInner() {
       params.delete("basin");
     }
     const qs = params.toString();
+    const newSearch = qs ? `?${qs}` : "";
+    if (newSearch === lastUrlRef.current) return;
+    lastUrlRef.current = newSearch;
     router.replace(qs ? `/?${qs}` : "/", { scroll: false });
   }, [selectedTriplet, selectedBasinHuc, router]);
 
