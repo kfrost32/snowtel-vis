@@ -185,12 +185,12 @@ function HomePageInner() {
   };
 
   const closeDetailPanel = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     params.delete("station");
     params.delete("basin");
     const qs = params.toString();
     router.replace(qs ? `/?${qs}` : "/", { scroll: false });
-  }, [searchParams, router]);
+  }, [router]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeDetailPanel(); };
