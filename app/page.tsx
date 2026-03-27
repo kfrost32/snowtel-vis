@@ -133,16 +133,12 @@ function HomePageInner() {
   const [selectedBasinHuc, setSelectedBasinHuc] = useState<string | null>(() => searchParams.get("basin"));
 
   useEffect(() => {
-    const onPop = () => {
-      const params = new URLSearchParams(window.location.search);
-      const station = params.get("station");
-      const basin = params.get("basin");
-      setSelectedTriplet(station ? parseTripletFromUrl(station) : null);
-      setSelectedBasinHuc(basin);
-    };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
+    const stationParam = searchParams.get("station");
+    const triplet = stationParam ? parseTripletFromUrl(stationParam) : null;
+    const basin = searchParams.get("basin") ?? null;
+    setSelectedTriplet((prev) => prev === triplet ? prev : triplet);
+    setSelectedBasinHuc((prev) => prev === basin ? prev : basin);
+  }, [searchParams]);
 
   const filteredStations = useMemo(() => {
     return stations.filter((s) => {
