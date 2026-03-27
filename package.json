@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "prebuild": "node scripts/fetch-station-conditions.mjs",
-    "build": "node scripts/fetch-station-conditions.mjs && next build",
+    "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --turbopack",
+    "prebuild": "NODE_TLS_REJECT_UNAUTHORIZED=0 node scripts/fetch-station-conditions.mjs",
+    "build": "NODE_TLS_REJECT_UNAUTHORIZED=0 node scripts/fetch-station-conditions.mjs && next build",
     "start": "next start",
     "lint": "eslint"
   },
