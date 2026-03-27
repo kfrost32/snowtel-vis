@@ -1,7 +1,7 @@
-const SOAP_URL = "https://wcc.sc.egov.usda.gov/awdbWebService/services";
+export const SOAP_URL = "https://wcc.sc.egov.usda.gov/awdbWebService/services";
 const MAX_BATCH_SIZE = 300;
 
-function buildSoapEnvelope(method: string, params: string): string {
+export function buildSoapEnvelope(method: string, params: string): string {
   return `<?xml version="1.0"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.wcc.nrcs.usda.gov/ns/awdbWebService">
 <soapenv:Body><web:${method}>${params}</web:${method}></soapenv:Body>

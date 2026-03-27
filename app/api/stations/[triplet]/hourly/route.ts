@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStation, parseTripletFromUrl } from "@/lib/stations";
 import { fetchHourlyData } from "@/lib/snotel-api";
+import { getCached, setCache, wrapFresh, wrapStale } from "@/lib/api-cache";
 
 export interface HourlyObservation {
   datetime: string;
@@ -23,6 +24,7 @@ export async function GET(
     return NextResponse.json({ error: "Station not found" }, { status: 404, headers: NO_CACHE_HEADER });
   }
 
+  const cacheKey = `hourly:${triplet}`;
   try {
     const endDate = new Date().toISOString().split("T")[0];
     const begin = new Date();
@@ -44,8 +46,13 @@ export async function GET(
       temp: tobsByTime.get(s.datetime) ?? null,
     }));
 
-    return NextResponse.json(data, { headers: CACHE_HEADER });
+    setCache(cacheKey, data);
+    return NextResponse.json(wrapFresh(data), { headers: CACHE_HEADER });
   } catch {
+    const stale = getCached<HourlyObservation[]>(cacheKey);
+    if (stale) {
+      return NextResponse.json(wrapStale(stale), { headers: CACHE_HEADER });
+    }
     return NextResponse.json({ error: "Failed to fetch hourly data" }, { status: 500, headers: NO_CACHE_HEADER });
   }
 }

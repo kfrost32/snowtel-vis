@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStation, parseTripletFromUrl } from "@/lib/stations";
 import { fetchPorData } from "@/lib/snotel-api";
+import { getCached, setCache, wrapFresh, wrapStale } from "@/lib/api-cache";
 import type { WaterYearSummary } from "@/lib/types";
 
 const CACHE_HEADER = { "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=3600" };
@@ -18,6 +19,7 @@ export async function GET(
     return NextResponse.json({ error: "Station not found" }, { status: 404, headers: NO_CACHE_HEADER });
   }
 
+  const cacheKey = `historical:${triplet}`;
   try {
     const beginDate = station.beginDate || "1980-01-01";
     const endDate = new Date().toISOString().split("T")[0];
@@ -79,8 +81,13 @@ export async function GET(
       .filter((s) => s.peakSwe > 0)
       .sort((a, b) => a.waterYear - b.waterYear);
 
-    return NextResponse.json(summaries, { headers: CACHE_HEADER });
+    setCache(cacheKey, summaries);
+    return NextResponse.json(wrapFresh(summaries), { headers: CACHE_HEADER });
   } catch {
+    const stale = getCached<WaterYearSummary[]>(cacheKey);
+    if (stale) {
+      return NextResponse.json(wrapStale(stale), { headers: CACHE_HEADER });
+    }
     return NextResponse.json({ error: "Failed to fetch historical data" }, { status: 500, headers: NO_CACHE_HEADER });
   }
 }

@@ -254,8 +254,20 @@ async function main() {
   }
 
   const withData = results.filter(s => s.swe !== null).length;
-  console.log(`Writing ${results.length} stations (${withData} with SWE data) to station-conditions.json`);
+  console.log(`Fetched ${results.length} stations (${withData} with SWE data)`);
 
+  if (withData === 0 && fs.existsSync(OUTPUT_PATH)) {
+    const existing = JSON.parse(fs.readFileSync(OUTPUT_PATH, "utf8"));
+    const existingWithData = (existing.data || []).filter(s => s.swe !== null).length;
+    if (existingWithData > 0) {
+      const age = Date.now() - (existing.timestamp || 0);
+      const hours = Math.round(age / 3600000);
+      console.log(`SOAP API returned no data — keeping existing file (${existingWithData} stations, ${hours}h old)`);
+      return;
+    }
+  }
+
+  console.log(`Writing to station-conditions.json`);
   const output = { timestamp: Date.now(), data: results };
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify(output));
   console.log("Done.");

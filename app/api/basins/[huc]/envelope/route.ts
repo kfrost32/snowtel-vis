@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAllStations } from "@/lib/stations";
 import { fetchPorData, fetchWaterYearMedian } from "@/lib/snotel-api";
 import { getWaterYearDay, getCurrentWaterYear } from "@/lib/water-year";
+import { getCached, setCache, wrapFresh, wrapStale } from "@/lib/api-cache";
 import type { EnvelopeDay, StationEnvelope } from "@/lib/types";
 
 const CACHE_HEADER = { "Cache-Control": "public, max-age=3600, s-maxage=21600, stale-while-revalidate=3600" };
@@ -23,6 +24,7 @@ export async function GET(
     return NextResponse.json({ error: "No stations found for this basin" }, { status: 404, headers: NO_CACHE_HEADER });
   }
 
+  const cacheKey = `basin-envelope:${huc}`;
   try {
     const endDate = new Date().toISOString().split("T")[0];
 
@@ -107,6 +109,7 @@ export async function GET(
       for (const [wy, vals] of yearMap) {
         if (wy === currentWy) continue;
         const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        if (avg < 0.05) continue;
         yearAvgs.push({ avg, wy });
       }
 
@@ -144,8 +147,13 @@ export async function GET(
       stationCount: stations.length,
     };
 
-    return NextResponse.json(result, { headers: CACHE_HEADER });
+    setCache(cacheKey, result);
+    return NextResponse.json(wrapFresh(result), { headers: CACHE_HEADER });
   } catch {
+    const stale = getCached<Record<string, unknown>>(cacheKey);
+    if (stale) {
+      return NextResponse.json(wrapStale(stale), { headers: CACHE_HEADER });
+    }
     return NextResponse.json({ error: "Failed to fetch basin envelope data" }, { status: 500, headers: NO_CACHE_HEADER });
   }
 }

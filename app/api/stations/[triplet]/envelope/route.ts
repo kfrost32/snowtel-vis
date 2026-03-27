@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getStation, parseTripletFromUrl } from "@/lib/stations";
 import { fetchPorData, fetchWaterYearMedian } from "@/lib/snotel-api";
 import { getWaterYearDay, getCurrentWaterYear } from "@/lib/water-year";
+import { getCached, setCache, wrapFresh, wrapStale } from "@/lib/api-cache";
 import type { EnvelopeDay, StationEnvelope } from "@/lib/types";
 
 const CACHE_HEADER = { "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=3600" };
@@ -19,6 +20,7 @@ export async function GET(
     return NextResponse.json({ error: "Station not found" }, { status: 404, headers: NO_CACHE_HEADER });
   }
 
+  const cacheKey = `envelope:${triplet}`;
   try {
     const beginDate = station.beginDate || "1980-01-01";
     const endDate = new Date().toISOString().split("T")[0];
@@ -85,8 +87,13 @@ export async function GET(
     }
 
     const result: StationEnvelope = { envelope, medianPeakDay, medianPeakSwe };
-    return NextResponse.json(result, { headers: CACHE_HEADER });
+    setCache(cacheKey, result);
+    return NextResponse.json(wrapFresh(result), { headers: CACHE_HEADER });
   } catch {
+    const stale = getCached<StationEnvelope>(cacheKey);
+    if (stale) {
+      return NextResponse.json(wrapStale(stale), { headers: CACHE_HEADER });
+    }
     return NextResponse.json({ error: "Failed to fetch envelope data" }, { status: 500, headers: NO_CACHE_HEADER });
   }
 }

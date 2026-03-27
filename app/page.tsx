@@ -11,6 +11,7 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { theme } from "@/lib/theme";
 import { computeBasinSummaries, computeBasinCentroid } from "@/lib/basins";
 import { getStation, urlTriplet, parseTripletFromUrl } from "@/lib/stations";
+import StaleBanner from "@/components/StaleBanner";
 import MapControls from "@/components/MapControls";
 import StationDetailPanel from "@/components/StationDetailPanel";
 import BasinDetailPanel from "@/components/BasinDetailPanel";
@@ -98,19 +99,17 @@ const StationMap = dynamic(() => import("@/components/StationMap"), {
 });
 
 function HomePageInner() {
-  const { stations, loading, error } = useStationList();
+  const { stations, loading, error, fetchedAt, stale } = useStationList();
   const { favorites, toggleStation, toggleBasin, isStationFav, isBasinFav } = useFavorites();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)").matches : false
-  );
-  const [sidebarOpen, setSidebarOpen] = useState(() =>
-    typeof window !== "undefined" ? !window.matchMedia("(max-width: 767px)").matches : false
-  );
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const mql = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mql.matches);
+    setSidebarOpen(!mql.matches);
     const handler = (e: MediaQueryListEvent) => {
       setIsMobile(e.matches);
       if (e.matches) setSidebarOpen(false);
@@ -211,6 +210,7 @@ function HomePageInner() {
 
   return (
     <>
+      <StaleBanner fetchedAt={fetchedAt} stale={stale} />
       <style>{`
         .map-page-root { height: calc(100vh - 56px); }
         @media (min-width: 768px) {
