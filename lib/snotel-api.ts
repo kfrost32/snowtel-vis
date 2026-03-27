@@ -1,3 +1,5 @@
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 export const SOAP_URL = "https://wcc.sc.egov.usda.gov/awdbWebService/services";
 const MAX_BATCH_SIZE = 300;
 
