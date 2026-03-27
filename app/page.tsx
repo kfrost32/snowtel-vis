@@ -184,7 +184,11 @@ function HomePageInner() {
     router.replace(`/?${params.toString()}`, { scroll: false });
   };
 
+  const [forceClose, setForceClose] = useState(false);
+  useEffect(() => { setForceClose(false); }, [searchParams]);
+
   const closeDetailPanel = useCallback(() => {
+    setForceClose(true);
     const params = new URLSearchParams(window.location.search);
     params.delete("station");
     params.delete("basin");
@@ -206,7 +210,7 @@ function HomePageInner() {
     }
   }, [selectedTriplet, selectedBasinHuc]);
 
-  const hasDetailPanel = selectedTriplet !== null || selectedBasin !== null;
+  const hasDetailPanel = !forceClose && (selectedTriplet !== null || selectedBasin !== null);
 
   return (
     <>
