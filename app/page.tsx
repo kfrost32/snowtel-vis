@@ -126,14 +126,18 @@ function HomePageInner() {
   const [activeOnly, setActiveOnly] = useState(true);
   const [metric, setMetric] = useState("WTEQ");
   const [overlayVisible, setOverlayVisible] = useState(false);
-
-  const selectedTriplet = useMemo(() => {
+  const [selectedTriplet, setSelectedTriplet] = useState<string | null>(() => {
     const param = searchParams.get("station");
     return param ? parseTripletFromUrl(param) : null;
+  });
+  const [selectedBasinHuc, setSelectedBasinHuc] = useState<string | null>(() => searchParams.get("basin"));
+
+  useEffect(() => {
+    const station = searchParams.get("station");
+    const basin = searchParams.get("basin");
+    setSelectedTriplet(station ? parseTripletFromUrl(station) : null);
+    setSelectedBasinHuc(basin);
   }, [searchParams]);
-
-  const selectedBasinHuc = useMemo(() => searchParams.get("basin"), [searchParams]);
-
 
   const filteredStations = useMemo(() => {
     return stations.filter((s) => {
@@ -170,33 +174,36 @@ function HomePageInner() {
 
   const handleStationClick = (triplet: string) => {
     if (isMobile) setSidebarOpen(false);
-    setForceClose(false);
-    const params = new URLSearchParams(window.location.search);
-    params.set("station", urlTriplet(triplet));
-    params.delete("basin");
-    router.replace(`/?${params.toString()}`, { scroll: false });
+    setSelectedTriplet(triplet);
+    setSelectedBasinHuc(null);
   };
 
   const handleBasinClick = (huc: string) => {
     if (isMobile) setSidebarOpen(false);
-    setForceClose(false);
-    const params = new URLSearchParams(window.location.search);
-    params.set("basin", huc);
-    params.delete("station");
-    router.replace(`/?${params.toString()}`, { scroll: false });
+    setSelectedBasinHuc(huc);
+    setSelectedTriplet(null);
   };
 
-  const [forceClose, setForceClose] = useState(false);
-  useEffect(() => { setForceClose(false); }, [searchParams]);
-
   const closeDetailPanel = useCallback(() => {
-    setForceClose(true);
+    setSelectedTriplet(null);
+    setSelectedBasinHuc(null);
+  }, []);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    params.delete("station");
-    params.delete("basin");
+    if (selectedTriplet) {
+      params.set("station", urlTriplet(selectedTriplet));
+      params.delete("basin");
+    } else if (selectedBasinHuc) {
+      params.set("basin", selectedBasinHuc);
+      params.delete("station");
+    } else {
+      params.delete("station");
+      params.delete("basin");
+    }
     const qs = params.toString();
     router.replace(qs ? `/?${qs}` : "/", { scroll: false });
-  }, [router]);
+  }, [selectedTriplet, selectedBasinHuc, router]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeDetailPanel(); };
@@ -212,7 +219,7 @@ function HomePageInner() {
     }
   }, [selectedTriplet, selectedBasinHuc]);
 
-  const hasDetailPanel = !forceClose && (selectedTriplet !== null || selectedBasin !== null);
+  const hasDetailPanel = selectedTriplet !== null || selectedBasin !== null;
 
   return (
     <>
