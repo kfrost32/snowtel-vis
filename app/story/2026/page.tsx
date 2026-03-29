@@ -285,7 +285,6 @@ export default function SnowYearStory() {
                 title="Distribution of snowpack conditions"
                 description="Number of stations at each percent-of-normal level. The dashed line marks 100% (normal)."
                 height={280}
-                exportable={false}
               >
                 <PctHistogram bins={stats.histogramBins} />
               </ChartCard>
@@ -459,7 +458,6 @@ export default function SnowYearStory() {
               title="Temperature vs. snowpack"
               description="Each dot is a station. Horizontal dashed line = 100% of normal. Vertical dashed line = 32°F."
               height={360}
-              exportable={false}
             >
               <TempScatter data={stats.scatterData} />
             </ChartCard>

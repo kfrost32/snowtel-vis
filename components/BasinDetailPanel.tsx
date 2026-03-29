@@ -5,6 +5,7 @@ import { X, Star } from "lucide-react";
 import { theme, glassmorphicButtonStyle } from "@/lib/theme";
 import { formatSwe, formatPctOfNormal, formatSnowDepth, formatChange } from "@/lib/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor } from "@/lib/colors";
+import { getWaterYearDay } from "@/lib/water-year";
 import type { BasinSummary } from "@/lib/types";
 import ConditionBadge from "@/components/ConditionBadge";
 import ChartCard from "@/components/ChartCard";
@@ -37,6 +38,17 @@ export default function BasinDetailPanel({
     }
     return m;
   }, [envelopeData]);
+
+  const envelopeStats = useMemo(() => {
+    if (!envelopeData || !basinSeasonMap) return null;
+    const currentWyDay = getWaterYearDay(new Date().toISOString().split("T")[0]);
+    const currentSwe = basinSeasonMap.get(currentWyDay) ?? null;
+    const medianEntry = envelopeData.envelope.find((d) => d.wyDay === currentWyDay);
+    const medianAtDay = medianEntry?.median ?? null;
+    const daysUntilPeak = envelopeData.medianPeakDay - currentWyDay;
+    const dateLabel = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return { currentSwe, medianAtDay, pctOfNormal: basin.medianPctOfNormal, daysUntilPeak, dateLabel };
+  }, [envelopeData, basinSeasonMap, basin.medianPctOfNormal]);
 
   const sortedStations = useMemo(
     () => [...basin.stations].sort((a, b) => (b.pctOfNormal ?? -1) - (a.pctOfNormal ?? -1)),
@@ -108,7 +120,26 @@ export default function BasinDetailPanel({
             title={<span>{basin.name} <span className="font-normal text-base" style={{ color: theme.gray }}>SWE Envelope</span></span>}
             description={envelopeData ? `${envelopeData.stationCount} stations averaged` : undefined}
             height={240}
-            exportable={false}
+            footer={envelopeStats && (
+              <div className="flex items-stretch gap-0 rounded-md border overflow-hidden" style={{ borderColor: theme.borderGray }}>
+                <div className="flex-1 px-3 py-2 text-center" style={{ background: theme.offWhite }}>
+                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>Avg SWE</div>
+                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: theme.black }}>{formatSwe(envelopeStats.currentSwe)}</div>
+                </div>
+                <div className="flex-1 px-3 py-2 text-center" style={{ borderLeft: `1px solid ${theme.borderGray}`, background: theme.offWhite }}>
+                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>% of Median</div>
+                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: getConditionColor(envelopeStats.pctOfNormal) }}>{formatPctOfNormal(envelopeStats.pctOfNormal)}</div>
+                </div>
+                <div className="flex-1 px-3 py-2 text-center" style={{ borderLeft: `1px solid ${theme.borderGray}`, background: theme.offWhite }}>
+                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>Median {envelopeStats.dateLabel}</div>
+                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: theme.gray }}>{formatSwe(envelopeStats.medianAtDay)}</div>
+                </div>
+                <div className="flex-1 px-3 py-2 text-center" style={{ borderLeft: `1px solid ${theme.borderGray}`, background: theme.offWhite }}>
+                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>{envelopeStats.daysUntilPeak > 0 ? "To Median Peak" : "Past Median Peak"}</div>
+                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: theme.darkGray }}>{Math.abs(envelopeStats.daysUntilPeak)}d</div>
+                </div>
+              </div>
+            )}
           >
             {envelopeLoading ? (
               <LoadingSpinner />

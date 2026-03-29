@@ -53,9 +53,9 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
   const { data: hourlyData, loading: hourlyLoading } = useHourlyData(triplet);
   const { data: envelopeData, loading: envelopeLoading } = useEnvelopeData(triplet);
 
-  const envelopeDescription = useMemo(() => {
+  const envelopeStats = useMemo(() => {
     const current = seasonData?.current;
-    if (!envelopeData || !current?.lastUpdated) return undefined;
+    if (!envelopeData || !current?.lastUpdated) return null;
     const lastUpdated = current.lastUpdated;
     const currentWyDay = getWaterYearDay(lastUpdated);
     const seasonMap = buildSeasonMap(seasonData?.season ?? []);
@@ -66,13 +66,8 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
       ? Math.round((currentSwe / envelopeData.medianPeakSwe) * 100)
       : null;
     const daysUntilPeak = envelopeData.medianPeakDay - currentWyDay;
-    const parts: string[] = [];
-    if (current.pctOfNormal !== null) parts.push(`${formatPctOfNormal(current.pctOfNormal)} of median`);
-    if (pctOfMedianPeak !== null) parts.push(`${pctOfMedianPeak}% of median peak`);
-    if (medianAtDay !== null && currentSwe !== null) parts.push(`median ${formatSwe(medianAtDay)}`);
-    if (daysUntilPeak > 0) parts.push(`${daysUntilPeak}d to peak`);
-    else parts.push(`${Math.abs(daysUntilPeak)}d past peak`);
-    return parts.join(" · ");
+    const dateLabel = new Date(lastUpdated + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return { currentSwe, medianAtDay, pctOfNormal: current.pctOfNormal, pctOfMedianPeak, daysUntilPeak, dateLabel };
   }, [envelopeData, seasonData]);
 
   if (!station) {
@@ -217,7 +212,30 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
         </div>
 
         <div className="px-4 pt-3">
-          <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Snow Water Equivalent</span></span>} description={envelopeDescription} height={280} exportable={false}>
+          <ChartCard
+            title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Snow Water Equivalent</span></span>}
+            height={280}
+            footer={envelopeStats && (
+              <div className="flex items-stretch gap-0 rounded-md border overflow-hidden" style={{ borderColor: theme.borderGray }}>
+                <div className="flex-1 px-3 py-2 text-center" style={{ background: theme.offWhite }}>
+                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>Current SWE</div>
+                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: theme.black }}>{formatSwe(envelopeStats.currentSwe)}</div>
+                </div>
+                <div className="flex-1 px-3 py-2 text-center" style={{ borderLeft: `1px solid ${theme.borderGray}`, background: theme.offWhite }}>
+                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>% of Median</div>
+                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: getConditionColor(envelopeStats.pctOfNormal) }}>{formatPctOfNormal(envelopeStats.pctOfNormal)}</div>
+                </div>
+                <div className="flex-1 px-3 py-2 text-center" style={{ borderLeft: `1px solid ${theme.borderGray}`, background: theme.offWhite }}>
+                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>Median {envelopeStats.dateLabel}</div>
+                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: theme.gray }}>{formatSwe(envelopeStats.medianAtDay)}</div>
+                </div>
+                <div className="flex-1 px-3 py-2 text-center" style={{ borderLeft: `1px solid ${theme.borderGray}`, background: theme.offWhite }}>
+                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>{envelopeStats.daysUntilPeak > 0 ? "To Median Peak" : "Past Median Peak"}</div>
+                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: theme.darkGray }}>{Math.abs(envelopeStats.daysUntilPeak)}d</div>
+                </div>
+              </div>
+            )}
+          >
             {seasonLoading || envelopeLoading ? (
               <LoadingSpinner />
             ) : seasonData && envelopeData ? (
@@ -232,7 +250,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
 
         {envelopeData && envelopeData.depthEnvelope.length > 0 && (
           <div className="px-4 pt-3">
-            <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Snow Depth</span></span>} height={280} exportable={false}>
+            <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Snow Depth</span></span>} height={280}>
               {seasonLoading || envelopeLoading ? (
                 <LoadingSpinner />
               ) : seasonData ? (
@@ -247,7 +265,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
         )}
 
         <div className="px-4 pt-3">
-          <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Snow Depth & Temp</span></span>} description="Last 7 days" height={180} exportable={false}>
+          <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Snow Depth & Temp</span></span>} description="Last 7 days" height={180}>
             {hourlyLoading ? (
               <LoadingSpinner />
             ) : hourlyData.length > 0 ? (
@@ -257,7 +275,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
         </div>
 
         <div className="px-4 pt-3 pb-4">
-          <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Peak SWE</span></span>} description="By water year" height={200} exportable={false}>
+          <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Peak SWE</span></span>} description="By water year" height={200}>
             {historicalLoading ? (
               <LoadingSpinner />
             ) : (
