@@ -152,7 +152,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
         <div className="border-b" style={{ borderColor: theme.borderGray }}>
           <div className="grid grid-cols-2 md:flex md:items-stretch md:overflow-x-auto md:min-w-min" style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
             {seasonLoading ? (
-              ["SWE", "% Median", "Depth", "Precip", "Snow ∆", "SWE ∆"].map((label, i) => (
+              ["SWE", "% Median", "Depth", "YTD Precip", "Snow ∆", "SWE ∆"].map((label, i) => (
                 <div key={label} className="flex flex-col gap-1 px-3 py-2.5 min-w-[64px] border-b md:border-b-0" style={{ borderLeft: i % 2 !== 0 ? `1px solid ${theme.borderGray}` : undefined, borderTop: i >= 2 ? `1px solid ${theme.borderGray}` : undefined, borderBottom: `1px solid ${theme.borderGray}` }}>
                   <span className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>{label}</span>
                   <div className="h-4 w-10 rounded animate-pulse" style={{ background: theme.borderGray }} />
@@ -173,7 +173,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
                 { label: "SWE", tip: metricDescriptions.swe, value: formatSwe(current.swe), sub: current.sweNormal !== null ? `nml ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray, custom: null },
                 { label: "% Median", tip: metricDescriptions.pctOfNormal, value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal), custom: null },
                 { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: (depthChange1d !== null || deltaDepth !== null) ? `${formatDepthChange(depthChange1d)} / ${formatDepthChange(deltaDepth !== null ? Math.round(deltaDepth) : null)} (1/3d)` : null, subColor: getDepthChangeColor(depthChange1d), custom: null },
-                { label: "Precip", tip: metricDescriptions.precip, value: current.precipAccum !== null ? `${current.precipAccum.toFixed(1)}"` : "—", sub: null, subColor: null, custom: null },
+                { label: "YTD Precip", tip: metricDescriptions.precip, value: current.precipAccum !== null ? `${current.precipAccum.toFixed(1)}"` : "—", sub: null, subColor: null, custom: null },
                 { label: "Snow ∆ (1/3/7d)", tip: "Snow depth change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "depthDeltas" },
                 { label: "SWE ∆ (1/3/7d)", tip: "SWE change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "sweDeltas" },
               ];
