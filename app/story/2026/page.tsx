@@ -277,12 +277,18 @@ export default function SnowYearStory() {
             </p>
           </ScrollReveal>
           <ScrollReveal delay={100}>
-            <ConditionBar counts={stats.conditionCounts} total={stats.reportingCount} />
+            <ChartCard
+              title="Station conditions"
+              description={`${stats.reportingCount} stations classified by snowpack relative to median`}
+              exportable={false}
+            >
+              <ConditionBar counts={stats.conditionCounts} total={stats.reportingCount} />
+            </ChartCard>
           </ScrollReveal>
           <ScrollReveal delay={200}>
-            <div className="mt-10">
+            <div className="mt-6">
               <ChartCard
-                title="Distribution of snowpack conditions"
+                title="Distribution"
                 description="Number of stations at each percent-of-median level. The dashed line marks 100%."
                 height={280}
               >

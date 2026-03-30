@@ -9,6 +9,8 @@ import {
   ResponsiveContainer,
   ReferenceLine,
   Cell,
+  LabelList,
+  CartesianGrid,
 } from "recharts";
 import { theme, chartTooltipStyle, chartCursorStyle } from "@/lib/theme";
 import { getConditionColor } from "@/lib/colors";
@@ -59,12 +61,19 @@ export default function StateRankingChart({ data }: StateRankingChartProps) {
           tickLine={false}
           width={28}
         />
+        <CartesianGrid stroke={theme.borderGray} strokeDasharray="0" horizontal={false} />
         <Tooltip content={<CustomTooltip />} cursor={chartCursorStyle} />
         <ReferenceLine x={100} stroke={theme.darkGray} strokeWidth={1.5} strokeDasharray="4 2" />
         <Bar dataKey="pctOfNormal" radius={[0, 4, 4, 0]} barSize={18}>
           {data.map((d) => (
             <Cell key={d.state} fill={getConditionColor(d.pctOfNormal)} />
           ))}
+          <LabelList
+            dataKey="pctOfNormal"
+            position="right"
+            formatter={(v: unknown) => `${Math.round(Number(v))}%`}
+            style={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.gray }}
+          />
         </Bar>
       </BarChart>
     </ResponsiveContainer>

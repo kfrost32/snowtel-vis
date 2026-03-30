@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
   Cell,
+  CartesianGrid,
 } from "recharts";
 import { theme, chartTooltipStyle, chartCursorStyle } from "@/lib/theme";
 import { getConditionColor } from "@/lib/colors";
@@ -55,6 +56,7 @@ export default function PctHistogram({ bins }: PctHistogramProps) {
           axisLine={false}
           tickLine={false}
         />
+        <CartesianGrid stroke={theme.borderGray} strokeDasharray="0" vertical={false} />
         <Tooltip content={<CustomTooltip />} cursor={chartCursorStyle} />
         <ReferenceLine x="100" stroke={theme.darkGray} strokeWidth={1.5} strokeDasharray="4 2" />
         <Bar dataKey="count" radius={[3, 3, 0, 0]}>
