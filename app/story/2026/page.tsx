@@ -5,9 +5,9 @@ import { theme, snowColors } from "@/lib/theme";
 import { useStationList } from "@/hooks/useStationList";
 import { useBasinEnvelopeData } from "@/hooks/useBasinEnvelopeData";
 import { getConditionLevel, getConditionColor } from "@/lib/colors";
-import { REGIONS, STATE_NAMES, SNOTEL_STATES } from "@/lib/constants";
+import { STATE_NAMES, SNOTEL_STATES } from "@/lib/constants";
 import { formatSwe, formatPctOfNormal, formatDateFull } from "@/lib/formatting";
-import { median } from "@/lib/basins";
+import { median, computeBasinSummaries } from "@/lib/basins";
 import type { ConditionLevel } from "@/lib/types";
 
 import StaleBanner from "@/components/StaleBanner";
@@ -78,17 +78,14 @@ export default function SnowYearStory() {
       });
     }
 
-    const regionStats = Object.entries(REGIONS)
-      .map(([key, { name, states }]) => {
-        const regional = reporting.filter((s) => states.includes(s.state));
-        if (regional.length === 0) return null;
-        const sumSwe = regional.filter((s) => s.swe !== null && s.sweNormal !== null).reduce((a, s) => a + s.swe!, 0);
-        const sumNormal = regional.filter((s) => s.swe !== null && s.sweNormal !== null).reduce((a, s) => a + s.sweNormal!, 0);
-        const pct = sumNormal > 0 ? (sumSwe / sumNormal) * 100 : null;
-        const belowCount = regional.filter((s) => s.pctOfNormal! < 90).length;
-        return { key, name, pctOfNormal: pct, stationCount: regional.length, belowNormalCount: belowCount };
-      })
-      .filter((x): x is NonNullable<typeof x> => x !== null)
+    const regionStats = computeBasinSummaries(reporting, 2)
+      .map((b) => ({
+        key: b.huc,
+        name: b.name,
+        pctOfNormal: b.medianPctOfNormal,
+        stationCount: b.stationCount,
+        belowNormalCount: b.stations.filter((s) => s.pctOfNormal !== null && s.pctOfNormal < 90).length,
+      }))
       .sort((a, b) => (a.pctOfNormal ?? 999) - (b.pctOfNormal ?? 999));
 
     const stateStats = SNOTEL_STATES.map((st) => {
