@@ -283,7 +283,7 @@ export default function SnowYearStory() {
             <div className="mt-10">
               <ChartCard
                 title="Distribution of snowpack conditions"
-                description="Number of stations at each percent-of-normal level. The dashed line marks 100% (normal)."
+                description="Number of stations at each percent-of-median level. The dashed line marks 100%."
                 height={280}
               >
                 <PctHistogram bins={stats.histogramBins} />
@@ -335,14 +335,16 @@ export default function SnowYearStory() {
               State by state
             </h2>
             <p className="font-sans text-base sm:text-lg mb-8 max-w-2xl" style={{ color: theme.gray }}>
-              Every SNOTEL state&apos;s snowpack ranked by percent of normal.
+              Every SNOTEL state&apos;s snowpack ranked by percent of median.
               The dashed line marks where normal would be.
             </p>
           </ScrollReveal>
           <ScrollReveal delay={100}>
-            <div style={{ height: Math.max(stats.stateStats.length * 36, 300) }}>
+            <ChartCard
+              height={Math.max(stats.stateStats.length * 36, 300)}
+            >
               <StateRankingChart data={stats.stateStats} />
-            </div>
+            </ChartCard>
           </ScrollReveal>
         </div>
       </section>
@@ -455,8 +457,8 @@ export default function SnowYearStory() {
           </ScrollReveal>
           <ScrollReveal delay={200}>
             <ChartCard
-              title="Temperature vs. snowpack"
-              description="Each dot is a station. Horizontal dashed line = 100% of normal. Vertical dashed line = 32°F."
+              title={<span>Temperature vs. snowpack {stats.lastUpdated && <span className="font-normal text-base" style={{ color: theme.gray }}>· {formatDateFull(stats.lastUpdated)}</span>}</span>}
+              description="Each dot is a station's current temperature and snowpack. Stations in the bottom-right are warm with low snow — the most vulnerable to further loss."
               height={360}
             >
               <TempScatter data={stats.scatterData} />

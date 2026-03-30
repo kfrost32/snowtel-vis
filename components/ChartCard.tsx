@@ -5,7 +5,7 @@ import { Download } from "lucide-react";
 import { theme } from "@/lib/theme";
 
 interface ChartCardProps {
-  title: ReactNode;
+  title?: ReactNode;
   description?: string;
   height?: number;
   controls?: ReactNode;
@@ -61,27 +61,31 @@ export default function ChartCard({ title, description, height, controls, footer
       className="p-4 sm:p-6 rounded-lg border relative"
       style={{ background: theme.white, borderColor: theme.borderGray }}
     >
-      <div className="flex items-start justify-between gap-4">
-        <h3
-          className="text-lg mb-2 font-medium flex items-center gap-1"
-          style={{ color: theme.black }}
-        >
-          {title}
-        </h3>
-        {exportable && (
-          <button
-            data-export-btn
-            onClick={handleExport}
-            disabled={exporting}
-            className="shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer"
-            style={{ color: theme.gray }}
-            aria-label="Export chart as image"
-            title="Export as image"
-          >
-            <Download size={16} />
-          </button>
-        )}
-      </div>
+      {(title || exportable) && (
+        <div className="flex items-start justify-between gap-4">
+          {title && (
+            <h3
+              className="text-lg mb-2 font-medium flex items-center gap-1"
+              style={{ color: theme.black }}
+            >
+              {title}
+            </h3>
+          )}
+          {exportable && (
+            <button
+              data-export-btn
+              onClick={handleExport}
+              disabled={exporting}
+              className="shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer ml-auto"
+              style={{ color: theme.gray }}
+              aria-label="Export chart as image"
+              title="Export as image"
+            >
+              <Download size={16} />
+            </button>
+          )}
+        </div>
+      )}
       {description && (
         <p
           className="text-xs mb-4 max-w-2xl font-mono"
