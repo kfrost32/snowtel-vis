@@ -180,10 +180,24 @@ export default function SnowYearStory() {
         </div>
         <HeroCounter
           value={Math.round(stats.westMedianPct)}
-          label="of normal snowpack across the western United States"
+          label="of median snowpack across the western United States"
         />
+        <p
+          className="mt-6 font-sans text-base sm:text-lg text-center max-w-xl leading-relaxed"
+          style={{ color: getConditionColor(stats.westMedianPct), opacity: 0.9 }}
+        >
+          {stats.westMedianPct < 50
+            ? "Critically low. More than half the snowpack that should be here simply isn't — water supply, wildfire risk, and ecosystems will all feel the impact this summer."
+            : stats.westMedianPct < 75
+              ? "Well below where it should be. Most stations are reporting significant deficits, pointing to a difficult water year ahead."
+              : stats.westMedianPct < 90
+                ? "Below normal. Snowpack is lagging, though not yet at crisis levels. A strong late-season storm cycle could still help."
+                : stats.westMedianPct <= 110
+                  ? "Near normal. The West's snowpack is tracking close to the long-term median — a healthy position heading into melt season."
+                  : "Above normal. An above-average snow year is building a strong water supply buffer for the months ahead."}
+        </p>
         <div
-          className="mt-8 font-mono text-xs text-center"
+          className="mt-6 font-mono text-xs text-center"
           style={{ color: theme.gray }}
         >
           {stats.reportingCount} SNOTEL stations reporting
