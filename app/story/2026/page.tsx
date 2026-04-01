@@ -180,21 +180,17 @@ export default function SnowYearStory() {
         </div>
         <HeroCounter
           value={Math.round(stats.westMedianPct)}
-          label="of median snowpack across the western United States"
+          label="of typical snowpack"
         />
         <p
-          className="mt-6 font-sans text-base sm:text-lg text-center max-w-xl leading-relaxed"
-          style={{ color: getConditionColor(stats.westMedianPct), opacity: 0.9 }}
+          className="mt-6 font-sans text-base sm:text-lg text-center max-w-2xl leading-relaxed"
+          style={{ color: theme.mediumGray }}
         >
-          {stats.westMedianPct < 50
-            ? "Critically low. More than half the snowpack that should be here simply isn't — water supply, wildfire risk, and ecosystems will all feel the impact this summer."
-            : stats.westMedianPct < 75
-              ? "Well below where it should be. Most stations are reporting significant deficits, pointing to a difficult water year ahead."
-              : stats.westMedianPct < 90
-                ? "Below normal. Snowpack is lagging, though not yet at crisis levels. A strong late-season storm cycle could still help."
-                : stats.westMedianPct <= 110
-                  ? "Near normal. The West's snowpack is tracking close to the long-term median — a healthy position heading into melt season."
-                  : "Above normal. An above-average snow year is building a strong water supply buffer for the months ahead."}
+          Mountain snowpack is measured as snow water equivalent (SWE) — how much water is locked in the snow.
+          {" "}{Math.round(stats.westMedianPct)}% means that for every 10 inches of water
+          typically stored in the snowpack on this date, there{stats.westMedianPct < 100 ? "'" : "'"}s
+          only about {Math.round(stats.westMedianPct / 10)} right now.
+          {stats.westMedianPct < 75 && " That missing water won't be there when rivers, reservoirs, and farms need it this summer."}
         </p>
         <div
           className="mt-6 font-mono text-xs text-center"
