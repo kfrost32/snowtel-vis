@@ -17,7 +17,7 @@ No test suite exists.
 - `/station/[triplet]` — Station detail (triplet uses dashes in URL, e.g., `669-CO-SNTL`)
 - `/rankings` — Sortable/filterable station rankings table
 - `/compare` — Multi-station comparison tool (URL param: `?stations=`)
-- `/api/stations` — All stations with current conditions (1hr cache)
+- `/api/stations` — All stations with current conditions (live SOAP fetch, 1hr CDN cache; falls back to last good fetch, then to `data/station-conditions.json` seed)
 - `/api/stations/[triplet]` — Single station season-to-date (4hr cache)
 - `/api/stations/[triplet]/historical` — Period-of-record peak SWE (24hr cache)
 

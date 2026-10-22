@@ -1,5 +1,3 @@
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 export const SOAP_URL = "https://wcc.sc.egov.usda.gov/awdbWebService/services";
 const MAX_BATCH_SIZE = 300;
 
@@ -10,7 +8,7 @@ export function buildSoapEnvelope(method: string, params: string): string {
 </soapenv:Envelope>`;
 }
 
-async function soapRequest(method: string, params: string, timeout = 30000): Promise<string> {
+async function soapRequestOnce(method: string, params: string, timeout: number): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
@@ -25,6 +23,15 @@ async function soapRequest(method: string, params: string, timeout = 30000): Pro
     return await res.text();
   } finally {
     clearTimeout(timer);
+  }
+}
+
+async function soapRequest(method: string, params: string, timeout = 30000): Promise<string> {
+  try {
+    return await soapRequestOnce(method, params, timeout);
+  } catch (e) {
+    if ((e as Error).name === "AbortError") throw e;
+    return soapRequestOnce(method, params, timeout);
   }
 }
 
@@ -146,6 +153,11 @@ export function parseCentralTendencyResponse(xml: string): (number | null)[][] {
   return results;
 }
 
+export interface BulkFetchOptions {
+  strict?: boolean;
+  timeout?: number;
+}
+
 function tripletParams(triplets: string[]): string {
   return triplets.map((t) => `<stationTriplets>${t}</stationTriplets>`).join("");
 }
@@ -154,7 +166,8 @@ export async function fetchElementData(
   triplets: string[],
   elementCd: string,
   beginDate: string,
-  endDate: string
+  endDate: string,
+  { strict = false, timeout }: BulkFetchOptions = {}
 ): Promise<Map<string, { dates: string[]; values: (number | null)[] }>> {
   const merged = new Map<string, { dates: string[]; values: (number | null)[] }>();
   const batches: string[][] = [];
@@ -163,9 +176,12 @@ export async function fetchElementData(
   }
   const results = await Promise.all(
     batches.map((batch) =>
-      soapRequest("getData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><ordinal>1</ordinal><duration>DAILY</duration><getFlags>false</getFlags><beginDate>${beginDate}</beginDate><endDate>${endDate}</endDate><alwaysReturnDailyFeb29>false</alwaysReturnDailyFeb29>`)
+      soapRequest("getData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><ordinal>1</ordinal><duration>DAILY</duration><getFlags>false</getFlags><beginDate>${beginDate}</beginDate><endDate>${endDate}</endDate><alwaysReturnDailyFeb29>false</alwaysReturnDailyFeb29>`, timeout)
         .then(parseGetDataResponse)
-        .catch(() => new Map<string, { dates: string[]; values: (number | null)[] }>())
+        .catch((e) => {
+          if (strict) throw e;
+          return new Map<string, { dates: string[]; values: (number | null)[] }>();
+        })
     )
   );
   for (const map of results) {
@@ -204,7 +220,8 @@ export async function fetchMedianData(
   beginMonth: number,
   beginDay: number,
   endMonth: number,
-  endDay: number
+  endDay: number,
+  { strict = false, timeout }: BulkFetchOptions = {}
 ): Promise<Map<string, (number | null)[]>> {
   const result = new Map<string, (number | null)[]>();
   const batches: string[][] = [];
@@ -213,9 +230,12 @@ export async function fetchMedianData(
   }
   const batchResults = await Promise.all(
     batches.map((batch) =>
-      soapRequest("getCentralTendencyData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><duration>DAILY</duration><getFlags>false</getFlags><centralTendencyType>MEDIAN</centralTendencyType><beginMonth>${beginMonth}</beginMonth><beginDay>${beginDay}</beginDay><endMonth>${endMonth}</endMonth><endDay>${endDay}</endDay>`)
+      soapRequest("getCentralTendencyData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><duration>DAILY</duration><getFlags>false</getFlags><centralTendencyType>MEDIAN</centralTendencyType><beginMonth>${beginMonth}</beginMonth><beginDay>${beginDay}</beginDay><endMonth>${endMonth}</endMonth><endDay>${endDay}</endDay>`, timeout)
         .then((xml) => ({ triplets: batch, data: parseCentralTendencyResponse(xml) }))
-        .catch(() => ({ triplets: batch, data: [] as (number | null)[][] }))
+        .catch((e) => {
+          if (strict) throw e;
+          return { triplets: batch, data: [] as (number | null)[][] };
+        })
     )
   );
   for (const { triplets: batchTriplets, data } of batchResults) {
