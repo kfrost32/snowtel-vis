@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { X } from "lucide-react";
 import {
   ComposedChart,
@@ -61,6 +63,16 @@ function band(low: number | null | undefined, high: number | null | undefined): 
   return low == null || high == null ? null : [low, high];
 }
 
+const MOBILE_TOOLTIP_STYLE = {
+  background: "rgba(255, 255, 255, 0.72)",
+  backdropFilter: "blur(12px) saturate(140%)",
+  WebkitBackdropFilter: "blur(12px) saturate(140%)",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  borderRadius: "8px",
+  padding: "5px 8px",
+  boxShadow: "0 2px 10px rgba(15, 23, 42, 0.08)",
+};
+
 interface TooltipPayloadEntry {
   value: number | null;
   name: string;
@@ -90,6 +102,8 @@ export default function EnvelopeChart({
   onRemoveYear,
 }: EnvelopeChartProps) {
   const wy = getCurrentWaterYear();
+  const isMobile = useIsMobile();
+  const [tooltipCorner, setTooltipCorner] = useState<HTMLDivElement | null>(null);
 
   const chartData = useMemo((): ChartPoint[] => {
     return envelope.map((e) => ({
@@ -134,16 +148,20 @@ export default function EnvelopeChart({
         color: y.color,
       })),
       { label: "Median", value: point.median !== null ? formatValue(point.median) : null, color: snowColors.median },
-      ...(hasPercentiles && point.p30 !== null && point.p70 !== null
+      ...(!isMobile && hasPercentiles && point.p30 !== null && point.p70 !== null
         ? [{ label: "30–70th pct", value: `${formatValue(point.p30)}–${formatValue(point.p70)}`, color: snowColors.nearNormal }]
         : []),
-      { label: point.maxYear ? `Max (WY ${point.maxYear})` : "Max", value: point.max !== null ? formatValue(point.max) : null, color: snowColors.envelopeMax },
-      { label: point.minYear ? `Min (WY ${point.minYear})` : "Min", value: point.min !== null ? formatValue(point.min) : null, color: snowColors.envelopeMin },
+      ...(isMobile
+        ? []
+        : [
+            { label: point.maxYear ? `Max (WY ${point.maxYear})` : "Max", value: point.max !== null ? formatValue(point.max) : null, color: snowColors.envelopeMax },
+            { label: point.minYear ? `Min (WY ${point.minYear})` : "Min", value: point.min !== null ? formatValue(point.min) : null, color: snowColors.envelopeMin },
+          ]),
     ];
 
-    return (
-      <div style={chartTooltipStyle}>
-        <div className="font-mono text-[11px] mb-1.5 font-medium" style={{ color: theme.darkGray }}>
+    const box = (
+      <div style={isMobile ? MOBILE_TOOLTIP_STYLE : chartTooltipStyle}>
+        <div className="font-mono text-[11px] mb-1 font-medium" style={{ color: theme.darkGray }}>
           {date}
         </div>
         {rows.map(({ label, value, color }) =>
@@ -159,6 +177,7 @@ export default function EnvelopeChart({
         )}
       </div>
     );
+    return isMobile && tooltipCorner ? createPortal(box, tooltipCorner) : box;
   }
 
   if (chartData.length === 0) {
@@ -171,7 +190,8 @@ export default function EnvelopeChart({
 
   return (
     <div className="flex flex-col w-full h-full">
-      <div className="flex-1 min-h-0">
+      <div className="relative flex-1 min-h-0">
+        <div ref={setTooltipCorner} className="absolute top-0 right-0 z-10 pointer-events-none" />
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
             <XAxis
