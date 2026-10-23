@@ -42,6 +42,12 @@ function DepthEnvelope({ season, envelopeData, lastUpdated }: { season: import("
   );
 }
 
+function statCellBorders(index: number, count: number): string {
+  const mobile = `${index % 2 === 0 ? "border-r" : ""} ${index >= 2 ? "border-t" : ""}`;
+  const desktop = `md:border-t-0 ${index < count - 1 ? "md:border-r" : "md:border-r-0"}`;
+  return `${mobile} ${desktop}`;
+}
+
 export default function StationDetailPanel({ triplet, onClose, onStationClick, isFavorite, onToggleFavorite }: StationDetailPanelProps) {
   const station = getStation(triplet);
   const stationId = triplet.split(/[:-]/)[0];
@@ -148,7 +154,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
           <div className="grid grid-cols-2 md:flex md:items-stretch md:overflow-x-auto md:min-w-min" style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
             {seasonLoading ? (
               ["SWE", "% Median", "Depth", "YTD Precip", "Snow ∆", "SWE ∆"].map((label, i) => (
-                <div key={label} className="flex flex-col gap-1 px-3 py-2.5 min-w-[64px] border-b md:border-b-0" style={{ borderLeft: i % 2 !== 0 ? `1px solid ${theme.borderGray}` : undefined, borderTop: i >= 2 ? `1px solid ${theme.borderGray}` : undefined, borderBottom: `1px solid ${theme.borderGray}` }}>
+                <div key={label} className={`flex-1 flex flex-col gap-1 px-3 py-2.5 min-w-[64px] ${statCellBorders(i, 6)}`} style={{ borderColor: theme.borderGray }}>
                   <span className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>{label}</span>
                   <div className="h-4 w-10 rounded animate-pulse" style={{ background: theme.borderGray }} />
                 </div>
@@ -177,11 +183,8 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
                   {stats.map((row, i) => (
                     <div
                       key={row.label}
-                      className="flex-1 min-w-[64px] flex flex-col px-3 py-2.5"
-                      style={{
-                        borderRight: i % 2 === 0 ? `1px solid ${theme.borderGray}` : undefined,
-                        borderTop: i >= 2 ? `1px solid ${theme.borderGray}` : undefined,
-                      }}
+                      className={`flex-1 min-w-[64px] flex flex-col px-3 py-2.5 ${statCellBorders(i, stats.length)}`}
+                      style={{ borderColor: theme.borderGray }}
                     >
                       <span className="font-mono text-[10px] whitespace-nowrap flex items-center gap-0.5" style={{ color: theme.mediumGray }}>{row.label}<InfoTooltip text={row.tip} size={10} /></span>
                       {row.custom === "sweDeltas" || row.custom === "depthDeltas" ? (

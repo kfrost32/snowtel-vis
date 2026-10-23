@@ -95,7 +95,7 @@ export default function EnvelopeChart({
     const rows: { label: string; value: number | null; color: string }[] = [
       { label: "Current", value: point.current, color: theme.black },
       { label: "Median", value: point.median, color: snowColors.median },
-      { label: point.maxYear ? `Max (WY ${point.maxYear})` : "Max", value: point.max, color: theme.mediumGray },
+      { label: point.maxYear ? `Max (WY ${point.maxYear})` : "Max", value: point.max, color: snowColors.envelopeMax },
       { label: point.minYear ? `Min (WY ${point.minYear})` : "Min", value: point.min, color: snowColors.envelopeMin },
     ];
 

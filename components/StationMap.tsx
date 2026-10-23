@@ -36,6 +36,14 @@ interface StationMapProps {
   onBasinSelect?: (huc: string) => void;
 }
 
+function noComparisonReason(s: StationCurrentConditions): string | null {
+  if (s.network === "Snow Course") return "Monthly manual reading";
+  if (s.swe === null) return "Not reporting";
+  if (s.sweNormal === null) return "No median yet";
+  if (s.sweNormal === 0) return "Median is 0\" today";
+  return null;
+}
+
 function StationMapInner({
   stations,
   onVisibleStationsChange,
@@ -52,6 +60,7 @@ function StationMapInner({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
+  const hoverPopupRef = useRef<maplibregl.Popup | null>(null);
   const stationsRef = useRef(stations);
   stationsRef.current = stations;
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -344,7 +353,24 @@ function StationMapInner({
           prefetchStation(features[0].properties.triplet as string);
         }
       });
-      map.on("mouseleave", "station-circles", () => { map.getCanvas().style.cursor = ""; });
+      map.on("mousemove", "station-circles", (e) => {
+        const feature = e.features?.[0];
+        const reason = feature?.properties?.noDataReason as string | undefined;
+        if (!feature || !reason) {
+          hoverPopupRef.current?.remove();
+          return;
+        }
+        const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
+        const html = `<div style="font-family: var(--font-ibm-plex-mono), monospace; font-size: 9px; line-height: 1.2; color: ${theme.gray}; white-space: nowrap;">${reason}</div>`;
+        if (!hoverPopupRef.current) {
+          hoverPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 4, className: "station-hover-popup" });
+        }
+        hoverPopupRef.current.setLngLat([lng, lat]).setHTML(html).addTo(map);
+      });
+      map.on("mouseleave", "station-circles", () => {
+        map.getCanvas().style.cursor = "";
+        hoverPopupRef.current?.remove();
+      });
 
       map.on("moveend", updateVisibleStations);
       map.on("zoomend", updateVisibleStations);
@@ -419,6 +445,7 @@ function StationMapInner({
           pctOfNormal: s.pctOfNormal, sweChange1d: s.sweChange1d, sweChange3d: s.sweChange3d, sweChange7d: s.sweChange7d, depthChange1d: s.depthChange1d, depthChange3d: s.depthChange3d, depthChange7d: s.depthChange7d,
           color: getMetricMapColor(metric, s),
           inactive: isSweMetric && s.swe === null,
+          noDataReason: isSweMetric ? noComparisonReason(s) ?? "" : "",
           hollow: isSweMetric && s.pctOfNormal === null,
           label: isSweMetric && s.pctOfNormal === null ? "" : metricDotLabel(metric, s),
           sortKey: s.latitude,
