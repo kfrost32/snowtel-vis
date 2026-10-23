@@ -6,7 +6,7 @@ const LOOKBACK_DAYS = 8;
 const DATA_TIMEZONE = "America/Denver";
 const BULK_TIMEOUT_MS = 90000;
 
-function todayInDataTimezone(): string {
+export function todayInDataTimezone(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: DATA_TIMEZONE }).format(new Date());
 }
 

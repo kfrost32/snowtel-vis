@@ -20,6 +20,8 @@ No test suite exists.
 - `/api/stations` — All stations with current conditions (live SOAP fetch, 1hr CDN cache; falls back to last good fetch, then to `data/station-conditions.json` seed)
 - `/api/stations/[triplet]` — Single station season-to-date (4hr cache)
 - `/api/stations/[triplet]/historical` — Period-of-record peak SWE (24hr cache)
+- `/api/basins/[huc]/season` — Region's current water-year average SWE (shared 1hr cache)
+- `/envelopes/stations/[triplet].json`, `/envelopes/basins/[huc].json` — Static precomputed history (max/min/median by water-year day). Built by `node scripts/build-envelopes.mjs` (~30 min; raw NRCS responses cached in `node_modules/.cache/snotel-envelopes`), rebuilt yearly on Oct 2 by `.github/workflows/build-envelopes.yml`
 
 ## Architecture
 

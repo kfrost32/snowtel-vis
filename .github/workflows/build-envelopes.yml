@@ -1,0 +1,28 @@
+name: Build historical envelopes
+
+on:
+  schedule:
+    - cron: "0 12 2 10 *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/fetch-huc-associations.mjs
+      - run: node scripts/build-envelopes.mjs
+      - name: Commit updated envelopes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/huc-associations.json public/envelopes
+          git diff --cached --quiet || git commit -m "Rebuild historical envelopes"
+          git push

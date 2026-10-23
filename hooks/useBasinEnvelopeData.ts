@@ -1,8 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
 import useSWR from "swr";
 import type { StationEnvelope } from "@/lib/types";
 import type { ApiResponse } from "@/lib/api-cache";
+import { expandEnvelope, type BasinEnvelopeFile } from "@/lib/envelope-files";
 
 interface BasinEnvelopeData extends StationEnvelope {
   currentSeason: { wyDay: number; swe: number }[];
@@ -10,14 +12,28 @@ interface BasinEnvelopeData extends StationEnvelope {
 }
 
 export function useBasinEnvelopeData(huc: string | null) {
-  const { data, error, isLoading } = useSWR<ApiResponse<BasinEnvelopeData>>(
-    huc ? `/api/basins/${huc}/envelope` : null
+  const { data: file, error, isLoading } = useSWR<BasinEnvelopeFile>(
+    huc ? `/envelopes/basins/${huc}.json` : null
   );
+  const { data: season } = useSWR<ApiResponse<{ wyDay: number; swe: number }[]>>(
+    huc ? `/api/basins/${huc}/season` : null
+  );
+  const data = useMemo((): BasinEnvelopeData | null => {
+    if (!file) return null;
+    return {
+      envelope: expandEnvelope(file.swe),
+      medianPeakDay: file.swe.peakDay,
+      medianPeakSwe: file.swe.peak,
+      depthEnvelope: [],
+      medianPeakDepthDay: 0,
+      medianPeakDepth: 0,
+      currentSeason: season?.data ?? [],
+      stationCount: file.stationCount,
+    };
+  }, [file, season]);
   return {
-    data: data?.data ?? null,
+    data,
     loading: isLoading,
     error: error?.message ?? null,
-    fetchedAt: data?.fetchedAt ?? null,
-    stale: data?.stale ?? false,
   };
 }

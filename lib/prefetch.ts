@@ -6,4 +6,5 @@ export function prefetchStation(triplet: string) {
   const encoded = urlTriplet(triplet);
   preload(`/api/stations/${encoded}`, fetcher);
   preload(`/api/stations/${encoded}/hourly`, fetcher);
+  preload(`/envelopes/stations/${encoded}.json`, fetcher);
 }

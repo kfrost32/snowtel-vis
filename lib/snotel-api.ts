@@ -156,6 +156,7 @@ export function parseCentralTendencyResponse(xml: string): (number | null)[][] {
 export interface BulkFetchOptions {
   strict?: boolean;
   timeout?: number;
+  batchSize?: number;
 }
 
 function tripletParams(triplets: string[]): string {
@@ -167,12 +168,12 @@ export async function fetchElementData(
   elementCd: string,
   beginDate: string,
   endDate: string,
-  { strict = false, timeout }: BulkFetchOptions = {}
+  { strict = false, timeout, batchSize = MAX_BATCH_SIZE }: BulkFetchOptions = {}
 ): Promise<Map<string, { dates: string[]; values: (number | null)[] }>> {
   const merged = new Map<string, { dates: string[]; values: (number | null)[] }>();
   const batches: string[][] = [];
-  for (let i = 0; i < triplets.length; i += MAX_BATCH_SIZE) {
-    batches.push(triplets.slice(i, i + MAX_BATCH_SIZE));
+  for (let i = 0; i < triplets.length; i += batchSize) {
+    batches.push(triplets.slice(i, i + batchSize));
   }
   const results = await Promise.all(
     batches.map((batch) =>
@@ -285,25 +286,6 @@ export async function fetchPorData(
   }
 
   return { dates: allDates, values: allValues };
-}
-
-const WATER_YEAR_QUARTERS = [[10, 12, 31], [1, 3, 31], [4, 6, 30], [7, 9, 30]] as const;
-const MEDIAN_TIMEOUT_MS = 90000;
-
-export async function fetchWaterYearMedian(
-  triplets: string[],
-  elementCd: string
-): Promise<Map<string, (number | null)[]>> {
-  const quarters = await Promise.all(
-    WATER_YEAR_QUARTERS.map(([beginMonth, endMonth, endDay]) =>
-      fetchMedianData(triplets, elementCd, beginMonth, 1, endMonth, endDay, { timeout: MEDIAN_TIMEOUT_MS })
-    )
-  );
-  const merged = new Map<string, (number | null)[]>();
-  for (const triplet of triplets) {
-    merged.set(triplet, quarters.flatMap((q) => q.get(triplet) || []));
-  }
-  return merged;
 }
 
 export { parseNumericValue };
