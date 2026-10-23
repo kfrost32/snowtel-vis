@@ -1,0 +1,482 @@
+[
+  {
+    "id": "berthoud-pass-co",
+    "name": "Berthoud Pass",
+    "state": "CO",
+    "latitude": 39.7982,
+    "longitude": -105.7772,
+    "elevation": 11312
+  },
+  {
+    "id": "loveland-pass-co",
+    "name": "Loveland Pass",
+    "state": "CO",
+    "latitude": 39.6639,
+    "longitude": -105.8789,
+    "elevation": 11991
+  },
+  {
+    "id": "vail-pass-co",
+    "name": "Vail Pass",
+    "state": "CO",
+    "latitude": 39.5297,
+    "longitude": -106.2175,
+    "elevation": 10603
+  },
+  {
+    "id": "cameron-pass-co",
+    "name": "Cameron Pass",
+    "state": "CO",
+    "latitude": 40.5199,
+    "longitude": -105.893,
+    "elevation": 10280
+  },
+  {
+    "id": "jones-pass-co",
+    "name": "Jones Pass",
+    "state": "CO",
+    "latitude": 39.7739,
+    "longitude": -105.8894,
+    "elevation": 12461
+  },
+  {
+    "id": "rabbit-ears-pass-co",
+    "name": "Rabbit Ears Pass",
+    "state": "CO",
+    "latitude": 40.3841,
+    "longitude": -106.6118,
+    "elevation": 9434
+  },
+  {
+    "id": "independence-pass-co",
+    "name": "Independence Pass",
+    "state": "CO",
+    "latitude": 39.1086,
+    "longitude": -106.564,
+    "elevation": 12102
+  },
+  {
+    "id": "kebler-pass-co",
+    "name": "Kebler Pass",
+    "state": "CO",
+    "latitude": 38.8499,
+    "longitude": -107.1004,
+    "elevation": 9988
+  },
+  {
+    "id": "red-mountain-pass-co",
+    "name": "Red Mountain Pass",
+    "state": "CO",
+    "latitude": 37.8989,
+    "longitude": -107.7119,
+    "elevation": 11087
+  },
+  {
+    "id": "coal-bank-pass-co",
+    "name": "Coal Bank Pass",
+    "state": "CO",
+    "latitude": 37.699,
+    "longitude": -107.7775,
+    "elevation": 10644
+  },
+  {
+    "id": "wolf-creek-pass-co",
+    "name": "Wolf Creek Pass",
+    "state": "CO",
+    "latitude": 37.4832,
+    "longitude": -106.803,
+    "elevation": 10852
+  },
+  {
+    "id": "monarch-pass-co",
+    "name": "Monarch Pass",
+    "state": "CO",
+    "latitude": 38.4964,
+    "longitude": -106.3261,
+    "elevation": 11307
+  },
+  {
+    "id": "fremont-pass-co",
+    "name": "Fremont Pass",
+    "state": "CO",
+    "latitude": 39.3675,
+    "longitude": -106.1876,
+    "elevation": 11318
+  },
+  {
+    "id": "hidden-valley-co",
+    "name": "Hidden Valley (RMNP)",
+    "state": "CO",
+    "latitude": 40.3955,
+    "longitude": -105.652,
+    "elevation": 9331
+  },
+  {
+    "id": "cumbres-pass-co",
+    "name": "Cumbres Pass",
+    "state": "CO",
+    "latitude": 37.0204,
+    "longitude": -106.4501,
+    "elevation": 10027
+  },
+  {
+    "id": "guardsman-pass-ut",
+    "name": "Guardsman Pass",
+    "state": "UT",
+    "latitude": 40.6067,
+    "longitude": -111.5549,
+    "elevation": 9729
+  },
+  {
+    "id": "little-cottonwood-canyon-ut",
+    "name": "Little Cottonwood Canyon",
+    "state": "UT",
+    "latitude": 40.5758,
+    "longitude": -111.6816,
+    "elevation": 7672
+  },
+  {
+    "id": "big-cottonwood-canyon-ut",
+    "name": "Big Cottonwood Canyon",
+    "state": "UT",
+    "latitude": 40.6491,
+    "longitude": -111.6619,
+    "elevation": 7128
+  },
+  {
+    "id": "tony-grove-ut",
+    "name": "Tony Grove",
+    "state": "UT",
+    "latitude": 41.894,
+    "longitude": -111.6437,
+    "elevation": 8045
+  },
+  {
+    "id": "teton-pass-wy",
+    "name": "Teton Pass",
+    "state": "WY",
+    "latitude": 43.4975,
+    "longitude": -110.9553,
+    "elevation": 8423
+  },
+  {
+    "id": "togwotee-pass-wy",
+    "name": "Togwotee Pass",
+    "state": "WY",
+    "latitude": 43.7641,
+    "longitude": -110.0699,
+    "elevation": 9402
+  },
+  {
+    "id": "snowy-range-wy",
+    "name": "Snowy Range",
+    "state": "WY",
+    "latitude": 41.3273,
+    "longitude": -106.2579,
+    "elevation": 10241
+  },
+  {
+    "id": "beehive-basin-mt",
+    "name": "Beehive Basin",
+    "state": "MT",
+    "latitude": 45.3031,
+    "longitude": -111.3882,
+    "elevation": 8095
+  },
+  {
+    "id": "hyalite-canyon-mt",
+    "name": "Hyalite Canyon",
+    "state": "MT",
+    "latitude": 45.4809,
+    "longitude": -110.9666,
+    "elevation": 6707
+  },
+  {
+    "id": "cooke-city-mt",
+    "name": "Cooke City",
+    "state": "MT",
+    "latitude": 45.02,
+    "longitude": -109.9336,
+    "elevation": 7590
+  },
+  {
+    "id": "lolo-pass-id",
+    "name": "Lolo Pass",
+    "state": "ID",
+    "latitude": 46.6348,
+    "longitude": -114.5799,
+    "elevation": 5236
+  },
+  {
+    "id": "beartooth-pass-wy",
+    "name": "Beartooth Pass",
+    "state": "WY",
+    "latitude": 44.969,
+    "longitude": -109.4713,
+    "elevation": 10951
+  },
+  {
+    "id": "marias-pass-mt",
+    "name": "Marias Pass",
+    "state": "MT",
+    "latitude": 48.3172,
+    "longitude": -113.354,
+    "elevation": 5220
+  },
+  {
+    "id": "galena-summit-id",
+    "name": "Galena Summit",
+    "state": "ID",
+    "latitude": 43.8704,
+    "longitude": -114.7128,
+    "elevation": 8706
+  },
+  {
+    "id": "banner-summit-id",
+    "name": "Banner Summit",
+    "state": "ID",
+    "latitude": 44.3057,
+    "longitude": -115.2317,
+    "elevation": 7050
+  },
+  {
+    "id": "snoqualmie-pass-wa",
+    "name": "Snoqualmie Pass",
+    "state": "WA",
+    "latitude": 47.4252,
+    "longitude": -121.4121,
+    "elevation": 3023
+  },
+  {
+    "id": "stevens-pass-wa",
+    "name": "Stevens Pass",
+    "state": "WA",
+    "latitude": 47.7456,
+    "longitude": -121.0892,
+    "elevation": 4069
+  },
+  {
+    "id": "washington-pass-wa",
+    "name": "Washington Pass",
+    "state": "WA",
+    "latitude": 48.5236,
+    "longitude": -120.6542,
+    "elevation": 5473
+  },
+  {
+    "id": "artist-point-wa",
+    "name": "Artist Point",
+    "state": "WA",
+    "latitude": 48.8462,
+    "longitude": -121.6922,
+    "elevation": 5090
+  },
+  {
+    "id": "paradise-wa",
+    "name": "Paradise (Mt Rainier)",
+    "state": "WA",
+    "latitude": 46.7861,
+    "longitude": -121.7365,
+    "elevation": 5421
+  },
+  {
+    "id": "white-pass-wa",
+    "name": "White Pass",
+    "state": "WA",
+    "latitude": 46.6387,
+    "longitude": -121.3893,
+    "elevation": 4476
+  },
+  {
+    "id": "blewett-pass-wa",
+    "name": "Blewett Pass",
+    "state": "WA",
+    "latitude": 47.3349,
+    "longitude": -120.5783,
+    "elevation": 4105
+  },
+  {
+    "id": "hurricane-ridge-wa",
+    "name": "Hurricane Ridge",
+    "state": "WA",
+    "latitude": 47.9696,
+    "longitude": -123.4985,
+    "elevation": 5257
+  },
+  {
+    "id": "timberline-or",
+    "name": "Timberline (Mt Hood)",
+    "state": "OR",
+    "latitude": 45.3311,
+    "longitude": -121.7118,
+    "elevation": 5944
+  },
+  {
+    "id": "tilly-jane-or",
+    "name": "Tilly Jane (Mt Hood)",
+    "state": "OR",
+    "latitude": 45.3997,
+    "longitude": -121.6479,
+    "elevation": 5727
+  },
+  {
+    "id": "dutchman-flat-or",
+    "name": "Dutchman Flat",
+    "state": "OR",
+    "latitude": 44,
+    "longitude": -121.6637,
+    "elevation": 6347
+  },
+  {
+    "id": "tumalo-mountain-or",
+    "name": "Tumalo Mountain",
+    "state": "OR",
+    "latitude": 44.0054,
+    "longitude": -121.6427,
+    "elevation": 7779
+  },
+  {
+    "id": "santiam-pass-or",
+    "name": "Santiam Pass",
+    "state": "OR",
+    "latitude": 44.4248,
+    "longitude": -121.8455,
+    "elevation": 4820
+  },
+  {
+    "id": "crater-lake-rim-or",
+    "name": "Crater Lake Rim",
+    "state": "OR",
+    "latitude": 42.9098,
+    "longitude": -122.1409,
+    "elevation": 7108
+  },
+  {
+    "id": "mount-shasta-ca",
+    "name": "Mount Shasta (Bunny Flat)",
+    "state": "CA",
+    "latitude": 41.3538,
+    "longitude": -122.2336,
+    "elevation": 6918
+  },
+  {
+    "id": "lassen-peak-ca",
+    "name": "Lassen Peak",
+    "state": "CA",
+    "latitude": 40.4881,
+    "longitude": -121.5049,
+    "elevation": 10447
+  },
+  {
+    "id": "donner-summit-ca",
+    "name": "Donner Summit",
+    "state": "CA",
+    "latitude": 39.316,
+    "longitude": -120.3216,
+    "elevation": 6993
+  },
+  {
+    "id": "carson-pass-ca",
+    "name": "Carson Pass",
+    "state": "CA",
+    "latitude": 38.6943,
+    "longitude": -119.9886,
+    "elevation": 8572
+  },
+  {
+    "id": "echo-summit-ca",
+    "name": "Echo Summit",
+    "state": "CA",
+    "latitude": 38.813,
+    "longitude": -120.0304,
+    "elevation": 7382
+  },
+  {
+    "id": "ebbetts-pass-ca",
+    "name": "Ebbetts Pass",
+    "state": "CA",
+    "latitude": 38.5443,
+    "longitude": -119.8119,
+    "elevation": 8727
+  },
+  {
+    "id": "sonora-pass-ca",
+    "name": "Sonora Pass",
+    "state": "CA",
+    "latitude": 38.3279,
+    "longitude": -119.6372,
+    "elevation": 9628
+  },
+  {
+    "id": "tioga-pass-ca",
+    "name": "Tioga Pass",
+    "state": "CA",
+    "latitude": 37.9109,
+    "longitude": -119.2579,
+    "elevation": 9950
+  },
+  {
+    "id": "rock-creek-ca",
+    "name": "Rock Creek",
+    "state": "CA",
+    "latitude": 37.4526,
+    "longitude": -118.7372,
+    "elevation": 9694
+  },
+  {
+    "id": "mount-rose-nv",
+    "name": "Mount Rose (Tahoe Meadows)",
+    "state": "NV",
+    "latitude": 39.3072,
+    "longitude": -119.9076,
+    "elevation": 8707
+  },
+  {
+    "id": "lamoille-canyon-nv",
+    "name": "Lamoille Canyon",
+    "state": "NV",
+    "latitude": 40.5928,
+    "longitude": -115.3944,
+    "elevation": 9739
+  },
+  {
+    "id": "williams-lake-nm",
+    "name": "Williams Lake (Taos)",
+    "state": "NM",
+    "latitude": 36.5562,
+    "longitude": -105.4293,
+    "elevation": 11020
+  },
+  {
+    "id": "humphreys-peak-az",
+    "name": "Humphreys Peak",
+    "state": "AZ",
+    "latitude": 35.3464,
+    "longitude": -111.678,
+    "elevation": 12634
+  },
+  {
+    "id": "turnagain-pass-ak",
+    "name": "Turnagain Pass",
+    "state": "AK",
+    "latitude": 60.7974,
+    "longitude": -149.1978,
+    "elevation": 1046
+  },
+  {
+    "id": "hatcher-pass-ak",
+    "name": "Hatcher Pass",
+    "state": "AK",
+    "latitude": 61.7671,
+    "longitude": -149.3226,
+    "elevation": 3819
+  },
+  {
+    "id": "thompson-pass-ak",
+    "name": "Thompson Pass",
+    "state": "AK",
+    "latitude": 61.1294,
+    "longitude": -145.7334,
+    "elevation": 2683
+  }
+]

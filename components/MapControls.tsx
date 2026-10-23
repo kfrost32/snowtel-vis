@@ -43,6 +43,10 @@ interface MapControlsProps {
   onShowHuc2Change: (v: boolean) => void;
   showHuc4: boolean;
   onShowHuc4Change: (v: boolean) => void;
+  showResorts: boolean;
+  onShowResortsChange: (v: boolean) => void;
+  showBackcountry: boolean;
+  onShowBackcountryChange: (v: boolean) => void;
   activeOnly: boolean;
   onActiveOnlyChange: (v: boolean) => void;
   selectedStates: Set<string>;
@@ -62,6 +66,10 @@ export default function MapControls({
   onShowHuc2Change,
   showHuc4,
   onShowHuc4Change,
+  showResorts,
+  onShowResortsChange,
+  showBackcountry,
+  onShowBackcountryChange,
   activeOnly,
   onActiveOnlyChange,
   selectedStates,
@@ -122,6 +130,8 @@ export default function MapControls({
           <SidebarToggle label="Stations" description="Individual sites" checked={showStations} onChange={onShowStationsChange} />
           <SidebarToggle label="Regions" description="Major river basins (HUC-2)" checked={showHuc2} onChange={onShowHuc2Change} />
           <SidebarToggle label="Sub-regions" description="Smaller basins (HUC-4)" checked={showHuc4} onChange={onShowHuc4Change} />
+          <SidebarToggle label="Ski areas" description="Downhill resorts, shown when zoomed in" checked={showResorts} onChange={onShowResortsChange} />
+          <SidebarToggle label="Backcountry" description="Passes and trailheads, shown when zoomed in" checked={showBackcountry} onChange={onShowBackcountryChange} />
         </div>
       </SidebarSection>
 

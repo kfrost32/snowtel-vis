@@ -15,6 +15,7 @@ import StaleBanner from "@/components/StaleBanner";
 import MapControls from "@/components/MapControls";
 import StationDetailPanel from "@/components/StationDetailPanel";
 import BasinDetailPanel from "@/components/BasinDetailPanel";
+import { getAllSpots } from "@/lib/spots";
 import { SidebarSection, SidebarFavoriteItem } from "@/components/sidebar";
 import type { BasinMarker } from "@/components/StationMap";
 import type { BasinSummary } from "@/lib/types";
@@ -139,6 +140,8 @@ function HomePageInner() {
   const [showStations, setShowStations] = useState(true);
   const [showHuc2, setShowHuc2] = useState(true);
   const [showHuc4, setShowHuc4] = useState(false);
+  const [showResorts, setShowResorts] = useState(true);
+  const [showBackcountry, setShowBackcountry] = useState(true);
   const [activeOnly, setActiveOnly] = useState(true);
   const [metric, setMetric] = useState("WTEQ");
   const [overlayVisible, setOverlayVisible] = useState(false);
@@ -194,6 +197,7 @@ function HomePageInner() {
   }, [allBasins, selectedBasinHuc]);
 
   const selectedStation = selectedTriplet ? getStation(selectedTriplet) : null;
+  const spots = useMemo(() => getAllSpots(), []);
   usePageTitle(selectedStation?.name ?? selectedBasin?.name ?? null);
   useAnalytics(selectedTriplet, selectedBasinHuc);
 
@@ -335,6 +339,10 @@ function HomePageInner() {
                 onShowHuc2Change={setShowHuc2}
                 showHuc4={showHuc4}
                 onShowHuc4Change={setShowHuc4}
+                showResorts={showResorts}
+                onShowResortsChange={setShowResorts}
+                showBackcountry={showBackcountry}
+                onShowBackcountryChange={setShowBackcountry}
                 activeOnly={activeOnly}
                 onActiveOnlyChange={setActiveOnly}
                 selectedStates={selectedStates}
@@ -390,6 +398,9 @@ function HomePageInner() {
               metric={metric}
               onStationSelect={handleStationClick}
               onBasinSelect={handleBasinClick}
+              spots={spots}
+              showResorts={showResorts}
+              showBackcountry={showBackcountry}
             />
           )}
 

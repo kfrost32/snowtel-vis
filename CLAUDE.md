@@ -69,4 +69,5 @@ All components live in `components/`. Key components:
 - `lib/geo.ts` — haversine distance, find nearest stations
 - `lib/constants.ts` — SNOTEL states, regions, element codes
 - `lib/stations.ts` — station data loader with urlTriplet/parseTripletFromUrl helpers
+- `lib/spots.ts` — reference-only map layers for ski areas (OpenSkiMap via `node scripts/fetch-ski-areas.mjs` → `data/ski-areas.json`, ODbL attribution required) and hand-curated backcountry spots (`data/backcountry-areas.json`)
 - `lib/basins.ts` — regional index (sum SWE / sum median). Stations count toward their own HUC plus NRCS iMap HUC associations from `data/huc-associations.json` (regenerate with `node scripts/fetch-huc-associations.mjs`)

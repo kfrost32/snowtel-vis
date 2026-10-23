@@ -10,6 +10,7 @@ import { formatSwe, formatPctOfNormal, formatSnowDepth, formatTemp, formatPrecip
 import { urlTriplet } from "@/lib/stations";
 import { prefetchStation } from "@/lib/prefetch";
 import { theme } from "@/lib/theme";
+import { SPOT_COLORS, SPOT_KIND_LABELS, spotElevationLabel, type Spot, type SpotKind } from "@/lib/spots";
 import huc2Boundaries from "@/data/huc2-boundaries.json";
 import huc4Boundaries from "@/data/huc4-boundaries.json";
 
@@ -34,6 +35,68 @@ interface StationMapProps {
   metric?: string;
   onStationSelect?: (triplet: string) => void;
   onBasinSelect?: (huc: string) => void;
+  spots?: Spot[];
+  showResorts?: boolean;
+  showBackcountry?: boolean;
+}
+
+const SPOT_GLYPHS: Record<SpotKind, string[]> = {
+  resort: ["m2 9 20-5", "M12 12V6.5", "M9 12v5", "M15 12v5", "M4 17h16", "M7 12h10a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3z"],
+  backcountry: ["m8 3 4 8 5-5 5 15H2L8 3z"],
+};
+
+const NUDGE_RADIUS_DEG = 0.03;
+const NUDGE_PX = 30;
+const LABEL_EMS = 1.3;
+const TEXT_SIZE = 11;
+
+function spotPlacement(spot: Spot, stations: StationCurrentConditions[]) {
+  const cosLat = Math.cos((spot.latitude * Math.PI) / 180);
+  let dx = 0, dy = 0, nearest = Infinity;
+  for (const s of stations) {
+    const sx = (spot.longitude - s.longitude) * cosLat;
+    const sy = spot.latitude - s.latitude;
+    const d = Math.hypot(sx, sy);
+    if (d < nearest) { nearest = d; dx = sx; dy = sy; }
+  }
+  if (nearest > NUDGE_RADIUS_DEG) {
+    return { iconOffset: [0, 0], textAnchor: "top", textOffset: [0, LABEL_EMS] };
+  }
+  const [ux, uy] = nearest === 0 ? [0, 1] : [dx / nearest, dy / nearest];
+  const iconOffset = [ux * NUDGE_PX, -uy * NUDGE_PX];
+  const [anchor, dir] = Math.abs(uy) >= Math.abs(ux)
+    ? uy > 0 ? ["bottom", [0, -1]] : ["top", [0, 1]]
+    : ux > 0 ? ["left", [1, 0]] : ["right", [-1, 0]];
+  return {
+    iconOffset,
+    textAnchor: anchor,
+    textOffset: [iconOffset[0] / TEXT_SIZE + dir[0] * LABEL_EMS, iconOffset[1] / TEXT_SIZE + dir[1] * LABEL_EMS],
+  };
+}
+
+function spotIcon(kind: SpotKind): ImageData {
+  const size = 44;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+  ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "rgba(15, 23, 42, 0.18)";
+  ctx.stroke();
+  ctx.strokeStyle = SPOT_COLORS[kind];
+  const glyph = 24;
+  const scale = 22 / glyph;
+  ctx.translate((size - glyph * scale) / 2, (size - glyph * scale) / 2);
+  ctx.scale(scale, scale);
+  ctx.lineWidth = 2.25;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (const d of SPOT_GLYPHS[kind]) ctx.stroke(new Path2D(d));
+  return ctx.getImageData(0, 0, size, size);
 }
 
 function noComparisonReason(s: StationCurrentConditions): string | null {
@@ -60,6 +123,9 @@ function StationMapInner({
   metric = "WTEQ",
   onStationSelect,
   onBasinSelect,
+  spots = [],
+  showResorts = true,
+  showBackcountry = true,
 }: StationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -98,7 +164,10 @@ function StationMapInner({
     });
 
     map.addControl(new maplibregl.NavigationControl(), "top-right");
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+    map.addControl(
+      new maplibregl.AttributionControl({ compact: true, customAttribution: '<a href="https://openskimap.org" target="_blank" rel="noopener">OpenSkiMap</a>' }),
+      "bottom-right"
+    );
     mapRef.current = map;
 
     map.on("load", () => {
@@ -234,6 +303,37 @@ function StationMapInner({
         },
       });
 
+      // ── Ski areas & backcountry spots ──────────────────────────────────
+      map.addImage("spot-resort", spotIcon("resort"), { pixelRatio: 2 });
+      map.addImage("spot-backcountry", spotIcon("backcountry"), { pixelRatio: 2 });
+      map.addSource("spots", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "spot-icons",
+        type: "symbol",
+        source: "spots",
+        minzoom: 7.5,
+        layout: {
+          "icon-image": ["concat", "spot-", ["get", "kind"]],
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 7.5, 0.7, 12, 1],
+          "icon-allow-overlap": true,
+          "icon-offset": ["get", "iconOffset"],
+          "text-field": ["step", ["zoom"], "", 10, ["get", "name"]],
+          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+          "text-size": TEXT_SIZE,
+          "text-anchor": ["get", "textAnchor"],
+          "text-offset": ["get", "textOffset"],
+          "text-optional": true,
+        },
+        paint: {
+          "text-color": ["get", "color"],
+          "text-halo-color": "rgba(255,255,255,0.95)",
+          "text-halo-width": 1.5,
+        },
+      });
+
       // Basin labels — added last so they render above station dots
       map.addLayer({
         id: "huc4-label-text",
@@ -351,6 +451,28 @@ function StationMapInner({
         hoverPopupRef.current?.remove();
       });
 
+      map.on("mousemove", "spot-icons", (e) => {
+        const feature = e.features?.[0];
+        if (!feature) return;
+        const props = feature.properties!;
+        const key = `spot:${props.id}`;
+        if (hoverPopupRef.current?.isOpen() && hoveredTripletRef.current === key) return;
+        hoveredTripletRef.current = key;
+        const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
+        const html = `<div style="white-space: nowrap; line-height: 1.3;">
+          <div style="font-family: var(--font-dm-sans), sans-serif; font-size: 11px; font-weight: 600; color: ${theme.black};">${escapeHtml(props.name as string)}</div>
+          <div style="font-family: var(--font-ibm-plex-mono), monospace; font-size: 10px; color: ${theme.gray};">${escapeHtml(props.hoverDetail as string)}</div>
+        </div>`;
+        if (!hoverPopupRef.current) {
+          hoverPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 4, className: "station-hover-popup" });
+        }
+        hoverPopupRef.current.setLngLat([lng, lat]).setHTML(html).addTo(map);
+      });
+      map.on("mouseleave", "spot-icons", () => {
+        hoveredTripletRef.current = null;
+        hoverPopupRef.current?.remove();
+      });
+
       map.on("moveend", updateVisibleStations);
       map.on("zoomend", updateVisibleStations);
       updateVisibleStations();
@@ -441,6 +563,36 @@ function StationMapInner({
     });
     map.once("render", updateVisibleStations);
   }, [stations, mapLoaded, metric, updateVisibleStations]);
+
+  // Update spot data
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    const source = map.getSource("spots") as maplibregl.GeoJSONSource | undefined;
+    if (!source) return;
+    source.setData({
+      type: "FeatureCollection",
+      features: spots.map((spot) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [spot.longitude, spot.latitude] },
+        properties: {
+          ...spotPlacement(spot, stations),
+          id: spot.id,
+          kind: spot.kind,
+          name: spot.name,
+          color: SPOT_COLORS[spot.kind],
+          hoverDetail: [SPOT_KIND_LABELS[spot.kind], spotElevationLabel(spot)].filter(Boolean).join(" · "),
+        },
+      })),
+    });
+  }, [spots, stations, mapLoaded]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded || !map.getLayer("spot-icons")) return;
+    const kinds = [showResorts && "resort", showBackcountry && "backcountry"].filter(Boolean);
+    map.setFilter("spot-icons", ["in", ["get", "kind"], ["literal", kinds]]);
+  }, [showResorts, showBackcountry, mapLoaded]);
 
   // fly-to
   useEffect(() => {
