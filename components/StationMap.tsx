@@ -6,7 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@/lib/types";
 import { getMapMarkerColor, getMetricMapColor } from "@/lib/colors";
 import { computePolygonCentroid } from "@/lib/basins";
-import { formatSwe, formatPctOfNormal, formatSnowDepth, formatTemp, formatPrecip, formatDepthChange } from "@/lib/formatting";
+import { formatSwe, formatSnowDepth, formatTemp, formatPrecip, formatDepthChange } from "@/lib/formatting";
 import { urlTriplet } from "@/lib/stations";
 import { prefetchStation } from "@/lib/prefetch";
 import { theme } from "@/lib/theme";
@@ -36,8 +36,7 @@ interface StationMapProps {
   onStationSelect?: (triplet: string) => void;
   onBasinSelect?: (huc: string) => void;
   spots?: Spot[];
-  showResorts?: boolean;
-  showBackcountry?: boolean;
+  showSpots?: boolean;
 }
 
 const SPOT_GLYPHS: Record<SpotKind, string[]> = {
@@ -124,12 +123,10 @@ function StationMapInner({
   onStationSelect,
   onBasinSelect,
   spots = [],
-  showResorts = true,
-  showBackcountry = true,
+  showSpots = true,
 }: StationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const popupRef = useRef<maplibregl.Popup | null>(null);
   const hoverPopupRef = useRef<maplibregl.Popup | null>(null);
   const hoveredTripletRef = useRef<string | null>(null);
   const stationsRef = useRef(stations);
@@ -373,28 +370,32 @@ function StationMapInner({
       });
 
       // ── Interactions ───────────────────────────────────────────────────
+      const clearHover = () => {
+        hoveredTripletRef.current = null;
+        hoverPopupRef.current?.remove();
+      };
+      const showHoverLabel = (key: string, feature: maplibregl.MapGeoJSONFeature) => {
+        if (hoverPopupRef.current?.isOpen() && hoveredTripletRef.current === key) return;
+        hoveredTripletRef.current = key;
+        const props = feature.properties!;
+        const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
+        const html = `<div style="white-space: nowrap; line-height: 1.3;">
+          <div style="font-family: var(--font-dm-sans), sans-serif; font-size: 11px; font-weight: 600; color: ${theme.black};">${escapeHtml(props.name as string)}</div>
+          <div style="font-family: var(--font-ibm-plex-mono), monospace; font-size: 10px; color: ${theme.gray};">${escapeHtml(props.hoverDetail as string)}</div>
+        </div>`;
+        if (!hoverPopupRef.current) {
+          hoverPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 4, className: "station-hover-popup" });
+        }
+        hoverPopupRef.current.setLngLat([lng, lat]).setHTML(html).addTo(map);
+      };
+      map.on("click", (e) => {
+        if (!map.queryRenderedFeatures(e.point, { layers: ["spot-icons"] }).length) clearHover();
+      });
+
       const basinClickHandler = (layerId: string) => (e: maplibregl.MapMouseEvent) => {
         const features = map.queryRenderedFeatures(e.point, { layers: [layerId] });
         if (!features.length) return;
         const props = features[0].properties!;
-        if (popupRef.current) popupRef.current.remove();
-
-        const pct = props.medianPctOfNormal !== undefined && props.medianPctOfNormal !== "null"
-          ? Number(props.medianPctOfNormal) : null;
-        const color = props.fillColor || theme.mediumGray;
-        const html = `
-          <div style="font-family: var(--font-dm-sans), sans-serif; min-width: 180px;">
-            <div style="font-weight: 600; font-size: 13px; color: ${theme.black}; margin-bottom: 4px;">${props.name}</div>
-            <div style="font-size: 11px; color: ${theme.mediumGray}; margin-bottom: 8px;">${props.stationCount || ""} stations</div>
-            <div>
-              <div style="font-size: 10px; color: ${theme.mediumGray}; text-transform: uppercase; letter-spacing: 0.05em;">% of Median</div>
-              <div style="font-size: 14px; font-weight: 600; font-family: var(--font-ibm-plex-mono), monospace; color: ${color};">${formatPctOfNormal(pct)}</div>
-            </div>
-          </div>
-        `;
-        popupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "240px", offset: 10 })
-          .setLngLat(e.lngLat).setHTML(html).addTo(map);
-
         if (onBasinSelectRef.current && props.hucId) {
           onBasinSelectRef.current(props.hucId as string);
         }
@@ -428,50 +429,21 @@ function StationMapInner({
       });
       map.on("mousemove", "station-circles", (e) => {
         const feature = e.features?.[0];
-        if (!feature) {
-          hoverPopupRef.current?.remove();
-          return;
-        }
-        const props = feature.properties!;
-        if (hoverPopupRef.current?.isOpen() && hoveredTripletRef.current === props.triplet) return;
-        hoveredTripletRef.current = props.triplet as string;
-        const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
-        const html = `<div style="white-space: nowrap; line-height: 1.3;">
-          <div style="font-family: var(--font-dm-sans), sans-serif; font-size: 11px; font-weight: 600; color: ${theme.black};">${escapeHtml(props.name as string)}</div>
-          <div style="font-family: var(--font-ibm-plex-mono), monospace; font-size: 10px; color: ${theme.gray};">${escapeHtml(props.hoverDetail as string)}</div>
-        </div>`;
-        if (!hoverPopupRef.current) {
-          hoverPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 4, className: "station-hover-popup" });
-        }
-        hoverPopupRef.current.setLngLat([lng, lat]).setHTML(html).addTo(map);
+        if (feature) showHoverLabel(feature.properties!.triplet as string, feature);
+        else clearHover();
       });
       map.on("mouseleave", "station-circles", () => {
         map.getCanvas().style.cursor = "";
-        hoveredTripletRef.current = null;
-        hoverPopupRef.current?.remove();
+        clearHover();
       });
 
-      map.on("mousemove", "spot-icons", (e) => {
+      const showSpotLabel = (e: maplibregl.MapLayerMouseEvent) => {
         const feature = e.features?.[0];
-        if (!feature) return;
-        const props = feature.properties!;
-        const key = `spot:${props.id}`;
-        if (hoverPopupRef.current?.isOpen() && hoveredTripletRef.current === key) return;
-        hoveredTripletRef.current = key;
-        const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
-        const html = `<div style="white-space: nowrap; line-height: 1.3;">
-          <div style="font-family: var(--font-dm-sans), sans-serif; font-size: 11px; font-weight: 600; color: ${theme.black};">${escapeHtml(props.name as string)}</div>
-          <div style="font-family: var(--font-ibm-plex-mono), monospace; font-size: 10px; color: ${theme.gray};">${escapeHtml(props.hoverDetail as string)}</div>
-        </div>`;
-        if (!hoverPopupRef.current) {
-          hoverPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 4, className: "station-hover-popup" });
-        }
-        hoverPopupRef.current.setLngLat([lng, lat]).setHTML(html).addTo(map);
-      });
-      map.on("mouseleave", "spot-icons", () => {
-        hoveredTripletRef.current = null;
-        hoverPopupRef.current?.remove();
-      });
+        if (feature) showHoverLabel(`spot:${feature.properties!.id}`, feature);
+      };
+      map.on("mousemove", "spot-icons", showSpotLabel);
+      map.on("click", "spot-icons", showSpotLabel);
+      map.on("mouseleave", "spot-icons", clearHover);
 
       map.on("moveend", updateVisibleStations);
       map.on("zoomend", updateVisibleStations);
@@ -587,13 +559,6 @@ function StationMapInner({
     });
   }, [spots, stations, mapLoaded]);
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapLoaded || !map.getLayer("spot-icons")) return;
-    const kinds = [showResorts && "resort", showBackcountry && "backcountry"].filter(Boolean);
-    map.setFilter("spot-icons", ["in", ["get", "kind"], ["literal", kinds]]);
-  }, [showResorts, showBackcountry, mapLoaded]);
-
   // fly-to
   useEffect(() => {
     const map = mapRef.current;
@@ -708,7 +673,8 @@ function StationMapInner({
     if (map.getLayer("huc2-fill")) map.setLayoutProperty("huc2-fill", "visibility", vis(showHuc2));
     if (map.getLayer("huc2-outline")) map.setLayoutProperty("huc2-outline", "visibility", vis(showHuc2));
     if (map.getLayer("huc2-label-text")) map.setLayoutProperty("huc2-label-text", "visibility", vis(showHuc2));
-  }, [showStations, showHuc2, showHuc4, mapLoaded]);
+    if (map.getLayer("spot-icons")) map.setLayoutProperty("spot-icons", "visibility", vis(showSpots));
+  }, [showStations, showHuc2, showHuc4, showSpots, mapLoaded]);
 
   return <div ref={containerRef} className="w-full h-full" />;
 }

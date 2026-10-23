@@ -124,7 +124,7 @@ export default function BasinDetailPanel({
       <div className="overflow-x-auto border-b shrink-0" style={{ borderColor: theme.borderGray, WebkitOverflowScrolling: "touch" }}>
         <div className="flex items-stretch min-w-min">
           {[
-            { label: asOfLabel ? `% Median · ${asOfLabel}` : "% Median", value: formatPctOfNormal(basin.medianPctOfNormal), color: getConditionColor(basin.medianPctOfNormal) },
+            { label: "% Median", value: formatPctOfNormal(basin.medianPctOfNormal), color: getConditionColor(basin.medianPctOfNormal) },
             { label: "Avg SWE", value: formatSwe(basin.avgSwe), color: theme.black },
             { label: "Avg Depth", value: formatSnowDepth(basin.stations.reduce((s, st) => s + (st.snowDepth ?? 0), 0) / (basin.stations.filter(s => s.snowDepth !== null).length || 1)), color: theme.black },
             { label: "Stations", value: String(basin.stationCount), color: theme.black },
@@ -148,17 +148,17 @@ export default function BasinDetailPanel({
                 asOf={basin.asOf}
               />
             }
-            controls={<EnvelopeChartActions options={envelopeOptions} yearOptions={yearOptions} />}
+            actions={<EnvelopeChartActions options={envelopeOptions} yearOptions={yearOptions} />}
             description={envelopeData ? `Chart averages ${envelopeData.stationCount} stations` : undefined}
             height={240}
             footer={envelopeStats && (
               <EnvelopeStatGrid
                 stats={[
-                  { label: "Avg SWE", value: formatSwe(envelopeStats.currentSwe) },
-                  { label: "% of Median", value: formatPctOfNormal(envelopeStats.pctOfNormal), color: getConditionColor(envelopeStats.pctOfNormal) },
+                  { label: "Avg SWE", value: formatSwe(envelopeStats.currentSwe), hideOnMobile: true },
+                  { label: "% of Median", value: formatPctOfNormal(envelopeStats.pctOfNormal), color: getConditionColor(envelopeStats.pctOfNormal), hideOnMobile: true },
                   { label: "Percentile", value: envelopeStats.percentile !== null ? String(envelopeStats.percentile) : "—" },
                   { label: "% Median Peak", value: formatPctOfNormal(envelopeStats.pctOfMedianPeak) },
-                  { label: `Median ${asOfLabel}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray },
+                  { label: `Median ${asOfLabel}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray, hideOnMobile: true },
                   { label: envelopeStats.daysUntilPeak >= 0 ? "To Median Peak" : "Past Median Peak", value: `${Math.abs(envelopeStats.daysUntilPeak)}d`, color: theme.darkGray },
                 ]}
               />

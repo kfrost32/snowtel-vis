@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { X, MapPin, Mountain, Star } from "lucide-react";
+import { X, MapPin, Mountain, Star, ChevronDown } from "lucide-react";
 import { theme, glassmorphicButtonStyle } from "@/lib/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
@@ -22,6 +22,7 @@ import SweEnvelopeChart from "@/components/SweEnvelopeChart";
 import EnvelopeChart from "@/components/EnvelopeChart";
 import PeakSweChart from "@/components/PeakSweChart";
 import EnvelopeCardTitle from "@/components/EnvelopeCardTitle";
+import ChartTitle from "@/components/ChartTitle";
 import EnvelopeChartActions from "@/components/EnvelopeChartActions";
 import { useEnvelopeOptions } from "@/hooks/useEnvelopeOptions";
 import { getCurrentWaterYear } from "@/lib/water-year";
@@ -60,6 +61,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
   const stationId = triplet.split(/[:-]/)[0];
   const imageUrl = `https://www.wcc.nrcs.usda.gov/siteimages/${stationId}.jpg`;
   const [imageError, setImageError] = useState(false);
+  const [showMoreCharts, setShowMoreCharts] = useState(false);
   useEffect(() => { setImageError(false); }, [triplet]);
   const { data: seasonData, loading: seasonLoading } = useSeasonData(triplet);
   const { data: historicalData, loading: historicalLoading } = useHistoricalData(triplet);
@@ -107,9 +109,8 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
   return (
     <div className="w-full h-full flex flex-col overflow-hidden" style={{ background: theme.white }}>
       <div
-        className="shrink-0 relative flex flex-col justify-end border-b overflow-hidden"
+        className={`shrink-0 relative flex flex-col justify-end border-b overflow-hidden ${imageError ? "" : "min-h-[124px] md:min-h-[160px]"}`}
         style={{
-          minHeight: imageError ? undefined : 160,
           borderColor: theme.borderGray,
           background: imageError ? theme.white : theme.black,
         }}
@@ -167,7 +168,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto flex flex-col">
         <div className="border-b" style={{ borderColor: theme.borderGray }}>
           <div className="grid grid-cols-2 md:flex md:items-stretch md:overflow-x-auto md:min-w-min" style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
             {seasonLoading ? (
@@ -241,16 +242,16 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
                 asOf={current?.lastUpdated ?? null}
               />
             }
-            controls={<EnvelopeChartActions options={envelopeOptions} yearOptions={yearOptions} />}
+            actions={<EnvelopeChartActions options={envelopeOptions} yearOptions={yearOptions} />}
             height={280}
             footer={envelopeStats && (
               <EnvelopeStatGrid
                 stats={[
-                  { label: "Current SWE", value: formatSwe(envelopeStats.currentSwe) },
-                  { label: "% of Median", value: formatPctOfNormal(envelopeStats.pctOfNormal), color: getConditionColor(envelopeStats.pctOfNormal) },
+                  { label: "Current SWE", value: formatSwe(envelopeStats.currentSwe), hideOnMobile: true },
+                  { label: "% of Median", value: formatPctOfNormal(envelopeStats.pctOfNormal), color: getConditionColor(envelopeStats.pctOfNormal), hideOnMobile: true },
                   { label: "Percentile", value: envelopeStats.percentile !== null ? String(envelopeStats.percentile) : "—" },
                   { label: "% Median Peak", value: formatPctOfNormal(envelopeStats.pctOfMedianPeak) },
-                  { label: `Median ${envelopeStats.dateLabel}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray },
+                  { label: `Median ${envelopeStats.dateLabel}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray, hideOnMobile: true },
                   { label: envelopeStats.daysUntilPeak >= 0 ? "To Median Peak" : "Past Median Peak", value: `${Math.abs(envelopeStats.daysUntilPeak)}d`, color: theme.darkGray },
                 ]}
               />
@@ -269,9 +270,21 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
           </ChartCard>
         </div>
 
+        <div className="md:hidden max-md:order-2 px-4 pt-3 pb-4">
+          <button
+            onClick={() => setShowMoreCharts((v) => !v)}
+            className="w-full flex items-center justify-center gap-1.5 h-10 rounded-lg border font-sans text-[13px] font-medium cursor-pointer"
+            style={{ borderColor: theme.borderGray, color: theme.darkGray }}
+          >
+            {showMoreCharts ? "Fewer charts" : "More charts: snow depth & temperature"}
+            <ChevronDown size={14} style={{ transform: showMoreCharts ? "rotate(180deg)" : undefined, color: theme.gray }} />
+          </button>
+        </div>
+
+        <div className={`max-md:order-3 max-md:pb-4 ${showMoreCharts ? "" : "max-md:hidden"}`}>
         {envelopeData && envelopeData.depthEnvelope.length > 0 && (
           <div className="px-4 pt-3">
-            <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Snow Depth</span></span>} height={280}>
+            <ChartCard title={<ChartTitle name={station.name} label="Snow Depth" />} height={280}>
               {seasonLoading || envelopeLoading ? (
                 <LoadingSpinner />
               ) : seasonData ? (
@@ -286,7 +299,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
         )}
 
         <div className="px-4 pt-3">
-          <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Snow Depth & Temp</span></span>} description="Last 7 days" height={180}>
+          <ChartCard title={<ChartTitle name={station.name} label="Snow Depth & Temp" />} description="Last 7 days" height={180}>
             {hourlyLoading ? (
               <LoadingSpinner />
             ) : hourlyData.length > 0 ? (
@@ -294,9 +307,10 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
             ) : null}
           </ChartCard>
         </div>
+        </div>
 
-        <div className="px-4 pt-3 pb-4">
-          <ChartCard title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Peak SWE</span></span>} description="By water year" height={200}>
+        <div className="max-md:order-1 px-4 pt-3 md:pb-4">
+          <ChartCard title={<ChartTitle name={station.name} label="Peak SWE" />} description="By water year" height={200}>
             {historicalLoading ? (
               <LoadingSpinner />
             ) : (

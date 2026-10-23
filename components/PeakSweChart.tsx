@@ -11,6 +11,7 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
+import LegendItem from "@/components/LegendItem";
 import { theme, snowColors, chartTooltipStyle, chartCursorStyle } from "@/lib/theme";
 import { formatSwe, formatDateFull } from "@/lib/formatting";
 import { getCurrentWaterYear } from "@/lib/water-year";
@@ -65,7 +66,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 }
 
 export default function PeakSweChart({ data }: PeakSweChartProps) {
-  const { chartData, average, min, max, currentWy } = useMemo(() => {
+  const { chartData, average, min, max, currentWy, hasCurrent } = useMemo(() => {
     const currentWy = getCurrentWaterYear();
     const sorted = [...data].sort((a, b) => a.waterYear - b.waterYear);
     const avg = sorted.length > 0
@@ -81,7 +82,7 @@ export default function PeakSweChart({ data }: PeakSweChartProps) {
       peakSweDate: d.peakSweDate,
     }));
 
-    return { chartData: bars, average: avg, min: minVal, max: maxVal, currentWy };
+    return { chartData: bars, average: avg, min: minVal, max: maxVal, currentWy, hasCurrent: sorted.some((d) => d.waterYear === currentWy) };
   }, [data]);
 
   if (chartData.length === 0) {
@@ -99,6 +100,7 @@ export default function PeakSweChart({ data }: PeakSweChartProps) {
           <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
             <XAxis
               dataKey="waterYear"
+              minTickGap={14}
               tick={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
               axisLine={{ stroke: theme.borderGray }}
               tickLine={false}
@@ -118,10 +120,20 @@ export default function PeakSweChart({ data }: PeakSweChartProps) {
               strokeWidth={1.5}
             />
             {max !== null && (
-              <ReferenceLine y={max} stroke={snowColors.envelopeMax} strokeWidth={1} strokeDasharray="6 3" />
+              <ReferenceLine
+                y={max}
+                stroke={snowColors.envelopeMax}
+                strokeWidth={1}
+                strokeDasharray="6 3"
+              />
             )}
             {min !== null && (
-              <ReferenceLine y={min} stroke={snowColors.envelopeMin} strokeWidth={1} strokeDasharray="6 3" />
+              <ReferenceLine
+                y={min}
+                stroke={snowColors.envelopeMin}
+                strokeWidth={1}
+                strokeDasharray="6 3"
+              />
             )}
             <Bar dataKey="peakSwe" radius={[2, 2, 0, 0]} maxBarSize={20} fillOpacity={0.85}>
               {chartData.map((entry) => (
@@ -134,30 +146,28 @@ export default function PeakSweChart({ data }: PeakSweChartProps) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <div className="flex items-center justify-center gap-4 pt-1.5 pb-1 flex-wrap">
-        <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
-          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: snowColors.swe, opacity: 0.85 }} />
-          Peak SWE
-        </div>
-        <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
-          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: snowColors.currentYear }} />
-          Current year
-        </div>
-        <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+      <div className="flex items-center justify-center gap-x-4 gap-y-1 pt-1.5 pb-1 flex-wrap">
+        <LegendItem>
           <div className="w-4 border-t border-dashed" style={{ borderColor: theme.mediumGray }} />
           Avg {formatSwe(average)}
-        </div>
+        </LegendItem>
         {max !== null && (
-          <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+          <LegendItem>
             <div className="w-4 border-t border-dashed" style={{ borderColor: snowColors.envelopeMax }} />
             Max {formatSwe(max)}
-          </div>
+          </LegendItem>
         )}
         {min !== null && (
-          <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+          <LegendItem>
             <div className="w-4 border-t border-dashed" style={{ borderColor: snowColors.envelopeMin }} />
             Min {formatSwe(min)}
-          </div>
+          </LegendItem>
+        )}
+        {hasCurrent && (
+          <LegendItem>
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: snowColors.currentYear }} />
+            {currentWy}
+          </LegendItem>
         )}
       </div>
     </div>

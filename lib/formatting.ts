@@ -64,6 +64,9 @@ export const formatDateFull = (dateStr: string): string => {
   });
 };
 
+export const formatWeekday = (datetime: string): string =>
+  new Date(datetime.replace(" ", "T")).toLocaleDateString("en-US", { weekday: "short" });
+
 export const formatReadingDate = (dateStr: string): string => {
   const date = new Date(dateStr + "T00:00:00");
   date.setDate(date.getDate() - 1);

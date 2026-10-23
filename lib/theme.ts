@@ -20,8 +20,7 @@ export const snowColors = {
   snowDepth: "#8B5CF6",
   precip: "#06B6D4",
   temp: "#EF4444",
-  median: "#64748B",
-  envelope: "#E2E8F0",
+  median: "#8796A8",
   envelopeMax: "#3B82F6",
   envelopeMin: "#F87171",
   medianPeak: "#16A34A",
@@ -30,11 +29,11 @@ export const snowColors = {
 };
 
 export const percentileBands = [
-  { key: "b0", label: "<10th", color: snowColors.wellBelow },
-  { key: "b1", label: "10–30th", color: snowColors.below },
-  { key: "b2", label: "30–70th", color: snowColors.nearNormal },
-  { key: "b3", label: "70–90th", color: snowColors.above },
-  { key: "b4", label: ">90th", color: snowColors.wellAbove },
+  { key: "b0", color: "#E98A8A" },
+  { key: "b1", color: "#F6DC85" },
+  { key: "b2", color: "#E3F5DE" },
+  { key: "b3", color: "#9AD2E0" },
+  { key: "b4", color: "#7AA0DD" },
 ] as const;
 
 export const compareYearColors = ["#8B5CF6", "#0D9488", "#DB2777", "#EA580C"];

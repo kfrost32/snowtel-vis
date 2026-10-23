@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from "react";
+import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { ChevronLeft, ChevronRight, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
 import { useFavorites } from "@/hooks/useFavorites";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -13,6 +13,7 @@ import { computeBasinSummaries, computeBasinCentroid } from "@/lib/basins";
 import { getStation, urlTriplet, parseTripletFromUrl } from "@/lib/stations";
 import StaleBanner from "@/components/StaleBanner";
 import MapControls from "@/components/MapControls";
+import BottomSheet from "@/components/BottomSheet";
 import StationDetailPanel from "@/components/StationDetailPanel";
 import BasinDetailPanel from "@/components/BasinDetailPanel";
 import { getAllSpots } from "@/lib/spots";
@@ -102,8 +103,7 @@ const GLASS_STYLE = {
   background: "rgba(255, 255, 255, 0.86)",
   backdropFilter: "blur(24px) saturate(140%)",
   WebkitBackdropFilter: "blur(24px) saturate(140%)",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
-  boxShadow: "0 8px 32px rgba(15, 23, 42, 0.12), 0 1px 2px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6)",
+  boxShadow: "0 12px 40px rgba(15, 23, 42, 0.14), 0 2px 6px rgba(15, 23, 42, 0.06)",
 };
 
 const StationMap = dynamic(() => import("@/components/StationMap"), {
@@ -118,7 +118,6 @@ const StationMap = dynamic(() => import("@/components/StationMap"), {
 function HomePageInner() {
   const { stations, loading, error, fetchedAt, stale } = useStationList();
   const { favorites, toggleStation, toggleBasin, isStationFav, isBasinFav } = useFavorites();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -140,11 +139,11 @@ function HomePageInner() {
   const [showStations, setShowStations] = useState(true);
   const [showHuc2, setShowHuc2] = useState(true);
   const [showHuc4, setShowHuc4] = useState(false);
-  const [showResorts, setShowResorts] = useState(true);
-  const [showBackcountry, setShowBackcountry] = useState(true);
+  const [showSpots, setShowSpots] = useState(true);
   const [activeOnly, setActiveOnly] = useState(true);
   const [metric, setMetric] = useState("WTEQ");
   const [overlayVisible, setOverlayVisible] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
   const [selectedTriplet, setSelectedTriplet] = useState<string | null>(() => {
     const param = searchParams.get("station");
     return param ? parseTripletFromUrl(param) : null;
@@ -176,6 +175,8 @@ function HomePageInner() {
   }, [stations]);
 
   const isSweMetric = metric === "WTEQ" || metric === "WTEQ_PCT";
+  const legendTitle = LEGEND_TITLES[metric] ?? METRIC_LABELS[metric] ?? metric;
+  const legendItems = METRIC_LEGEND[metric] ?? METRIC_LEGEND.TAVG;
 
   const huc2Basins = useMemo(() => (!stations.length ? [] : computeBasinSummaries(stations, 2)), [stations]);
   const huc4Basins = useMemo(() => (!stations.length ? [] : computeBasinSummaries(stations, 4)), [stations]);
@@ -226,8 +227,8 @@ function HomePageInner() {
         : "";
     const url = qs ? `/?${qs}` : "/";
     if (window.location.pathname + window.location.search === url) return;
-    router.replace(url, { scroll: false });
-  }, [selectedTriplet, selectedBasinHuc, router]);
+    window.history.replaceState(null, "", url);
+  }, [selectedTriplet, selectedBasinHuc]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeDetailPanel(); };
@@ -247,29 +248,28 @@ function HomePageInner() {
 
   const hasDetailPanel = selectedTriplet !== null || selectedBasin !== null;
 
-  return (
-    <>
-      <StaleBanner fetchedAt={fetchedAt} stale={stale} />
-      <div className="h-dvh flex w-full relative">
-        {isMobile && sidebarOpen && (
-          <div
-            className="fixed inset-0 z-30"
-            style={{ background: "rgba(0,0,0,0.4)" }}
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+  const detailContent = selectedTriplet ? (
+    <StationDetailPanel
+      triplet={selectedTriplet}
+      onClose={closeDetailPanel}
+      onStationClick={handleStationClick}
+      isFavorite={isStationFav(selectedTriplet)}
+      onToggleFavorite={() => toggleStation(selectedTriplet)}
+    />
+  ) : selectedBasin ? (
+    <BasinDetailPanel
+      basin={selectedBasin}
+      onClose={closeDetailPanel}
+      onStationClick={handleStationClick}
+      isFavorite={isBasinFav(selectedBasin.huc)}
+      onToggleFavorite={() => toggleBasin(selectedBasin.huc)}
+    />
+  ) : null;
 
-        {sidebarOpen && (
-          <div
-            className={`${isMobile ? "fixed top-0 left-0 bottom-0 z-30" : "absolute z-20 rounded-2xl"} flex flex-col overflow-hidden`}
-            style={{
-              ...GLASS_STYLE,
-              width: isMobile ? "min(320px, 85vw)" : SIDEBAR_WIDTH,
-              ...(isMobile ? {} : { top: SIDEBAR_INSET, left: SIDEBAR_INSET, bottom: SIDEBAR_INSET }),
-            }}
-          >
+  const sidebarContent = (
+    <>
             <div
-              className="flex items-center justify-between px-4 py-2.5 border-b flex-shrink-0"
+              className="flex items-center justify-between px-4 pt-6 pb-2.5 md:pt-2.5 border-b flex-shrink-0"
               style={{ borderColor: "rgba(15, 23, 42, 0.06)" }}
             >
               <div className="min-w-0">
@@ -294,13 +294,14 @@ function HomePageInner() {
                   className="p-1.5 rounded-md hover:bg-black/[0.05] transition-colors cursor-pointer"
                   aria-label="Close sidebar"
                 >
-                  <ChevronLeft size={16} style={{ color: theme.gray }} />
+                  {isMobile ? <X size={18} style={{ color: theme.gray }} /> : <ChevronLeft size={16} style={{ color: theme.gray }} />}
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto" style={{ borderColor: theme.borderGray }}>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col max-md:pb-[calc(env(safe-area-inset-bottom)+32px)]" style={{ borderColor: theme.borderGray }}>
               {(favorites.stations.length > 0 || favorites.basins.length > 0) && (
+                <div className="max-md:order-last">
                 <SidebarSection label="Favorites" flush>
                   {favorites.stations.map((triplet) => {
                     const s = getStation(triplet);
@@ -328,6 +329,7 @@ function HomePageInner() {
                     );
                   })}
                 </SidebarSection>
+                </div>
               )}
 
               <MapControls
@@ -339,10 +341,8 @@ function HomePageInner() {
                 onShowHuc2Change={setShowHuc2}
                 showHuc4={showHuc4}
                 onShowHuc4Change={setShowHuc4}
-                showResorts={showResorts}
-                onShowResortsChange={setShowResorts}
-                showBackcountry={showBackcountry}
-                onShowBackcountryChange={setShowBackcountry}
+                showSpots={showSpots}
+                onShowSpotsChange={setShowSpots}
                 activeOnly={activeOnly}
                 onActiveOnlyChange={setActiveOnly}
                 selectedStates={selectedStates}
@@ -353,9 +353,25 @@ function HomePageInner() {
                 onElevMaxChange={setElevMax}
               />
             </div>
+    </>
+  );
 
+  return (
+    <>
+      <StaleBanner fetchedAt={fetchedAt} stale={stale} />
+      <div className="h-dvh flex w-full relative">
+        {sidebarOpen && (isMobile ? (
+          <BottomSheet baseHeight="72dvh" onDismiss={() => setSidebarOpen(false)} zIndex={30} background="rgba(255, 255, 255, 0.96)">
+            {sidebarContent}
+          </BottomSheet>
+        ) : (
+          <div
+            className="absolute z-20 rounded-2xl flex flex-col overflow-hidden"
+            style={{ ...GLASS_STYLE, width: SIDEBAR_WIDTH, top: SIDEBAR_INSET, left: SIDEBAR_INSET, bottom: SIDEBAR_INSET }}
+          >
+            {sidebarContent}
           </div>
-        )}
+        ))}
 
         {!sidebarOpen && (
           <div
@@ -364,17 +380,19 @@ function HomePageInner() {
           >
             <button
               onClick={() => setSidebarOpen(true)}
-              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-black/[0.05] transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-2 h-10 md:h-8 pl-3 pr-3.5 md:p-0 md:w-8 rounded-lg hover:bg-black/[0.05] transition-colors cursor-pointer"
               aria-label="Open sidebar"
             >
-              <ChevronRight size={16} style={{ color: theme.gray }} />
+              <SlidersHorizontal size={16} className="md:hidden" style={{ color: theme.darkGray }} />
+              <span className="md:hidden text-[13px] font-sans font-semibold" style={{ color: theme.darkGray }}>Layers</span>
+              <ChevronRight size={16} className="hidden md:block" style={{ color: theme.gray }} />
             </button>
             <button
               onClick={openSearch}
-              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-black/[0.05] transition-colors cursor-pointer"
+              className="flex items-center justify-center w-10 h-10 md:w-8 md:h-8 rounded-lg hover:bg-black/[0.05] transition-colors cursor-pointer"
               aria-label="Search"
             >
-              <Search size={14} style={{ color: theme.gray }} />
+              <Search size={15} style={{ color: theme.gray }} />
             </button>
           </div>
         )}
@@ -399,12 +417,29 @@ function HomePageInner() {
               onStationSelect={handleStationClick}
               onBasinSelect={handleBasinClick}
               spots={spots}
-              showResorts={showResorts}
-              showBackcountry={showBackcountry}
+              showSpots={showSpots}
             />
           )}
 
+          {isMobile && !legendOpen ? (
+            <button
+              onClick={() => setLegendOpen(true)}
+              className="absolute bottom-4 left-4 z-10 flex items-center gap-2 h-9 px-3 rounded-full cursor-pointer"
+              style={GLASS_STYLE}
+              aria-label="Show legend"
+            >
+              <span className="flex h-2 w-12 rounded-full overflow-hidden">
+                {legendItems.map(({ label, color }) => (
+                  <span key={label} className="flex-1" style={{ background: color }} />
+                ))}
+              </span>
+              <span className="text-[11px] font-sans font-semibold" style={{ color: theme.darkGray }}>
+                {legendTitle}
+              </span>
+            </button>
+          ) : (
           <div
+            onClick={isMobile ? () => setLegendOpen(false) : undefined}
             className="absolute bottom-4 left-4 right-4 md:right-auto rounded-xl px-3 py-2 z-10"
             style={{
               ...GLASS_STYLE,
@@ -413,7 +448,7 @@ function HomePageInner() {
           >
             <div className="flex items-baseline justify-center md:justify-start gap-1.5 mb-1.5">
               <span className="text-[11px] font-sans font-semibold" style={{ color: theme.darkGray }}>
-                {LEGEND_TITLES[metric] ?? METRIC_LABELS[metric] ?? metric}
+                {legendTitle}
               </span>
               {dataDate && (
                 <span className="text-[10px] font-mono" style={{ color: theme.mediumGray }}>
@@ -422,7 +457,7 @@ function HomePageInner() {
               )}
             </div>
             <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
-              {(METRIC_LEGEND[metric] ?? METRIC_LEGEND.TAVG).map(({ label, color }) => (
+              {legendItems.map(({ label, color }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
                   <span className="text-[10px] font-mono" style={{ color: theme.gray }}>
@@ -444,44 +479,33 @@ function HomePageInner() {
               )}
             </div>
           </div>
+          )}
         </div>
 
-        {hasDetailPanel && (
+        {hasDetailPanel && (isMobile ? (
+          <BottomSheet baseHeight="85dvh" onDismiss={closeDetailPanel} dimBackdrop handleTone="light" zIndex={60} background={theme.white}>
+            {detailContent}
+          </BottomSheet>
+        ) : (
           <div
-            className={`${isMobile ? "fixed inset-0 z-[60]" : "absolute inset-0 z-20"} pointer-events-none`}
-            style={{ left: !isMobile && sidebarOpen ? SIDEBAR_WIDTH + SIDEBAR_INSET : 0 }}
+            className="absolute inset-0 z-20 pointer-events-none"
+            style={{ left: sidebarOpen ? SIDEBAR_WIDTH + SIDEBAR_INSET : 0 }}
           >
             <div
-              className="absolute inset-0 md:inset-4 pointer-events-auto md:rounded-xl shadow-2xl overflow-hidden transition-all duration-200 md:mx-auto"
+              className="absolute inset-4 rounded-xl mx-auto pointer-events-auto shadow-2xl overflow-hidden transition-all duration-200"
               style={{
                 background: theme.white,
-                border: isMobile ? "none" : `1px solid ${theme.borderGray}`,
+                border: `1px solid ${theme.borderGray}`,
                 opacity: overlayVisible ? 1 : 0,
                 transform: overlayVisible ? "scale(1)" : "scale(0.97)",
                 transformOrigin: "center center",
-                maxWidth: isMobile ? undefined : 1200,
+                maxWidth: 1200,
               }}
             >
-              {selectedTriplet ? (
-                <StationDetailPanel
-                  triplet={selectedTriplet}
-                  onClose={closeDetailPanel}
-                  onStationClick={handleStationClick}
-                  isFavorite={isStationFav(selectedTriplet)}
-                  onToggleFavorite={() => toggleStation(selectedTriplet)}
-                />
-              ) : selectedBasin ? (
-                <BasinDetailPanel
-                  basin={selectedBasin}
-                  onClose={closeDetailPanel}
-                  onStationClick={handleStationClick}
-                  isFavorite={isBasinFav(selectedBasin.huc)}
-                  onToggleFavorite={() => toggleBasin(selectedBasin.huc)}
-                />
-              ) : null}
+              {detailContent}
             </div>
           </div>
-        )}
+        ))}
       </div>
     </>
   );

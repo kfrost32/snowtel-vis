@@ -10,7 +10,7 @@ interface EnvelopeChartActionsProps {
   yearOptions: { year: number; label: string }[];
 }
 
-const buttonClass = "flex items-center gap-2 h-7 px-2 rounded-md text-xs font-medium font-sans transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer";
+const buttonClass = "flex items-center gap-2 h-9 md:h-7 px-2 rounded-md text-xs font-medium font-sans transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer";
 
 export default function EnvelopeChartActions({ options, yearOptions }: EnvelopeChartActionsProps) {
   const { showPercentiles, togglePercentiles, selectedYears, addYear, removeYear, clearYears } = options;
@@ -33,7 +33,7 @@ export default function EnvelopeChartActions({ options, yearOptions }: EnvelopeC
   }, [open]);
 
   return (
-    <div className="flex items-center gap-1 -ml-2">
+    <div className="hidden md:flex items-center gap-1">
       <button
         role="switch"
         aria-checked={showPercentiles}
@@ -75,7 +75,7 @@ export default function EnvelopeChartActions({ options, yearOptions }: EnvelopeC
           <div
             role="listbox"
             aria-multiselectable
-            className="absolute left-0 top-full mt-1 z-30 w-56 rounded-lg border shadow-lg overflow-hidden"
+            className="absolute right-0 top-full mt-1 z-30 w-56 rounded-lg border shadow-lg overflow-hidden"
             style={{ background: theme.white, borderColor: theme.borderGray }}
           >
             <div className="flex items-center justify-between px-3 py-2 border-b font-mono text-[10px]" style={{ borderColor: theme.borderGray, color: theme.mediumGray }}>

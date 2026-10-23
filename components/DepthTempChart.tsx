@@ -10,10 +10,13 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
+import LegendItem from "@/components/LegendItem";
 import { theme, snowColors, chartTooltipStyle } from "@/lib/theme";
+import { formatWeekday } from "@/lib/formatting";
 import type { HourlyObservation } from "@/hooks/useHourlyData";
 
 interface ChartPoint {
+  datetime: string;
   label: string;
   snowDepth: number | null;
   temp: number | null;
@@ -28,11 +31,11 @@ interface TooltipPayloadEntry {
 interface CustomTooltipProps {
   active?: boolean;
   payload?: TooltipPayloadEntry[];
-  label?: string;
 }
 
-function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
+  const label = (payload[0] as unknown as { payload: ChartPoint }).payload.label;
   const depth = payload.find((p) => p.dataKey === "snowDepth");
   const temp = payload.find((p) => p.dataKey === "temp");
   return (
@@ -62,34 +65,38 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
   const chartData: ChartPoint[] = data.map((d) => {
     const dt = new Date(d.datetime.replace(" ", "T"));
     const label = dt.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", hour12: true });
-    return { label, snowDepth: d.snowDepth, temp: d.temp };
+    return { datetime: d.datetime, label, snowDepth: d.snowDepth, temp: d.temp };
   });
 
   const depths = chartData.map((d) => d.snowDepth).filter((d): d is number => d !== null);
-  const depthMax = depths.length ? Math.ceil(Math.max(...depths) / 10) * 10 : 50;
+  const depthMax = Math.max(10, Math.ceil((depths.length ? Math.max(...depths) : 0) / 10) * 10);
 
   const temps = chartData.map((d) => d.temp).filter((t): t is number => t !== null);
-  const tempMin = temps.length ? Math.min(...temps) - 5 : -10;
-  const tempMax = temps.length ? Math.max(...temps) + 5 : 80;
+  const tempMin = Math.floor(Math.min(32, ...(temps.length ? temps : [32])) / 10) * 10;
+  const tempMax = Math.ceil(Math.max(32, ...(temps.length ? temps : [32])) / 10) * 10;
+  const tempStep = tempMax - tempMin > 60 ? 20 : 10;
+  const tempTicks = Array.from({ length: Math.floor((tempMax - tempMin) / tempStep) + 1 }, (_, i) => tempMin + i * tempStep);
 
-  // show ~every 24th label (daily tick)
-  const tickInterval = Math.max(1, Math.floor(chartData.length / 7));
+  const dayTicks = chartData.filter((d) => d.datetime.endsWith(" 00:00")).map((d) => d.datetime);
 
   return (
     <div className="flex flex-col w-full h-full">
       <div className="flex-1 min-h-0">
       <ResponsiveContainer width="100%" height="100%">
-      <ComposedChart data={chartData} margin={{ top: 4, right: 40, bottom: 0, left: -12 }}>
+      <ComposedChart data={chartData} margin={{ top: 4, right: 0, bottom: 0, left: -12 }}>
         <XAxis
-          dataKey="label"
+          dataKey="datetime"
+          ticks={dayTicks}
+          interval={0}
+          tickFormatter={formatWeekday}
           tick={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={{ stroke: theme.borderGray }}
           tickLine={false}
-          interval={tickInterval - 1}
         />
         <YAxis
           yAxisId="depth"
           domain={[0, depthMax]}
+          allowDecimals={false}
           tick={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={false}
           tickLine={false}
@@ -100,6 +107,7 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
           yAxisId="temp"
           orientation="right"
           domain={[tempMin, tempMax]}
+          ticks={tempTicks}
           tick={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={false}
           tickLine={false}
@@ -137,18 +145,18 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
       </ResponsiveContainer>
       </div>
       <div className="flex items-center justify-center gap-4 pt-1.5 pb-1 flex-wrap">
-        <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+        <LegendItem>
           <div className="w-4 border-t-2" style={{ borderColor: snowColors.snowDepth }} />
           Snow Depth
-        </div>
-        <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+        </LegendItem>
+        <LegendItem>
           <div className="w-4 border-t-2" style={{ borderColor: snowColors.currentYear }} />
           Temperature
-        </div>
-        <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+        </LegendItem>
+        <LegendItem>
           <div className="w-4 border-t border-dashed" style={{ borderColor: snowColors.freezing }} />
-          Freezing (32°F)
-        </div>
+          32°F
+        </LegendItem>
       </div>
     </div>
   );

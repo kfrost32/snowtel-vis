@@ -14,6 +14,7 @@ import {
   ReferenceLine,
   ReferenceDot,
 } from "recharts";
+import LegendItem from "@/components/LegendItem";
 import { theme, snowColors, chartTooltipStyle, chartCursorStyle, percentileBands } from "@/lib/theme";
 import { getWaterYearDay, waterYearDayToLabel, getCurrentWaterYear } from "@/lib/water-year";
 import type { EnvelopeDay } from "@/lib/types";
@@ -209,7 +210,7 @@ export default function EnvelopeChart({
                 type="monotone"
                 stroke="none"
                 fill={color}
-                fillOpacity={0.14}
+                fillOpacity={0.85}
                 activeDot={false}
                 isAnimationActive={false}
                 connectNulls
@@ -220,21 +221,34 @@ export default function EnvelopeChart({
               dataKey="max"
               type="monotone"
               stroke={snowColors.envelopeMax}
-              strokeWidth={1}
+              strokeWidth={1.25}
               dot={false}
               activeDot={false}
               connectNulls
-              opacity={0.5}
+              isAnimationActive={false}
             />
             <Line
               dataKey="min"
               type="monotone"
               stroke={snowColors.envelopeMin}
-              strokeWidth={1}
+              strokeWidth={1.25}
               dot={false}
               activeDot={false}
               connectNulls
-              opacity={0.5}
+              isAnimationActive={false}
+            />
+            <Line
+              dataKey="median"
+              type="monotone"
+              stroke={theme.white}
+              strokeWidth={4}
+              strokeOpacity={0.8}
+              connectNulls
+              dot={false}
+              activeDot={false}
+              legendType="none"
+              tooltipType="none"
+              isAnimationActive={false}
             />
             <Line
               dataKey="median"
@@ -245,6 +259,7 @@ export default function EnvelopeChart({
               connectNulls
               dot={false}
               activeDot={false}
+              isAnimationActive={false}
             />
             {compareYears.map((y) => (
               <Line
@@ -278,10 +293,10 @@ export default function EnvelopeChart({
         </ResponsiveContainer>
       </div>
       <div className="flex items-center justify-center gap-4 pt-1.5 pb-1 flex-wrap">
-        <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+        <LegendItem>
           <div className="w-4 border-t-2" style={{ borderColor: theme.black }} />
           Current
-        </div>
+        </LegendItem>
         {compareYears.map((y) => (
           <button
             key={y.year}
@@ -297,34 +312,35 @@ export default function EnvelopeChart({
           </button>
         ))}
         {hasMedian && (
-          <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+          <LegendItem>
             <div className="w-4 border-t border-dashed" style={{ borderColor: snowColors.median }} />
             Median
-          </div>
+          </LegendItem>
         )}
-        <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
-          <div className="w-4 border-t" style={{ borderColor: snowColors.envelopeMax, opacity: 0.5 }} />
+        <LegendItem hideOnMobile>
+          <div className="w-4 border-t" style={{ borderColor: snowColors.envelopeMax }} />
           Max
-        </div>
-        <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
-          <div className="w-4 border-t" style={{ borderColor: snowColors.envelopeMin, opacity: 0.5 }} />
+        </LegendItem>
+        <LegendItem hideOnMobile>
+          <div className="w-4 border-t" style={{ borderColor: snowColors.envelopeMin }} />
           Min
-        </div>
+        </LegendItem>
         {hasMedian && (
-          <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+          <LegendItem hideOnMobile>
             <span style={{ color: snowColors.medianPeak, fontSize: 12, lineHeight: 1 }}>✕</span>
             Median peak
-          </div>
+          </LegendItem>
         )}
         {hasPercentiles && (
-          <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+          <LegendItem>
             <div className="flex">
               {percentileBands.map(({ key, color }) => (
-                <div key={key} className="w-1.5 h-2.5" style={{ background: color, opacity: 0.35 }} />
+                <div key={key} className="w-1.5 h-2.5" style={{ background: color }} />
               ))}
             </div>
-            10/30/70/90th percentiles
-          </div>
+            <span className="max-md:hidden" data-export-reveal="inline">10/30/70/90th percentiles</span>
+            <span className="md:hidden">Percentiles</span>
+          </LegendItem>
         )}
       </div>
     </div>

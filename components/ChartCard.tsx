@@ -1,20 +1,20 @@
 "use client";
 
 import { ReactNode, useRef, useState, useCallback } from "react";
-import { Check, Copy, Download } from "lucide-react";
+import { Check, Copy, Download, Share } from "lucide-react";
 import { theme } from "@/lib/theme";
 
 interface ChartCardProps {
   title?: ReactNode;
   description?: string;
   height?: number;
-  controls?: ReactNode;
+  actions?: ReactNode;
   footer?: ReactNode;
   children: ReactNode;
   exportable?: boolean;
 }
 
-export default function ChartCard({ title, description, height, controls, footer, children, exportable = true }: ChartCardProps) {
+export default function ChartCard({ title, description, height, actions, footer, children, exportable = true }: ChartCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -23,13 +23,16 @@ export default function ChartCard({ title, description, height, controls, footer
     const card = cardRef.current!;
     const attribution = card.querySelector<HTMLElement>("[data-attribution]");
     const hidden = Array.from(card.querySelectorAll<HTMLElement>("[data-controls], [data-export-btn]"));
+    const revealed = Array.from(card.querySelectorAll<HTMLElement>("[data-export-reveal]"));
     if (attribution) attribution.style.display = "flex";
     hidden.forEach((el) => (el.style.display = "none"));
+    revealed.forEach((el) => (el.style.display = el.dataset.exportReveal!));
     try {
       return await render(card);
     } finally {
       if (attribution) attribution.style.display = "none";
       hidden.forEach((el) => (el.style.display = ""));
+      revealed.forEach((el) => (el.style.display = ""));
     }
   }, []);
 
@@ -45,6 +48,34 @@ export default function ChartCard({ title, description, height, controls, footer
       link.click();
     } catch (err) {
       console.error("Export failed:", err);
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, capture]);
+
+  const handleShare = useCallback(async () => {
+    if (!cardRef.current || exporting) return;
+    setExporting(true);
+    const filename = `snotel-chart-${Date.now()}.png`;
+    let blob: Blob | null = null;
+    try {
+      const { toBlob } = await import("html-to-image");
+      blob = await capture((node) => toBlob(node, { backgroundColor: "#FFFFFF", pixelRatio: 2 }));
+      if (!blob) throw new Error("Empty image");
+      const file = new File([blob], filename, { type: "image/png" });
+      if (!navigator.canShare?.({ files: [file] })) throw new DOMException("Sharing files unsupported", "NotSupportedError");
+      await navigator.share({ files: [file] });
+    } catch (err) {
+      const name = (err as DOMException).name;
+      if (blob && (name === "NotSupportedError" || name === "NotAllowedError")) {
+        const link = document.createElement("a");
+        link.download = filename;
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        URL.revokeObjectURL(link.href);
+      } else if (name !== "AbortError") {
+        console.error("Share failed:", err);
+      }
     } finally {
       setExporting(false);
     }
@@ -73,7 +104,7 @@ export default function ChartCard({ title, description, height, controls, footer
   return (
     <div
       ref={cardRef}
-      className="p-4 sm:p-6 rounded-lg border relative"
+      className="p-3 sm:p-6 rounded-lg border relative"
       style={{ background: theme.white, borderColor: theme.borderGray }}
     >
       {(title || exportable) && (
@@ -86,14 +117,32 @@ export default function ChartCard({ title, description, height, controls, footer
               {title}
             </h3>
           )}
-          {exportable && (
+          {(actions || exportable) && (
             <div className="flex items-center gap-1 shrink-0 ml-auto">
+              {actions && (
+                <div data-controls className="hidden md:flex items-center">
+                  {actions}
+                  <span className="w-px h-4 mx-1" style={{ background: theme.borderGray }} />
+                </div>
+              )}
+              {exportable && (
+                <button
+                  data-export-btn
+                  onClick={handleShare}
+                  disabled={exporting}
+                  className="md:hidden shrink-0 p-2.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer"
+                  style={{ color: theme.gray }}
+                  aria-label="Share chart as image"
+                >
+                  <Share size={16} />
+                </button>
+              )}
               {exportable && (
                 <button
                   data-export-btn
                   onClick={handleCopy}
                   disabled={exporting}
-                  className="shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer"
+                  className="hidden md:block shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer"
                   style={{ color: copied ? theme.darkGray : theme.gray }}
                   aria-label={copied ? "Copied" : "Copy chart as image"}
                   title={copied ? "Copied" : "Copy as image"}
@@ -106,7 +155,7 @@ export default function ChartCard({ title, description, height, controls, footer
                   data-export-btn
                   onClick={handleExport}
                   disabled={exporting}
-                  className="shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer"
+                  className="hidden md:block shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer"
                   style={{ color: theme.gray }}
                   aria-label="Export chart as image"
                   title="Export as image"
@@ -125,11 +174,6 @@ export default function ChartCard({ title, description, height, controls, footer
         >
           {description}
         </p>
-      )}
-      {controls && (
-        <div className="mb-3" data-controls>
-          {controls}
-        </div>
       )}
       <div style={height !== undefined ? { height } : undefined}>
         {children}
