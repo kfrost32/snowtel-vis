@@ -41,8 +41,6 @@ export interface WaterYearSummary {
   waterYear: number;
   peakSwe: number;
   peakSweDate: string;
-  apr1Swe: number | null;
-  totalPrecip: number | null;
 }
 
 export interface StationSeasonData {

@@ -247,45 +247,4 @@ export async function fetchMedianData(
   return result;
 }
 
-export async function fetchPorData(
-  triplet: string,
-  elementCd: string,
-  stationBeginDate: string,
-  endDate: string
-): Promise<{ dates: string[]; values: (number | null)[] }> {
-  const startYear = new Date(stationBeginDate + "T12:00:00Z").getUTCFullYear();
-  const endYear = new Date(endDate + "T12:00:00Z").getUTCFullYear();
-
-  const yearRanges: { begin: string; end: string }[] = [];
-  for (let y = startYear; y <= endYear; y++) {
-    const begin = `${y}-01-01`;
-    const end = `${y}-12-31`;
-    yearRanges.push({ begin, end: end > endDate ? endDate : end });
-  }
-
-  const batchSize = 5;
-  const allDates: string[] = [];
-  const allValues: (number | null)[] = [];
-
-  for (let i = 0; i < yearRanges.length; i += batchSize) {
-    const batch = yearRanges.slice(i, i + batchSize);
-    const results = await Promise.all(
-      batch.map(({ begin, end }) =>
-        soapRequest("getData", `<stationTriplets>${triplet}</stationTriplets><elementCd>${elementCd}</elementCd><ordinal>1</ordinal><duration>DAILY</duration><getFlags>false</getFlags><beginDate>${begin}</beginDate><endDate>${end}</endDate><alwaysReturnDailyFeb29>false</alwaysReturnDailyFeb29>`)
-          .then(parseGetDataResponse)
-          .catch(() => new Map<string, { dates: string[]; values: (number | null)[] }>())
-      )
-    );
-    for (const map of results) {
-      const data = map.get(triplet);
-      if (data) {
-        allDates.push(...data.dates);
-        allValues.push(...data.values);
-      }
-    }
-  }
-
-  return { dates: allDates, values: allValues };
-}
-
 export { parseNumericValue };

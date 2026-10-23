@@ -202,8 +202,22 @@ fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUTPUT_DIR, "stations"), { recursive: true });
 fs.mkdirSync(path.join(OUTPUT_DIR, "basins"), { recursive: true });
 
+function yearlyPeaks(years) {
+  const peaks = [];
+  for (const [wy, arr] of [...years].sort((a, b) => a[0] - b[0])) {
+    let peakSwe = 0, peakDay = -1;
+    arr.forEach((v, d) => {
+      if (v > peakSwe) { peakSwe = v; peakDay = d; }
+    });
+    if (peakDay === -1) continue;
+    const peakSweDate = new Date(Date.UTC(wy - 1, 9, 1) + peakDay * DAY_MS).toISOString().split("T")[0];
+    peaks.push({ waterYear: wy, peakSwe: round(peakSwe), peakSweDate });
+  }
+  return peaks;
+}
+
 for (const t of triplets) {
-  const station = { generated, lastWaterYear: lastCompleteWaterYear };
+  const station = { generated, lastWaterYear: lastCompleteWaterYear, peaks: yearlyPeaks(series.swe.get(t)) };
   for (const key of Object.keys(ELEMENTS)) {
     const years = series[key].get(t);
     station[key] = buildSeries((d) => [...years].map(([wy, arr]) => [wy, arr[d]]), medians[key].get(t), -Infinity);

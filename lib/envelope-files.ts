@@ -1,4 +1,4 @@
-import type { EnvelopeDay } from "./types";
+import type { EnvelopeDay, WaterYearSummary } from "./types";
 
 export interface EnvelopeSeries {
   median: (number | null)[];
@@ -13,6 +13,7 @@ export interface EnvelopeSeries {
 export interface StationEnvelopeFile {
   generated: string;
   lastWaterYear: number;
+  peaks: WaterYearSummary[];
   swe: EnvelopeSeries;
   depth: EnvelopeSeries;
 }
