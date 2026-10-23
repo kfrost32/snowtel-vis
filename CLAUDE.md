@@ -68,3 +68,4 @@ All components live in `components/`. Key components:
 - `lib/geo.ts` — haversine distance, find nearest stations
 - `lib/constants.ts` — SNOTEL states, regions, element codes
 - `lib/stations.ts` — station data loader with urlTriplet/parseTripletFromUrl helpers
+- `lib/basins.ts` — regional index (sum SWE / sum median). Stations count toward their own HUC plus NRCS iMap HUC associations from `data/huc-associations.json` (regenerate with `node scripts/fetch-huc-associations.mjs`)

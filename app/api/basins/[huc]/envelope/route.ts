@@ -3,6 +3,7 @@ import { getAllStations } from "@/lib/stations";
 import { fetchPorData, fetchWaterYearMedian } from "@/lib/snotel-api";
 import { getWaterYearDay, getCurrentWaterYear } from "@/lib/water-year";
 import { getCached, setCache, wrapFresh, wrapStale } from "@/lib/api-cache";
+import { getStationHucs } from "@/lib/basins";
 import type { EnvelopeDay, StationEnvelope } from "@/lib/types";
 
 const CACHE_HEADER = { "Cache-Control": "public, max-age=3600, s-maxage=21600, stale-while-revalidate=3600" };
@@ -17,7 +18,7 @@ export async function GET(
   const { huc } = await params;
 
   const stations = getAllStations()
-    .filter((s) => s.network === "SNOTEL" && s.huc.startsWith(huc))
+    .filter((s) => s.network === "SNOTEL" && getStationHucs(s).some((h) => h.startsWith(huc)))
     .slice(0, MAX_STATIONS);
 
   if (stations.length === 0) {

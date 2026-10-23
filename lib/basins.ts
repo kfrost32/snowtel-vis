@@ -1,5 +1,12 @@
 import type { StationCurrentConditions, BasinSummary } from "./types";
 import { HUC2_NAMES, HUC4_NAMES } from "./huc-names";
+import hucAssociations from "@/data/huc-associations.json";
+
+const associatedHucs = hucAssociations as Record<string, string[]>;
+
+export function getStationHucs(station: { triplet: string; huc: string }): string[] {
+  return [station.huc, ...(associatedHucs[station.triplet] ?? [])];
+}
 
 export function median(values: number[]): number {
   if (values.length === 0) return 0;
@@ -15,9 +22,11 @@ export function groupStationsByHuc(
   const groups = new Map<string, StationCurrentConditions[]>();
   for (const s of stations) {
     if (!s.huc) continue;
-    const prefix = s.huc.slice(0, level);
-    if (!groups.has(prefix)) groups.set(prefix, []);
-    groups.get(prefix)!.push(s);
+    const prefixes = new Set(getStationHucs(s).map((h) => h.slice(0, level)));
+    for (const prefix of prefixes) {
+      if (!groups.has(prefix)) groups.set(prefix, []);
+      groups.get(prefix)!.push(s);
+    }
   }
   return groups;
 }
