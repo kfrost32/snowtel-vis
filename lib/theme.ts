@@ -29,6 +29,16 @@ export const snowColors = {
   currentYear: "#F59E0B",
 };
 
+export const percentileBands = [
+  { key: "b0", label: "<10th", color: snowColors.wellBelow },
+  { key: "b1", label: "10–30th", color: snowColors.below },
+  { key: "b2", label: "30–70th", color: snowColors.nearNormal },
+  { key: "b3", label: "70–90th", color: snowColors.above },
+  { key: "b4", label: ">90th", color: snowColors.wellAbove },
+] as const;
+
+export const compareYearColors = ["#8B5CF6", "#0D9488", "#DB2777", "#EA580C"];
+
 export const chartColors = {
   blue: "#3B82F6",
   green: "#10B981",

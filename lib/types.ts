@@ -63,6 +63,8 @@ export interface BasinSummary {
   region: string;
   stationCount: number;
   medianPctOfNormal: number | null;
+  indexStationCount: number;
+  asOf: string | null;
   avgSwe: number | null;
   stations: StationCurrentConditions[];
 }
@@ -74,11 +76,16 @@ export interface EnvelopeDay {
   median: number | null;
   maxYear?: number | null;
   minYear?: number | null;
+  p10?: number | null;
+  p30?: number | null;
+  p70?: number | null;
+  p90?: number | null;
 }
 
 export interface StationEnvelope {
   envelope: EnvelopeDay[];
   medianPeakDay: number;
+  medianPeakRow: number;
   medianPeakSwe: number;
   depthEnvelope: EnvelopeDay[];
   medianPeakDepthDay: number;

@@ -17,6 +17,7 @@ const MIN_BASIN_AVG = 0.05;
 const DAYS = 366;
 const ELEMENTS = { swe: "WTEQ", depth: "SNWD" };
 const QUARTERS = [[10, 12, 31], [1, 3, 31], [4, 6, 30], [7, 9, 30]];
+const PERCENTILES = [10, 30, 70, 90];
 
 const now = new Date();
 const currentWaterYear = now.getUTCMonth() >= 9 ? now.getUTCFullYear() + 1 : now.getUTCFullYear();
@@ -127,11 +128,19 @@ async function runAll(jobs, label) {
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 }
 
-function waterYearDayIndex(dateMs, wy) {
-  return Math.round((dateMs - Date.UTC(wy - 1, 9, 1)) / 86400000);
+const DAY_MS = 86400000;
+const CALENDAR_START = Date.UTC(1999, 9, 1);
+
+function calendarRow(dateStr) {
+  const month = Number(dateStr.slice(5, 7));
+  const day = Number(dateStr.slice(8, 10));
+  return Math.round((Date.UTC(month >= 10 ? 1999 : 2000, month - 1, day) - CALENDAR_START) / DAY_MS);
 }
 
-const DAY_MS = 86400000;
+function rowDate(row, wy) {
+  const monthDay = new Date(CALENDAR_START + row * DAY_MS).toISOString().slice(5, 10);
+  return `${Number(monthDay.slice(0, 2)) >= 10 ? wy - 1 : wy}-${monthDay}`;
+}
 const series = {};
 const medians = {};
 
@@ -149,7 +158,7 @@ for (const [key, elementCd] of Object.entries(ELEMENTS)) {
           const arr = new Float32Array(DAYS).fill(NaN);
           const startMs = Date.parse(`${beginDate}T00:00:00Z`);
           values.forEach((v, i) => {
-            const idx = waterYearDayIndex(startMs + i * DAY_MS, wy);
+            const idx = calendarRow(new Date(startMs + i * DAY_MS).toISOString());
             if (v !== null && idx >= 0 && idx < DAYS) arr[idx] = v;
           });
           series[key].get(triplet)?.set(wy, arr);
@@ -173,27 +182,57 @@ for (const [key, elementCd] of Object.entries(ELEMENTS)) {
 
 const round = (v) => (v === null || Number.isNaN(v) ? null : Math.round(v * 10) / 10);
 
-function buildSeries(byYear, medianValues, minValue) {
-  const out = { median: [], max: [], min: [], maxYear: [], minYear: [], peakDay: 1, peak: 0 };
+function percentile(sorted, p) {
+  if (!sorted.length) return null;
+  const rank = (p / 100) * (sorted.length - 1);
+  const lo = Math.floor(rank);
+  const hi = Math.ceil(rank);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (rank - lo);
+}
+
+function median(values) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function medianPeak(yearArrays) {
+  const values = [];
+  const rows = [];
+  for (const arr of yearArrays) {
+    let max = 0, last = -1;
+    arr.forEach((v, d) => {
+      if (v > 0 && v >= max) { max = v; last = d; }
+    });
+    if (last === -1) continue;
+    values.push(max);
+    rows.push(last + 1);
+  }
+  return { peakDay: rows.length ? Math.round(median(rows)) : 1, peak: round(median(values)) ?? 0 };
+}
+
+function buildSeries(byYear, medianValues, minValue, yearArrays) {
+  const out = { median: [], max: [], min: [], maxYear: [], minYear: [], ...medianPeak(yearArrays) };
+  for (const p of PERCENTILES) out[`p${p}`] = [];
   for (let d = 0; d < DAYS; d++) {
-    const median = d < medianValues.length ? medianValues[d] : null;
-    if (median !== null && median > out.peak) {
-      out.peak = median;
-      out.peakDay = d + 1;
-    }
+    const medianValue = d < medianValues.length ? medianValues[d] : null;
     let max = null, min = null, maxYear = null, minYear = null;
+    const values = [];
     for (const [wy, v] of byYear(d)) {
       if (Number.isNaN(v) || v < minValue) continue;
+      values.push(v);
       if (max === null || v > max) { max = v; maxYear = wy; }
       if (min === null || v < min) { min = v; minYear = wy; }
     }
-    out.median.push(round(median));
+    out.median.push(round(medianValue));
     out.max.push(round(max));
     out.min.push(round(min));
     out.maxYear.push(maxYear);
     out.minYear.push(minYear);
+    values.sort((a, b) => a - b);
+    for (const p of PERCENTILES) out[`p${p}`].push(round(percentile(values, p)));
   }
-  out.peak = round(out.peak);
   return out;
 }
 
@@ -201,6 +240,17 @@ const generated = now.toISOString().split("T")[0];
 fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUTPUT_DIR, "stations"), { recursive: true });
 fs.mkdirSync(path.join(OUTPUT_DIR, "basins"), { recursive: true });
+fs.mkdirSync(path.join(OUTPUT_DIR, "years", "stations"), { recursive: true });
+fs.mkdirSync(path.join(OUTPUT_DIR, "years", "basins"), { recursive: true });
+
+function writeYears(dir, id, entries, minValue) {
+  const years = {};
+  for (const [wy, values] of entries) {
+    const rounded = Array.from(values, (v) => (Number.isNaN(v) || v < minValue ? null : round(v)));
+    if (rounded.some((v) => v !== null)) years[wy] = rounded;
+  }
+  fs.writeFileSync(path.join(OUTPUT_DIR, "years", dir, `${id}.json`), JSON.stringify({ generated, years }));
+}
 
 function yearlyPeaks(years) {
   const peaks = [];
@@ -210,7 +260,7 @@ function yearlyPeaks(years) {
       if (v > peakSwe) { peakSwe = v; peakDay = d; }
     });
     if (peakDay === -1) continue;
-    const peakSweDate = new Date(Date.UTC(wy - 1, 9, 1) + peakDay * DAY_MS).toISOString().split("T")[0];
+    const peakSweDate = rowDate(peakDay, wy);
     peaks.push({ waterYear: wy, peakSwe: round(peakSwe), peakSweDate });
   }
   return peaks;
@@ -220,9 +270,11 @@ for (const t of triplets) {
   const station = { generated, lastWaterYear: lastCompleteWaterYear, peaks: yearlyPeaks(series.swe.get(t)) };
   for (const key of Object.keys(ELEMENTS)) {
     const years = series[key].get(t);
-    station[key] = buildSeries((d) => [...years].map(([wy, arr]) => [wy, arr[d]]), medians[key].get(t), -Infinity);
+    station[key] = buildSeries((d) => [...years].map(([wy, arr]) => [wy, arr[d]]), medians[key].get(t), -Infinity, years.values());
   }
-  fs.writeFileSync(path.join(OUTPUT_DIR, "stations", `${t.replace(/:/g, "-")}.json`), JSON.stringify(station));
+  const id = t.replace(/:/g, "-");
+  fs.writeFileSync(path.join(OUTPUT_DIR, "stations", `${id}.json`), JSON.stringify(station));
+  writeYears("stations", id, series.swe.get(t), -Infinity);
 }
 
 const basinMembers = new Map();
@@ -256,13 +308,19 @@ for (const [huc, members] of basinMembers) {
     const vals = members.map((t) => medians.swe.get(t)[d]).filter((v) => v !== null && v !== undefined);
     medianAverage.push(vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null);
   }
+  const wys = [...new Set(yearlyAverages.flatMap((m) => [...m.keys()]))].sort((a, b) => a - b);
+  const basinYears = wys.map((wy) => [wy, yearlyAverages.map((m) => {
+    const v = m.get(wy);
+    return v === undefined || v < MIN_BASIN_AVG ? NaN : v;
+  })]);
   const basin = {
     generated,
     lastWaterYear: lastCompleteWaterYear,
     stationCount: members.length,
-    swe: buildSeries((d) => yearlyAverages[d], medianAverage, MIN_BASIN_AVG),
+    swe: buildSeries((d) => yearlyAverages[d], medianAverage, MIN_BASIN_AVG, basinYears.map(([, values]) => values)),
   };
   fs.writeFileSync(path.join(OUTPUT_DIR, "basins", `${huc}.json`), JSON.stringify(basin));
+  writeYears("basins", huc, basinYears, MIN_BASIN_AVG);
 }
 
 console.log(`Wrote ${triplets.length} station and ${basinMembers.size} basin envelopes (WY ${FIRST_WATER_YEAR}–${lastCompleteWaterYear})`);

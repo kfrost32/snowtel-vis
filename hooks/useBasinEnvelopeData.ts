@@ -5,6 +5,7 @@ import useSWR from "swr";
 import type { StationEnvelope } from "@/lib/types";
 import type { ApiResponse } from "@/lib/api-cache";
 import { expandEnvelope, type BasinEnvelopeFile } from "@/lib/envelope-files";
+import { calendarRowToWyDay, getCurrentWaterYear } from "@/lib/water-year";
 
 interface BasinEnvelopeData extends StationEnvelope {
   currentSeason: { wyDay: number; swe: number }[];
@@ -20,9 +21,11 @@ export function useBasinEnvelopeData(huc: string | null) {
   );
   const data = useMemo((): BasinEnvelopeData | null => {
     if (!file) return null;
+    const wy = getCurrentWaterYear();
     return {
-      envelope: expandEnvelope(file.swe),
-      medianPeakDay: file.swe.peakDay,
+      envelope: expandEnvelope(file.swe, wy),
+      medianPeakDay: calendarRowToWyDay(file.swe.peakDay, wy),
+      medianPeakRow: file.swe.peakDay,
       medianPeakSwe: file.swe.peak,
       depthEnvelope: [],
       medianPeakDepthDay: 0,

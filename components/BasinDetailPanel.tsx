@@ -5,13 +5,20 @@ import { X, Star } from "lucide-react";
 import { theme, glassmorphicButtonStyle } from "@/lib/theme";
 import { formatSwe, formatPctOfNormal, formatSnowDepth, formatChange } from "@/lib/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor } from "@/lib/colors";
-import { getWaterYearDay } from "@/lib/water-year";
+import { getWaterYearDay, getCurrentWaterYear, calendarRow } from "@/lib/water-year";
+import { percentileRank } from "@/lib/envelope-files";
+import EnvelopeStatGrid from "@/components/EnvelopeStatGrid";
 import type { BasinSummary } from "@/lib/types";
 import ConditionBadge from "@/components/ConditionBadge";
 import ChartCard from "@/components/ChartCard";
 import SweEnvelopeChart from "@/components/SweEnvelopeChart";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useBasinEnvelopeData } from "@/hooks/useBasinEnvelopeData";
+import { useEnvelopeOptions } from "@/hooks/useEnvelopeOptions";
+import EnvelopeCardTitle from "@/components/EnvelopeCardTitle";
+import EnvelopeChartActions from "@/components/EnvelopeChartActions";
+
+const FIRST_COMPARE_YEAR = 1981;
 
 interface BasinDetailPanelProps {
   basin: BasinSummary;
@@ -29,6 +36,13 @@ export default function BasinDetailPanel({
   onToggleFavorite,
 }: BasinDetailPanelProps) {
   const { data: envelopeData, loading: envelopeLoading } = useBasinEnvelopeData(basin.huc);
+  const envelopeOptions = useEnvelopeOptions(`/envelopes/years/basins/${basin.huc}.json`);
+  const yearOptions = useMemo(
+    () =>
+      Array.from({ length: getCurrentWaterYear() - FIRST_COMPARE_YEAR }, (_, i) => getCurrentWaterYear() - 1 - i)
+        .map((year) => ({ year, label: String(year) })),
+    []
+  );
 
   const basinSeasonMap = useMemo(() => {
     if (!envelopeData?.currentSeason) return undefined;
@@ -39,16 +53,25 @@ export default function BasinDetailPanel({
     return m;
   }, [envelopeData]);
 
+  const asOfLabel = basin.asOf
+    ? new Date(`${basin.asOf}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : null;
+
   const envelopeStats = useMemo(() => {
-    if (!envelopeData || !basinSeasonMap) return null;
-    const currentWyDay = getWaterYearDay(new Date().toISOString().split("T")[0]);
+    if (!envelopeData || !basinSeasonMap || !basin.asOf) return null;
+    const currentWyDay = getWaterYearDay(basin.asOf);
     const currentSwe = basinSeasonMap.get(currentWyDay) ?? null;
     const medianEntry = envelopeData.envelope.find((d) => d.wyDay === currentWyDay);
     const medianAtDay = medianEntry?.median ?? null;
-    const daysUntilPeak = envelopeData.medianPeakDay - currentWyDay;
-    const dateLabel = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    return { currentSwe, medianAtDay, pctOfNormal: basin.medianPctOfNormal, daysUntilPeak, dateLabel };
-  }, [envelopeData, basinSeasonMap, basin.medianPctOfNormal]);
+    const daysUntilPeak = envelopeData.medianPeakRow - calendarRow(basin.asOf);
+    const pctOfMedianPeak = currentSwe !== null && envelopeData.medianPeakSwe
+      ? Math.round((currentSwe / envelopeData.medianPeakSwe) * 100)
+      : null;
+    const percentile = envelopeOptions.yearsFile && currentSwe !== null
+      ? percentileRank(envelopeOptions.yearsFile, basin.asOf, currentSwe)
+      : null;
+    return { currentSwe, medianAtDay, pctOfNormal: basin.medianPctOfNormal, daysUntilPeak, pctOfMedianPeak, percentile };
+  }, [envelopeData, basinSeasonMap, basin.medianPctOfNormal, basin.asOf, envelopeOptions.yearsFile]);
 
   const sortedStations = useMemo(
     () => [...basin.stations].sort((a, b) => (b.pctOfNormal ?? -1) - (a.pctOfNormal ?? -1)),
@@ -90,7 +113,8 @@ export default function BasinDetailPanel({
           </h2>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.7)" }}>
             {basin.region && <span>{basin.region}</span>}
-            <span>{basin.stationCount} stations</span>
+            <span>{basin.indexStationCount} of {basin.stationCount} stations in index</span>
+            {asOfLabel && <span>As of {asOfLabel}</span>}
             <span style={{ color: getConditionColor(basin.medianPctOfNormal) }}>{getConditionLabel(basin.medianPctOfNormal)}</span>
           </div>
         </div>
@@ -100,7 +124,7 @@ export default function BasinDetailPanel({
       <div className="overflow-x-auto border-b shrink-0" style={{ borderColor: theme.borderGray, WebkitOverflowScrolling: "touch" }}>
         <div className="flex items-stretch min-w-min">
           {[
-            { label: "% Median", value: formatPctOfNormal(basin.medianPctOfNormal), color: getConditionColor(basin.medianPctOfNormal) },
+            { label: asOfLabel ? `% Median · ${asOfLabel}` : "% Median", value: formatPctOfNormal(basin.medianPctOfNormal), color: getConditionColor(basin.medianPctOfNormal) },
             { label: "Avg SWE", value: formatSwe(basin.avgSwe), color: theme.black },
             { label: "Avg Depth", value: formatSnowDepth(basin.stations.reduce((s, st) => s + (st.snowDepth ?? 0), 0) / (basin.stations.filter(s => s.snowDepth !== null).length || 1)), color: theme.black },
             { label: "Stations", value: String(basin.stationCount), color: theme.black },
@@ -117,28 +141,27 @@ export default function BasinDetailPanel({
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 pt-3">
           <ChartCard
-            title={<span>{basin.name} <span className="font-normal text-base" style={{ color: theme.gray }}>SWE Envelope</span></span>}
-            description={envelopeData ? `${envelopeData.stationCount} stations averaged` : undefined}
+            title={
+              <EnvelopeCardTitle
+                name={basin.name}
+                meta={[basin.region || `HUC ${basin.huc}`, `${basin.indexStationCount} stations`]}
+                asOf={basin.asOf}
+              />
+            }
+            controls={<EnvelopeChartActions options={envelopeOptions} yearOptions={yearOptions} />}
+            description={envelopeData ? `Chart averages ${envelopeData.stationCount} stations` : undefined}
             height={240}
             footer={envelopeStats && (
-              <div className="flex items-stretch gap-0 rounded-md border overflow-hidden" style={{ borderColor: theme.borderGray }}>
-                <div className="flex-1 px-3 py-2 text-center" style={{ background: theme.offWhite }}>
-                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>Avg SWE</div>
-                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: theme.black }}>{formatSwe(envelopeStats.currentSwe)}</div>
-                </div>
-                <div className="flex-1 px-3 py-2 text-center" style={{ borderLeft: `1px solid ${theme.borderGray}`, background: theme.offWhite }}>
-                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>% of Median</div>
-                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: getConditionColor(envelopeStats.pctOfNormal) }}>{formatPctOfNormal(envelopeStats.pctOfNormal)}</div>
-                </div>
-                <div className="flex-1 px-3 py-2 text-center" style={{ borderLeft: `1px solid ${theme.borderGray}`, background: theme.offWhite }}>
-                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>Median {envelopeStats.dateLabel}</div>
-                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: theme.gray }}>{formatSwe(envelopeStats.medianAtDay)}</div>
-                </div>
-                <div className="flex-1 px-3 py-2 text-center" style={{ borderLeft: `1px solid ${theme.borderGray}`, background: theme.offWhite }}>
-                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>{envelopeStats.daysUntilPeak > 0 ? "To Median Peak" : "Past Median Peak"}</div>
-                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: theme.darkGray }}>{Math.abs(envelopeStats.daysUntilPeak)}d</div>
-                </div>
-              </div>
+              <EnvelopeStatGrid
+                stats={[
+                  { label: "Avg SWE", value: formatSwe(envelopeStats.currentSwe) },
+                  { label: "% of Median", value: formatPctOfNormal(envelopeStats.pctOfNormal), color: getConditionColor(envelopeStats.pctOfNormal) },
+                  { label: "Percentile", value: envelopeStats.percentile !== null ? String(envelopeStats.percentile) : "—" },
+                  { label: "% Median Peak", value: formatPctOfNormal(envelopeStats.pctOfMedianPeak) },
+                  { label: `Median ${asOfLabel}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray },
+                  { label: envelopeStats.daysUntilPeak >= 0 ? "To Median Peak" : "Past Median Peak", value: `${Math.abs(envelopeStats.daysUntilPeak)}d`, color: theme.darkGray },
+                ]}
+              />
             )}
           >
             {envelopeLoading ? (
@@ -147,7 +170,8 @@ export default function BasinDetailPanel({
               <SweEnvelopeChart
                 envelope={envelopeData}
                 seasonMap={basinSeasonMap}
-                lastUpdated={new Date().toISOString().split("T")[0]}
+                lastUpdated={basin.asOf}
+                options={envelopeOptions}
               />
             ) : null}
           </ChartCard>

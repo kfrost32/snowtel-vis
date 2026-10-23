@@ -40,3 +40,23 @@ export function isInWaterYear(dateStr: string, wy: number): boolean {
   const end = getWaterYearEnd(wy);
   return dateStr >= start && dateStr <= end;
 }
+
+const FEB_29_ROW = 152;
+
+export function isLeapWaterYear(wy: number): boolean {
+  return (wy % 4 === 0 && wy % 100 !== 0) || wy % 400 === 0;
+}
+
+export function calendarRow(dateStr: string): number {
+  const month = Number(dateStr.slice(5, 7));
+  const day = Number(dateStr.slice(8, 10));
+  return Math.round((Date.UTC(month >= 10 ? 1999 : 2000, month - 1, day) - Date.UTC(1999, 9, 1)) / 86400000) + 1;
+}
+
+export function calendarRowToWyDay(row: number, wy: number): number {
+  return isLeapWaterYear(wy) || row < FEB_29_ROW ? row : row - 1;
+}
+
+export function rowsToWaterYear<T>(rows: T[], wy: number): T[] {
+  return isLeapWaterYear(wy) ? rows : rows.filter((_, i) => i !== FEB_29_ROW - 1);
+}

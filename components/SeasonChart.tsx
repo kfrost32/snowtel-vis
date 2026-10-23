@@ -117,7 +117,7 @@ export default function SeasonChart({ season }: SeasonChartProps) {
           type="number"
           domain={[1, 365]}
           tickFormatter={(day: number) => waterYearDayToLabel(day, wy)}
-          ticks={[1, 32, 62, 93, 124, 152, 183, 213, 244, 274, 305, 335]}
+          ticks={[1, 32, 62, 93, 124, 152, 183, 213, 244, 274, 305, 336]}
           tick={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={{ stroke: theme.borderGray }}
           tickLine={false}

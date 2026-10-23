@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
+import { X } from "lucide-react";
 import {
-  LineChart,
+  ComposedChart,
+  Area,
   Line,
   XAxis,
   YAxis,
@@ -10,18 +12,31 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceDot,
 } from "recharts";
-import { theme, snowColors, chartTooltipStyle, chartCursorStyle } from "@/lib/theme";
+import { theme, snowColors, chartTooltipStyle, chartCursorStyle, percentileBands } from "@/lib/theme";
 import { getWaterYearDay, waterYearDayToLabel, getCurrentWaterYear } from "@/lib/water-year";
 import type { EnvelopeDay } from "@/lib/types";
 
 interface EnvelopeChartProps {
   envelope: EnvelopeDay[];
   medianPeakDay: number;
+  medianPeakValue: number;
   seasonMap: Map<number, number>;
   lastUpdated: string | null;
   formatValue: (value: number | null) => string;
+  showPercentiles?: boolean;
+  compareYears?: CompareYear[];
+  onRemoveYear?: (year: number) => void;
 }
+
+export interface CompareYear {
+  year: number;
+  color: string;
+  values: (number | null)[];
+}
+
+type Band = [number, number] | null;
 
 interface ChartPoint {
   wyDay: number;
@@ -31,6 +46,18 @@ interface ChartPoint {
   min: number | null;
   maxYear: number | null;
   minYear: number | null;
+  p30: number | null;
+  p70: number | null;
+  b0: Band;
+  b1: Band;
+  b2: Band;
+  b3: Band;
+  b4: Band;
+  years: Record<number, number | null>;
+}
+
+function band(low: number | null | undefined, high: number | null | undefined): Band {
+  return low == null || high == null ? null : [low, high];
 }
 
 interface TooltipPayloadEntry {
@@ -39,15 +66,8 @@ interface TooltipPayloadEntry {
   payload: ChartPoint;
 }
 
-function MedianPeakDot(props: {
-  cx?: number;
-  cy?: number;
-  payload?: ChartPoint;
-  medianPeakDay: number;
-}) {
-  const { cx, cy, payload, medianPeakDay } = props;
-  if (!cx || !cy || !payload || payload.wyDay !== medianPeakDay) return null;
-
+function MedianPeakMark({ cx, cy }: { cx?: number; cy?: number }) {
+  if (cx === undefined || cy === undefined) return <g />;
   const size = 6;
   return (
     <g>
@@ -60,9 +80,13 @@ function MedianPeakDot(props: {
 export default function EnvelopeChart({
   envelope,
   medianPeakDay,
+  medianPeakValue,
   seasonMap,
   lastUpdated,
   formatValue,
+  showPercentiles = false,
+  compareYears = [],
+  onRemoveYear,
 }: EnvelopeChartProps) {
   const wy = getCurrentWaterYear();
 
@@ -75,8 +99,16 @@ export default function EnvelopeChart({
       min: e.min,
       maxYear: e.maxYear ?? null,
       minYear: e.minYear ?? null,
+      p30: e.p30 ?? null,
+      p70: e.p70 ?? null,
+      b0: band(e.min, e.p10),
+      b1: band(e.p10, e.p30),
+      b2: band(e.p30, e.p70),
+      b3: band(e.p70, e.p90),
+      b4: band(e.p90, e.max),
+      years: Object.fromEntries(compareYears.map((y) => [y.year, y.values[e.wyDay - 1] ?? null])),
     }));
-  }, [envelope, seasonMap]);
+  }, [envelope, seasonMap, compareYears]);
 
   const currentWyDay = useMemo(() => {
     if (!lastUpdated) return null;
@@ -84,6 +116,7 @@ export default function EnvelopeChart({
   }, [lastUpdated]);
 
   const hasMedian = chartData.some((d) => d.median !== null);
+  const hasPercentiles = showPercentiles && chartData.some((d) => d.b2 !== null);
 
   function CustomTooltip({ active, payload }: { active?: boolean; payload?: TooltipPayloadEntry[] }) {
     if (!active || !payload?.length) return null;
@@ -92,11 +125,19 @@ export default function EnvelopeChart({
 
     const date = waterYearDayToLabel(point.wyDay, wy);
 
-    const rows: { label: string; value: number | null; color: string }[] = [
-      { label: "Current", value: point.current, color: theme.black },
-      { label: "Median", value: point.median, color: snowColors.median },
-      { label: point.maxYear ? `Max (WY ${point.maxYear})` : "Max", value: point.max, color: snowColors.envelopeMax },
-      { label: point.minYear ? `Min (WY ${point.minYear})` : "Min", value: point.min, color: snowColors.envelopeMin },
+    const rows: { label: string; value: string | null; color: string }[] = [
+      { label: "Current", value: point.current !== null ? formatValue(point.current) : null, color: theme.black },
+      ...compareYears.map((y) => ({
+        label: `WY ${y.year}`,
+        value: point.years[y.year] != null ? formatValue(point.years[y.year]) : null,
+        color: y.color,
+      })),
+      { label: "Median", value: point.median !== null ? formatValue(point.median) : null, color: snowColors.median },
+      ...(hasPercentiles && point.p30 !== null && point.p70 !== null
+        ? [{ label: "30–70th pct", value: `${formatValue(point.p30)}–${formatValue(point.p70)}`, color: snowColors.nearNormal }]
+        : []),
+      { label: point.maxYear ? `Max (WY ${point.maxYear})` : "Max", value: point.max !== null ? formatValue(point.max) : null, color: snowColors.envelopeMax },
+      { label: point.minYear ? `Min (WY ${point.minYear})` : "Min", value: point.min !== null ? formatValue(point.min) : null, color: snowColors.envelopeMin },
     ];
 
     return (
@@ -110,7 +151,7 @@ export default function EnvelopeChart({
               <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
               <span style={{ color: theme.gray }}>{label}</span>
               <span className="ml-auto font-medium" style={{ color: theme.darkGray }}>
-                {formatValue(value)}
+                {value}
               </span>
             </div>
           ) : null
@@ -131,13 +172,13 @@ export default function EnvelopeChart({
     <div className="flex flex-col w-full h-full">
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
+          <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
             <XAxis
               dataKey="wyDay"
               type="number"
               domain={[1, 366]}
               tickFormatter={(day: number) => waterYearDayToLabel(day, wy)}
-              ticks={[1, 32, 62, 93, 124, 152, 183, 213, 244, 274, 305, 335]}
+              ticks={[1, 32, 62, 93, 124, 152, 183, 213, 244, 274, 305, 336]}
               tick={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
               axisLine={{ stroke: theme.borderGray }}
               tickLine={false}
@@ -149,7 +190,7 @@ export default function EnvelopeChart({
               tickLine={false}
               tickFormatter={(v: number) => `${v}"`}
             />
-            <CartesianGrid stroke={theme.borderGray} strokeDasharray="0" vertical={true} horizontalValues={undefined} verticalValues={[1, 32, 62, 93, 124, 152, 183, 213, 244, 274, 305, 335]} />
+            <CartesianGrid stroke={theme.borderGray} strokeDasharray="0" vertical={true} horizontalValues={undefined} verticalValues={[1, 32, 62, 93, 124, 152, 183, 213, 244, 274, 305, 336]} />
             <Tooltip content={<CustomTooltip />} cursor={chartCursorStyle} />
 
             {currentWyDay !== null && (
@@ -160,6 +201,20 @@ export default function EnvelopeChart({
                 strokeDasharray="4 2"
               />
             )}
+
+            {hasPercentiles && percentileBands.map(({ key, color }) => (
+              <Area
+                key={key}
+                dataKey={key}
+                type="monotone"
+                stroke="none"
+                fill={color}
+                fillOpacity={0.14}
+                activeDot={false}
+                isAnimationActive={false}
+                connectNulls
+              />
+            ))}
 
             <Line
               dataKey="max"
@@ -188,17 +243,28 @@ export default function EnvelopeChart({
               strokeWidth={1.5}
               strokeDasharray="6 3"
               connectNulls
-              dot={(props) => (
-                <MedianPeakDot
-                  key={props.payload?.wyDay}
-                  cx={props.cx}
-                  cy={props.cy}
-                  payload={props.payload}
-                  medianPeakDay={medianPeakDay}
-                />
-              )}
+              dot={false}
               activeDot={false}
             />
+            {compareYears.map((y) => (
+              <Line
+                key={y.year}
+                dataKey={(p: ChartPoint) => p.years[y.year]}
+                name={`WY ${y.year}`}
+                type="monotone"
+                stroke={y.color}
+                strokeWidth={1.5}
+                dot={false}
+                activeDot={{ r: 3, fill: y.color, stroke: theme.white, strokeWidth: 1.5 }}
+                connectNulls
+                isAnimationActive={false}
+              />
+            ))}
+
+            {hasMedian && medianPeakValue > 0 && (
+              <ReferenceDot x={medianPeakDay} y={medianPeakValue} shape={MedianPeakMark} ifOverflow="extendDomain" />
+            )}
+
             <Line
               dataKey="current"
               type="monotone"
@@ -208,7 +274,7 @@ export default function EnvelopeChart({
               activeDot={{ r: 4, fill: theme.black, stroke: theme.white, strokeWidth: 2 }}
               connectNulls
             />
-          </LineChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
       <div className="flex items-center justify-center gap-4 pt-1.5 pb-1 flex-wrap">
@@ -216,6 +282,20 @@ export default function EnvelopeChart({
           <div className="w-4 border-t-2" style={{ borderColor: theme.black }} />
           Current
         </div>
+        {compareYears.map((y) => (
+          <button
+            key={y.year}
+            onClick={() => onRemoveYear?.(y.year)}
+            disabled={!onRemoveYear}
+            className="flex items-center gap-1.5 font-mono text-[10px] enabled:cursor-pointer enabled:hover:opacity-70"
+            style={{ color: theme.darkGray }}
+            aria-label={`Remove WY ${y.year}`}
+          >
+            <div className="w-4 border-t-2" style={{ borderColor: y.color }} />
+            WY {y.year}
+            {onRemoveYear && <X size={10} style={{ color: theme.mediumGray }} />}
+          </button>
+        ))}
         {hasMedian && (
           <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
             <div className="w-4 border-t border-dashed" style={{ borderColor: snowColors.median }} />
@@ -234,6 +314,16 @@ export default function EnvelopeChart({
           <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
             <span style={{ color: snowColors.medianPeak, fontSize: 12, lineHeight: 1 }}>✕</span>
             Median peak
+          </div>
+        )}
+        {hasPercentiles && (
+          <div className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: theme.mediumGray }}>
+            <div className="flex">
+              {percentileBands.map(({ key, color }) => (
+                <div key={key} className="w-1.5 h-2.5" style={{ background: color, opacity: 0.35 }} />
+              ))}
+            </div>
+            10/30/70/90th percentiles
           </div>
         )}
       </div>

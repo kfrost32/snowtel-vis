@@ -64,6 +64,13 @@ export const formatDateFull = (dateStr: string): string => {
   });
 };
 
+export const formatReadingDate = (dateStr: string): string => {
+  const date = new Date(dateStr + "T00:00:00");
+  date.setDate(date.getDate() - 1);
+  const label = date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return `${label}, end of day`;
+};
+
 export function timeAgo(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
   if (seconds < 5) return "just now";

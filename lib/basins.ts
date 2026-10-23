@@ -105,6 +105,8 @@ export function computeBasinSummaries(
       region: level === 4 ? (HUC2_NAMES[huc.slice(0, 2)] || "") : "",
       stationCount: stationList.length,
       medianPctOfNormal: basinIndex,
+      indexStationCount: usedStations.length,
+      asOf: stationList.reduce<string | null>((max, s) => (max === null || s.lastUpdated > max ? s.lastUpdated : max), null),
       avgSwe:
         sweValues.length > 0
           ? Math.round((sweValues.reduce((a, b) => a + b, 0) / sweValues.length) * 10) / 10

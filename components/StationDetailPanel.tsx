@@ -5,12 +5,14 @@ import { X, MapPin, Mountain, Star } from "lucide-react";
 import { theme, glassmorphicButtonStyle } from "@/lib/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
-import { getStation } from "@/lib/stations";
+import { getStation, urlTriplet } from "@/lib/stations";
 import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatDepthChange } from "@/lib/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor, getDepthChangeColor } from "@/lib/colors";
 import InfoTooltip from "@/components/InfoTooltip";
 import { metricDescriptions } from "@/lib/metric-descriptions";
-import { getWaterYearDay } from "@/lib/water-year";
+import { getWaterYearDay, calendarRow } from "@/lib/water-year";
+import { percentileRank } from "@/lib/envelope-files";
+import EnvelopeStatGrid from "@/components/EnvelopeStatGrid";
 import { buildSeasonMap } from "@/lib/season";
 import { useSeasonData } from "@/hooks/useSeasonData";
 import { useHistoricalData } from "@/hooks/useHistoricalData";
@@ -19,6 +21,10 @@ import { useEnvelopeData } from "@/hooks/useEnvelopeData";
 import SweEnvelopeChart from "@/components/SweEnvelopeChart";
 import EnvelopeChart from "@/components/EnvelopeChart";
 import PeakSweChart from "@/components/PeakSweChart";
+import EnvelopeCardTitle from "@/components/EnvelopeCardTitle";
+import EnvelopeChartActions from "@/components/EnvelopeChartActions";
+import { useEnvelopeOptions } from "@/hooks/useEnvelopeOptions";
+import { getCurrentWaterYear } from "@/lib/water-year";
 import DepthTempChart from "@/components/DepthTempChart";
 
 interface StationDetailPanelProps {
@@ -35,6 +41,7 @@ function DepthEnvelope({ season, envelopeData, lastUpdated }: { season: import("
     <EnvelopeChart
       envelope={envelopeData.depthEnvelope}
       medianPeakDay={envelopeData.medianPeakDepthDay}
+      medianPeakValue={envelopeData.medianPeakDepth}
       seasonMap={depthSeasonMap}
       lastUpdated={lastUpdated}
       formatValue={formatSnowDepth}
@@ -58,6 +65,14 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
   const { data: historicalData, loading: historicalLoading } = useHistoricalData(triplet);
   const { data: hourlyData, loading: hourlyLoading } = useHourlyData(triplet);
   const { data: envelopeData, loading: envelopeLoading } = useEnvelopeData(triplet);
+  const envelopeOptions = useEnvelopeOptions(`/envelopes/years/stations/${urlTriplet(triplet)}.json`);
+  const yearOptions = useMemo(() => {
+    const currentWy = getCurrentWaterYear();
+    return historicalData
+      .filter((p) => p.waterYear !== currentWy)
+      .sort((a, b) => b.waterYear - a.waterYear)
+      .map((p) => ({ year: p.waterYear, label: String(p.waterYear) }));
+  }, [historicalData]);
 
   const envelopeStats = useMemo(() => {
     const current = seasonData?.current;
@@ -71,10 +86,13 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
     const pctOfMedianPeak = currentSwe !== null && envelopeData.medianPeakSwe
       ? Math.round((currentSwe / envelopeData.medianPeakSwe) * 100)
       : null;
-    const daysUntilPeak = envelopeData.medianPeakDay - currentWyDay;
+    const daysUntilPeak = envelopeData.medianPeakRow - calendarRow(lastUpdated);
     const dateLabel = new Date(lastUpdated + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    return { currentSwe, medianAtDay, pctOfNormal: current.pctOfNormal, pctOfMedianPeak, daysUntilPeak, dateLabel };
-  }, [envelopeData, seasonData]);
+    const percentile = envelopeOptions.yearsFile && currentSwe !== null
+      ? percentileRank(envelopeOptions.yearsFile, lastUpdated, currentSwe)
+      : null;
+    return { currentSwe, medianAtDay, pctOfNormal: current.pctOfNormal, pctOfMedianPeak, daysUntilPeak, dateLabel, percentile };
+  }, [envelopeData, seasonData, envelopeOptions.yearsFile]);
 
   if (!station) {
     return (
@@ -216,27 +234,26 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
 
         <div className="px-4 pt-3">
           <ChartCard
-            title={<span>{station.name} <span className="font-normal text-base" style={{ color: theme.gray }}>Snow Water Equivalent</span></span>}
+            title={
+              <EnvelopeCardTitle
+                name={station.name}
+                meta={["SNOTEL", formatElevation(station.elevation), station.state]}
+                asOf={current?.lastUpdated ?? null}
+              />
+            }
+            controls={<EnvelopeChartActions options={envelopeOptions} yearOptions={yearOptions} />}
             height={280}
             footer={envelopeStats && (
-              <div className="flex items-stretch gap-0 rounded-md border overflow-hidden" style={{ borderColor: theme.borderGray }}>
-                <div className="flex-1 px-3 py-2 text-center" style={{ background: theme.offWhite }}>
-                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>Current SWE</div>
-                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: theme.black }}>{formatSwe(envelopeStats.currentSwe)}</div>
-                </div>
-                <div className="flex-1 px-3 py-2 text-center" style={{ borderLeft: `1px solid ${theme.borderGray}`, background: theme.offWhite }}>
-                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>% of Median</div>
-                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: getConditionColor(envelopeStats.pctOfNormal) }}>{formatPctOfNormal(envelopeStats.pctOfNormal)}</div>
-                </div>
-                <div className="flex-1 px-3 py-2 text-center" style={{ borderLeft: `1px solid ${theme.borderGray}`, background: theme.offWhite }}>
-                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>Median {envelopeStats.dateLabel}</div>
-                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: theme.gray }}>{formatSwe(envelopeStats.medianAtDay)}</div>
-                </div>
-                <div className="flex-1 px-3 py-2 text-center" style={{ borderLeft: `1px solid ${theme.borderGray}`, background: theme.offWhite }}>
-                  <div className="font-mono text-[10px] uppercase tracking-wider" style={{ color: theme.mediumGray }}>{envelopeStats.daysUntilPeak > 0 ? "To Median Peak" : "Past Median Peak"}</div>
-                  <div className="font-mono text-base font-semibold mt-0.5" style={{ color: theme.darkGray }}>{Math.abs(envelopeStats.daysUntilPeak)}d</div>
-                </div>
-              </div>
+              <EnvelopeStatGrid
+                stats={[
+                  { label: "Current SWE", value: formatSwe(envelopeStats.currentSwe) },
+                  { label: "% of Median", value: formatPctOfNormal(envelopeStats.pctOfNormal), color: getConditionColor(envelopeStats.pctOfNormal) },
+                  { label: "Percentile", value: envelopeStats.percentile !== null ? String(envelopeStats.percentile) : "—" },
+                  { label: "% Median Peak", value: formatPctOfNormal(envelopeStats.pctOfMedianPeak) },
+                  { label: `Median ${envelopeStats.dateLabel}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray },
+                  { label: envelopeStats.daysUntilPeak >= 0 ? "To Median Peak" : "Past Median Peak", value: `${Math.abs(envelopeStats.daysUntilPeak)}d`, color: theme.darkGray },
+                ]}
+              />
             )}
           >
             {seasonLoading || envelopeLoading ? (
@@ -246,6 +263,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
                 season={seasonData.season}
                 envelope={envelopeData}
                 lastUpdated={current?.lastUpdated ?? null}
+                options={envelopeOptions}
               />
             ) : null}
           </ChartCard>

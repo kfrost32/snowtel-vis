@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useRef, useState, useCallback } from "react";
-import { Download } from "lucide-react";
+import { Check, Copy, Download } from "lucide-react";
 import { theme } from "@/lib/theme";
 
 interface ChartCardProps {
@@ -17,33 +17,28 @@ interface ChartCardProps {
 export default function ChartCard({ title, description, height, controls, footer, children, exportable = true }: ChartCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const capture = useCallback(async <T,>(render: (node: HTMLDivElement) => Promise<T>): Promise<T> => {
+    const card = cardRef.current!;
+    const attribution = card.querySelector<HTMLElement>("[data-attribution]");
+    const hidden = Array.from(card.querySelectorAll<HTMLElement>("[data-controls], [data-export-btn]"));
+    if (attribution) attribution.style.display = "flex";
+    hidden.forEach((el) => (el.style.display = "none"));
+    try {
+      return await render(card);
+    } finally {
+      if (attribution) attribution.style.display = "none";
+      hidden.forEach((el) => (el.style.display = ""));
+    }
+  }, []);
 
   const handleExport = useCallback(async () => {
     if (!cardRef.current || exporting) return;
     setExporting(true);
-
     try {
       const { toJpeg } = await import("html-to-image");
-
-      const attribution = cardRef.current.querySelector("[data-attribution]") as HTMLElement | null;
-      if (attribution) attribution.style.display = "flex";
-
-      const controlsEl = cardRef.current.querySelector("[data-controls]") as HTMLElement | null;
-      if (controlsEl) controlsEl.style.display = "none";
-
-      const exportBtn = cardRef.current.querySelector("[data-export-btn]") as HTMLElement | null;
-      if (exportBtn) exportBtn.style.display = "none";
-
-      const dataUrl = await toJpeg(cardRef.current, {
-        quality: 0.95,
-        backgroundColor: "#FFFFFF",
-        pixelRatio: 2,
-      });
-
-      if (attribution) attribution.style.display = "none";
-      if (controlsEl) controlsEl.style.display = "";
-      if (exportBtn) exportBtn.style.display = "";
-
+      const dataUrl = await capture((node) => toJpeg(node, { quality: 0.95, backgroundColor: "#FFFFFF", pixelRatio: 2 }));
       const link = document.createElement("a");
       link.download = `snotel-chart-${Date.now()}.jpg`;
       link.href = dataUrl;
@@ -53,7 +48,27 @@ export default function ChartCard({ title, description, height, controls, footer
     } finally {
       setExporting(false);
     }
-  }, [exporting]);
+  }, [exporting, capture]);
+
+  const handleCopy = useCallback(async () => {
+    if (!cardRef.current || exporting) return;
+    setExporting(true);
+    try {
+      const blob = import("html-to-image").then(({ toBlob }) =>
+        capture((node) => toBlob(node, { backgroundColor: "#FFFFFF", pixelRatio: 2 }))
+      ).then((b) => {
+        if (!b) throw new Error("Empty image");
+        return b;
+      });
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error("Copy failed:", err);
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, capture]);
 
   return (
     <div
@@ -62,27 +77,44 @@ export default function ChartCard({ title, description, height, controls, footer
       style={{ background: theme.white, borderColor: theme.borderGray }}
     >
       {(title || exportable) && (
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-x-4 gap-y-2 flex-wrap">
           {title && (
             <h3
-              className="text-lg mb-2 font-medium flex items-center gap-1"
+              className="text-lg mb-2 font-medium flex items-center gap-1 flex-1 min-w-[14rem]"
               style={{ color: theme.black }}
             >
               {title}
             </h3>
           )}
           {exportable && (
-            <button
-              data-export-btn
-              onClick={handleExport}
-              disabled={exporting}
-              className="shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer ml-auto"
-              style={{ color: theme.gray }}
-              aria-label="Export chart as image"
-              title="Export as image"
-            >
-              <Download size={16} />
-            </button>
+            <div className="flex items-center gap-1 shrink-0 ml-auto">
+              {exportable && (
+                <button
+                  data-export-btn
+                  onClick={handleCopy}
+                  disabled={exporting}
+                  className="shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer"
+                  style={{ color: copied ? theme.darkGray : theme.gray }}
+                  aria-label={copied ? "Copied" : "Copy chart as image"}
+                  title={copied ? "Copied" : "Copy as image"}
+                >
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                </button>
+              )}
+              {exportable && (
+                <button
+                  data-export-btn
+                  onClick={handleExport}
+                  disabled={exporting}
+                  className="shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer"
+                  style={{ color: theme.gray }}
+                  aria-label="Export chart as image"
+                  title="Export as image"
+                >
+                  <Download size={16} />
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -95,7 +127,7 @@ export default function ChartCard({ title, description, height, controls, footer
         </p>
       )}
       {controls && (
-        <div className="mb-4" data-controls>
+        <div className="mb-3" data-controls>
           {controls}
         </div>
       )}
