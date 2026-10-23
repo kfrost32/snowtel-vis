@@ -117,8 +117,7 @@ export function getChangeColor(v: number | null): string {
 }
 
 export function getMetricMapColor(metric: string, station: StationCurrentConditions): string {
-  if (metric === "WTEQ") return getMapMarkerColor(station.pctOfNormal);
-  if (metric === "WTEQ_PCT") return getMapMarkerColor(station.pctOfNormal);
+  if (metric === "WTEQ" || metric === "WTEQ_PCT") return getMapMarkerColor(station.pctOfNormal);
   if (metric === "CHANGE_1D") return getChangeColor(station.sweChange1d ?? null);
   if (metric === "CHANGE_3D") return getChangeColor(station.sweChange3d ?? null);
   if (metric === "CHANGE_7D") return getChangeColor(station.sweChange7d ?? null);

@@ -205,18 +205,28 @@ function StationMapInner({
           "circle-sort-key": ["get", "sortKey"],
         },
         paint: {
-          "circle-color": ["get", "color"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 10, 5, 14, 7, 16, 10, 20],
-          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 3, 2, 7, 2.5],
-          "circle-stroke-color": theme.white,
-          "circle-opacity": 1,
+          "circle-color": ["case", ["get", "inactive"], theme.mediumGray, ["get", "hollow"], "rgba(0,0,0,0)", ["get", "color"]],
+          "circle-radius": [
+            "interpolate", ["linear"], ["zoom"],
+            3, ["case", ["get", "inactive"], 1, ["get", "hollow"], 2.5, 5],
+            5, ["case", ["get", "inactive"], 1.5, ["get", "hollow"], 3.5, 8],
+            7, ["case", ["get", "inactive"], 2.5, ["get", "hollow"], 5, 14],
+            10, ["case", ["get", "inactive"], 3.5, ["get", "hollow"], 7, 20],
+          ],
+          "circle-stroke-width": [
+            "interpolate", ["linear"], ["zoom"],
+            3, ["case", ["get", "inactive"], 0, 1],
+            7, ["case", ["get", "inactive"], 0, ["get", "hollow"], 1.5, 2.5],
+          ],
+          "circle-stroke-color": ["case", ["get", "hollow"], theme.mediumGray, theme.white],
+          "circle-opacity": ["case", ["get", "inactive"], 0.35, 1],
         },
       });
       map.addLayer({
         id: "station-labels",
         type: "symbol",
         source: "stations",
-        minzoom: 5,
+        minzoom: 6,
         layout: {
           "text-field": ["get", "label"],
           "text-size": ["interpolate", ["linear"], ["zoom"], 5, 8, 6, 9, 10, 12],
@@ -397,6 +407,7 @@ function StationMapInner({
     if (!map || !mapLoaded) return;
     const source = map.getSource("stations") as maplibregl.GeoJSONSource | undefined;
     if (!source) return;
+    const isSweMetric = metric === "WTEQ" || metric === "WTEQ_PCT";
     source.setData({
       type: "FeatureCollection",
       features: stations.filter((s) => s.latitude && s.longitude).map((s) => ({
@@ -407,7 +418,9 @@ function StationMapInner({
           swe: s.swe, snowDepth: s.snowDepth, precipAccum: s.precipAccum, temp: s.temp,
           pctOfNormal: s.pctOfNormal, sweChange1d: s.sweChange1d, sweChange3d: s.sweChange3d, sweChange7d: s.sweChange7d, depthChange1d: s.depthChange1d, depthChange3d: s.depthChange3d, depthChange7d: s.depthChange7d,
           color: getMetricMapColor(metric, s),
-          label: metricDotLabel(metric, s),
+          inactive: isSweMetric && s.swe === null,
+          hollow: isSweMetric && s.pctOfNormal === null,
+          label: isSweMetric && s.pctOfNormal === null ? "" : metricDotLabel(metric, s),
           sortKey: s.latitude,
         },
       })),
