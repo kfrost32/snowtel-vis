@@ -287,19 +287,21 @@ export async function fetchPorData(
   return { dates: allDates, values: allValues };
 }
 
+const WATER_YEAR_QUARTERS = [[10, 12, 31], [1, 3, 31], [4, 6, 30], [7, 9, 30]] as const;
+const MEDIAN_TIMEOUT_MS = 90000;
+
 export async function fetchWaterYearMedian(
   triplets: string[],
   elementCd: string
 ): Promise<Map<string, (number | null)[]>> {
-  const [octDec, janSep] = await Promise.all([
-    fetchMedianData(triplets, elementCd, 10, 1, 12, 31),
-    fetchMedianData(triplets, elementCd, 1, 1, 9, 30),
-  ]);
+  const quarters = await Promise.all(
+    WATER_YEAR_QUARTERS.map(([beginMonth, endMonth, endDay]) =>
+      fetchMedianData(triplets, elementCd, beginMonth, 1, endMonth, endDay, { timeout: MEDIAN_TIMEOUT_MS })
+    )
+  );
   const merged = new Map<string, (number | null)[]>();
   for (const triplet of triplets) {
-    const part1 = octDec.get(triplet) || [];
-    const part2 = janSep.get(triplet) || [];
-    merged.set(triplet, [...part1, ...part2]);
+    merged.set(triplet, quarters.flatMap((q) => q.get(triplet) || []));
   }
   return merged;
 }

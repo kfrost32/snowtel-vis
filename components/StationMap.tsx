@@ -44,6 +44,10 @@ function noComparisonReason(s: StationCurrentConditions): string | null {
   return null;
 }
 
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+}
+
 function StationMapInner({
   stations,
   onVisibleStationsChange,
@@ -61,6 +65,7 @@ function StationMapInner({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const hoverPopupRef = useRef<maplibregl.Popup | null>(null);
+  const hoveredTripletRef = useRef<string | null>(null);
   const stationsRef = useRef(stations);
   stationsRef.current = stations;
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -128,7 +133,7 @@ function StationMapInner({
         source: "huc4-polygons",
         paint: {
           "fill-color": ["coalesce", ["get", "fillColor"], theme.mediumGray],
-          "fill-opacity": 0.2,
+          "fill-opacity": 0.35,
         },
         layout: { visibility: "none" },
       });
@@ -141,17 +146,6 @@ function StationMapInner({
           "line-width": 1,
           "line-opacity": 0.5,
         },
-        layout: { visibility: "none" },
-      });
-      map.addLayer({
-        id: "huc4-hover",
-        type: "fill",
-        source: "huc4-polygons",
-        paint: {
-          "fill-color": ["coalesce", ["get", "fillColor"], theme.mediumGray],
-          "fill-opacity": 0.4,
-        },
-        filter: ["==", ["get", "hucId"], ""],
         layout: { visibility: "none" },
       });
       map.addSource("huc4-labels", {
@@ -170,7 +164,7 @@ function StationMapInner({
         source: "huc2-polygons",
         paint: {
           "fill-color": ["coalesce", ["get", "fillColor"], theme.mediumGray],
-          "fill-opacity": 0.08,
+          "fill-opacity": 0.35,
         },
         layout: { visibility: "none" },
       });
@@ -183,17 +177,6 @@ function StationMapInner({
           "line-width": 2.5,
           "line-opacity": 0.75,
         },
-        layout: { visibility: "none" },
-      });
-      map.addLayer({
-        id: "huc2-hover",
-        type: "fill",
-        source: "huc2-polygons",
-        paint: {
-          "fill-color": ["coalesce", ["get", "fillColor"], theme.mediumGray],
-          "fill-opacity": 0.25,
-        },
-        filter: ["==", ["get", "hucId"], ""],
         layout: { visibility: "none" },
       });
       map.addSource("huc2-labels", {
@@ -320,22 +303,12 @@ function StationMapInner({
       map.on("click", "huc4-fill", basinClickHandler("huc4-fill"));
       map.on("click", "huc2-fill", basinClickHandler("huc2-fill"));
       map.on("mouseenter", "huc4-fill", () => { map.getCanvas().style.cursor = "pointer"; });
-      map.on("mousemove", "huc4-fill", (e) => {
-        const f = e.features?.[0];
-        if (f) map.setFilter("huc4-hover", ["==", ["get", "hucId"], f.properties?.hucId ?? ""]);
-      });
       map.on("mouseleave", "huc4-fill", () => {
         map.getCanvas().style.cursor = "";
-        map.setFilter("huc4-hover", ["==", ["get", "hucId"], ""]);
       });
       map.on("mouseenter", "huc2-fill", () => { map.getCanvas().style.cursor = "pointer"; });
-      map.on("mousemove", "huc2-fill", (e) => {
-        const f = e.features?.[0];
-        if (f) map.setFilter("huc2-hover", ["==", ["get", "hucId"], f.properties?.hucId ?? ""]);
-      });
       map.on("mouseleave", "huc2-fill", () => {
         map.getCanvas().style.cursor = "";
-        map.setFilter("huc2-hover", ["==", ["get", "hucId"], ""]);
       });
 
       map.on("click", "station-circles", (e) => {
@@ -355,13 +328,18 @@ function StationMapInner({
       });
       map.on("mousemove", "station-circles", (e) => {
         const feature = e.features?.[0];
-        const reason = feature?.properties?.noDataReason as string | undefined;
-        if (!feature || !reason) {
+        if (!feature) {
           hoverPopupRef.current?.remove();
           return;
         }
+        const props = feature.properties!;
+        if (hoverPopupRef.current?.isOpen() && hoveredTripletRef.current === props.triplet) return;
+        hoveredTripletRef.current = props.triplet as string;
         const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
-        const html = `<div style="font-family: var(--font-ibm-plex-mono), monospace; font-size: 9px; line-height: 1.2; color: ${theme.gray}; white-space: nowrap;">${reason}</div>`;
+        const html = `<div style="white-space: nowrap; line-height: 1.3;">
+          <div style="font-family: var(--font-dm-sans), sans-serif; font-size: 11px; font-weight: 600; color: ${theme.black};">${escapeHtml(props.name as string)}</div>
+          <div style="font-family: var(--font-ibm-plex-mono), monospace; font-size: 10px; color: ${theme.gray};">${escapeHtml(props.hoverDetail as string)}</div>
+        </div>`;
         if (!hoverPopupRef.current) {
           hoverPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 4, className: "station-hover-popup" });
         }
@@ -369,6 +347,7 @@ function StationMapInner({
       });
       map.on("mouseleave", "station-circles", () => {
         map.getCanvas().style.cursor = "";
+        hoveredTripletRef.current = null;
         hoverPopupRef.current?.remove();
       });
 
@@ -408,6 +387,14 @@ function StationMapInner({
     }
   }
 
+  function hoverDetail(m: string, s: StationCurrentConditions): string {
+    const elevation = `${s.elevation.toLocaleString()} ft`;
+    if (m !== "WTEQ" && m !== "WTEQ_PCT") return `${metricDotLabel(m, s) || "—"} · ${elevation}`;
+    const reason = noComparisonReason(s);
+    if (reason) return `${reason} · ${elevation}`;
+    return `${Math.round(s.pctOfNormal!)}% · ${s.swe!.toFixed(1)}" SWE · ${elevation}`;
+  }
+
   function formatMetricValue(m: string, val: number | null): string {
     switch (m) {
       case "SNWD": return formatSnowDepth(val);
@@ -445,7 +432,7 @@ function StationMapInner({
           pctOfNormal: s.pctOfNormal, sweChange1d: s.sweChange1d, sweChange3d: s.sweChange3d, sweChange7d: s.sweChange7d, depthChange1d: s.depthChange1d, depthChange3d: s.depthChange3d, depthChange7d: s.depthChange7d,
           color: getMetricMapColor(metric, s),
           inactive: isSweMetric && s.swe === null,
-          noDataReason: isSweMetric ? noComparisonReason(s) ?? "" : "",
+          hoverDetail: hoverDetail(metric, s),
           hollow: isSweMetric && s.pctOfNormal === null,
           label: isSweMetric && s.pctOfNormal === null ? "" : metricDotLabel(metric, s),
           sortKey: s.latitude,
@@ -565,11 +552,9 @@ function StationMapInner({
     if (map.getLayer("station-labels")) map.setLayoutProperty("station-labels", "visibility", vis(showStations));
     if (map.getLayer("huc4-fill")) map.setLayoutProperty("huc4-fill", "visibility", vis(showHuc4));
     if (map.getLayer("huc4-outline")) map.setLayoutProperty("huc4-outline", "visibility", vis(showHuc4));
-    if (map.getLayer("huc4-hover")) map.setLayoutProperty("huc4-hover", "visibility", vis(showHuc4));
     if (map.getLayer("huc4-label-text")) map.setLayoutProperty("huc4-label-text", "visibility", vis(showHuc4));
     if (map.getLayer("huc2-fill")) map.setLayoutProperty("huc2-fill", "visibility", vis(showHuc2));
     if (map.getLayer("huc2-outline")) map.setLayoutProperty("huc2-outline", "visibility", vis(showHuc2));
-    if (map.getLayer("huc2-hover")) map.setLayoutProperty("huc2-hover", "visibility", vis(showHuc2));
     if (map.getLayer("huc2-label-text")) map.setLayoutProperty("huc2-label-text", "visibility", vis(showHuc2));
   }, [showStations, showHuc2, showHuc4, mapLoaded]);
 

@@ -17,7 +17,7 @@ const METRIC_GROUPS = [
     ],
   },
   {
-    label: "Snow Depth",
+    label: "Depth",
     metrics: [
       { key: "SNWD", label: "Snow Depth" },
       { key: "SNWD_CHANGE_1D", label: "1-Day Δ" },
@@ -74,6 +74,7 @@ export default function MapControls({
   const [elevMinFocused, setElevMinFocused] = useState(false);
   const [elevMaxFocused, setElevMaxFocused] = useState(false);
   const [clearHovered, setClearHovered] = useState(false);
+  const activeGroup = METRIC_GROUPS.find((g) => g.metrics.some((m) => m.key === metric)) ?? METRIC_GROUPS[0];
 
   const toggleState = (state: string) => {
     const next = new Set(selectedStates);
@@ -84,26 +85,43 @@ export default function MapControls({
 
   return (
     <div className="flex flex-col">
-      {METRIC_GROUPS.map((group) => (
-        <SidebarSection key={group.label} label={group.label}>
-          <div className="flex flex-col">
-            {group.metrics.map((m) => (
-              <SidebarRadioItem
-                key={m.key}
-                label={m.label}
-                active={metric === m.key}
-                onClick={() => onMetricChange(m.key)}
-              />
-            ))}
-          </div>
-        </SidebarSection>
-      ))}
+      <SidebarSection label="Metric">
+        <div className="flex p-0.5 rounded-lg mb-2" style={{ background: "rgba(15, 23, 42, 0.06)" }}>
+          {METRIC_GROUPS.map((group) => {
+            const selected = group === activeGroup;
+            return (
+              <button
+                key={group.label}
+                onClick={() => !selected && onMetricChange(group.metrics[0].key)}
+                className="flex-1 py-1.5 md:py-1 rounded-md text-[12px] font-sans font-medium transition-all duration-150 cursor-pointer"
+                style={{
+                  background: selected ? theme.white : "transparent",
+                  color: selected ? theme.black : theme.gray,
+                  boxShadow: selected ? "0 1px 2px rgba(15, 23, 42, 0.12), 0 0 0 0.5px rgba(15, 23, 42, 0.06)" : "none",
+                }}
+              >
+                {group.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-col">
+          {activeGroup.metrics.map((m) => (
+            <SidebarRadioItem
+              key={m.key}
+              label={m.label}
+              active={metric === m.key}
+              onClick={() => onMetricChange(m.key)}
+            />
+          ))}
+        </div>
+      </SidebarSection>
 
       <SidebarSection label="Layers">
         <div className="flex flex-col gap-3">
           <SidebarToggle label="Stations" description="Individual sites" checked={showStations} onChange={onShowStationsChange} />
-          <SidebarToggle label="HUC-4 Basins" description="Sub-basin fill" checked={showHuc4} onChange={onShowHuc4Change} />
-          <SidebarToggle label="HUC-2 Basins" description="Major region outlines" checked={showHuc2} onChange={onShowHuc2Change} />
+          <SidebarToggle label="Regions" description="Major river basins (HUC-2)" checked={showHuc2} onChange={onShowHuc2Change} />
+          <SidebarToggle label="Sub-regions" description="Smaller basins (HUC-4)" checked={showHuc4} onChange={onShowHuc4Change} />
         </div>
       </SidebarSection>
 
@@ -112,7 +130,7 @@ export default function MapControls({
       </SidebarSection>
 
       <SidebarSection
-        label="Region"
+        label="States"
         trailing={
           selectedStates.size > 0 ? (
             <button

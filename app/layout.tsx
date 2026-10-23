@@ -47,9 +47,7 @@ export default function RootLayout({
         <SWRProvider>
           <GlobalHeader />
           <CommandSearch />
-          <div className="pt-14 md:pt-12">
-            {children}
-          </div>
+          {children}
         </SWRProvider>
       </body>
     </html>

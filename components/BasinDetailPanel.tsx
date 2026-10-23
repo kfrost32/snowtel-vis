@@ -177,12 +177,12 @@ export default function BasinDetailPanel({
                 {station.state}
               </div>
             </div>
-            <div className="flex items-center gap-2.5 shrink-0">
-              <div className="text-right">
+            <div className="flex items-center gap-3 shrink-0">
+              <ConditionBadge pctOfNormal={station.pctOfNormal} size="small" />
+              <div className="text-right min-w-[3.5rem]">
                 <div className="font-mono text-sm" style={{ color: theme.darkGray }}>{formatSwe(station.swe)}</div>
                 <div className="font-mono text-[11px]" style={{ color: getConditionColor(station.pctOfNormal) }}>{formatPctOfNormal(station.pctOfNormal)}</div>
               </div>
-              <ConditionBadge pctOfNormal={station.pctOfNormal} size="small" />
             </div>
           </button>
         ))}

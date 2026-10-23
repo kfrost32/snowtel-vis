@@ -16,11 +16,11 @@ export default function SidebarRadioItem({ label, active, onClick }: SidebarRadi
     >
       <div
         className="shrink-0 w-2.5 h-2.5 md:w-2 md:h-2 rounded-full"
-        style={{ background: active ? theme.black : theme.borderGray }}
+        style={{ background: active ? theme.black : theme.mediumGray, opacity: active ? 1 : 0.4 }}
       />
       <span
-        className="text-[13px] md:text-[12px] font-sans"
-        style={{ color: active ? theme.black : theme.mediumGray, fontWeight: active ? 600 : 400 }}
+        className="text-[13px] font-sans"
+        style={{ color: active ? theme.black : theme.gray, fontWeight: active ? 600 : 400 }}
       >
         {label}
       </span>

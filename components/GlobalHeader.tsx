@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
 import { theme } from "@/lib/theme";
 
 export default function GlobalHeader() {
+  const pathname = usePathname();
+  if (pathname === "/") return null;
+
   return (
+    <>
     <header
       className="fixed top-0 left-0 right-0 z-50 h-14 md:h-12"
       style={{ background: theme.black }}
@@ -38,5 +43,7 @@ export default function GlobalHeader() {
         </button>
       </div>
     </header>
+    <div className="h-14 md:h-12" />
+    </>
   );
 }

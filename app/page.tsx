@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
 import { useFavorites } from "@/hooks/useFavorites";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -57,6 +57,11 @@ const METRIC_LABELS: Record<string, string> = {
   TAVG: "Temperature",
 };
 
+const LEGEND_TITLES: Record<string, string> = {
+  WTEQ: "SWE, % of median",
+  WTEQ_PCT: "SWE, % of median",
+};
+
 const METRIC_LEGEND: Record<string, { label: string; color: string }[]> = {
   WTEQ: PCT_LEGEND,
   WTEQ_PCT: PCT_LEGEND,
@@ -87,6 +92,17 @@ const METRIC_LEGEND: Record<string, { label: string; color: string }[]> = {
     { label: "40°", color: "#FDE68A" },
     { label: "55°+", color: "#EF4444" },
   ],
+};
+
+const SIDEBAR_WIDTH = 300;
+const SIDEBAR_INSET = 12;
+
+const GLASS_STYLE = {
+  background: "rgba(255, 255, 255, 0.86)",
+  backdropFilter: "blur(24px) saturate(140%)",
+  WebkitBackdropFilter: "blur(24px) saturate(140%)",
+  border: "1px solid rgba(15, 23, 42, 0.08)",
+  boxShadow: "0 8px 32px rgba(15, 23, 42, 0.12), 0 1px 2px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6)",
 };
 
 const StationMap = dynamic(() => import("@/components/StationMap"), {
@@ -149,6 +165,14 @@ function HomePageInner() {
       return true;
     });
   }, [stations, selectedStates, elevMin, elevMax, activeOnly]);
+
+  const dataDate = useMemo(() => {
+    const latest = stations.reduce((max, s) => (s.lastUpdated > max ? s.lastUpdated : max), "");
+    if (!latest) return null;
+    return new Date(`${latest}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }, [stations]);
+
+  const isSweMetric = metric === "WTEQ" || metric === "WTEQ_PCT";
 
   const huc2Basins = useMemo(() => (!stations.length ? [] : computeBasinSummaries(stations, 2)), [stations]);
   const huc4Basins = useMemo(() => (!stations.length ? [] : computeBasinSummaries(stations, 4)), [stations]);
@@ -215,18 +239,14 @@ function HomePageInner() {
     }
   }, [selectedTriplet, selectedBasinHuc]);
 
+  const openSearch = () => window.dispatchEvent(new CustomEvent("open-command-search"));
+
   const hasDetailPanel = selectedTriplet !== null || selectedBasin !== null;
 
   return (
     <>
       <StaleBanner fetchedAt={fetchedAt} stale={stale} />
-      <style>{`
-        .map-page-root { height: calc(100vh - 56px); }
-        @media (min-width: 768px) {
-          .map-page-root { height: calc(100vh - 48px); }
-        }
-      `}</style>
-      <div className="map-page-root flex w-full relative">
+      <div className="h-dvh flex w-full relative">
         {isMobile && sidebarOpen && (
           <div
             className="fixed inset-0 z-30"
@@ -237,27 +257,42 @@ function HomePageInner() {
 
         {sidebarOpen && (
           <div
-            className={`${isMobile ? "fixed top-14 left-0 bottom-0 z-30 shadow-xl" : "flex-shrink-0 border-r z-10"} flex flex-col overflow-hidden`}
+            className={`${isMobile ? "fixed top-0 left-0 bottom-0 z-30" : "absolute z-20 rounded-2xl"} flex flex-col overflow-hidden`}
             style={{
-              width: isMobile ? "min(320px, 85vw)" : 320,
-              borderColor: theme.borderGray,
-              background: theme.white,
+              ...GLASS_STYLE,
+              width: isMobile ? "min(320px, 85vw)" : SIDEBAR_WIDTH,
+              ...(isMobile ? {} : { top: SIDEBAR_INSET, left: SIDEBAR_INSET, bottom: SIDEBAR_INSET }),
             }}
           >
             <div
               className="flex items-center justify-between px-4 py-2.5 border-b flex-shrink-0"
-              style={{ borderColor: theme.borderGray }}
+              style={{ borderColor: "rgba(15, 23, 42, 0.06)" }}
             >
-              <div className="text-xs font-mono" style={{ color: theme.mediumGray }}>
-                {`${filteredStations.length} stations`}
+              <div className="min-w-0">
+                <div className="text-sm font-semibold tracking-tight font-sans truncate" style={{ color: theme.black }}>
+                  SNOTEL Explorer
+                </div>
+                <div className="text-[10px] font-mono" style={{ color: theme.mediumGray }}>
+                  {`${filteredStations.length} stations`}
+                </div>
               </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="p-1 rounded hover:bg-gray-100 transition-colors cursor-pointer"
-                aria-label="Close sidebar"
-              >
-                <ChevronLeft size={16} style={{ color: theme.gray }} />
-              </button>
+              <div className="flex items-center gap-0.5 shrink-0">
+                <button
+                  onClick={openSearch}
+                  className="flex items-center gap-1.5 p-1.5 rounded-md hover:bg-black/[0.05] transition-colors cursor-pointer"
+                  aria-label="Search"
+                >
+                  <Search size={14} style={{ color: theme.gray }} />
+                  <kbd className="hidden md:inline font-mono text-[10px] leading-none" style={{ color: theme.mediumGray }}>⌘K</kbd>
+                </button>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="p-1.5 rounded-md hover:bg-black/[0.05] transition-colors cursor-pointer"
+                  aria-label="Close sidebar"
+                >
+                  <ChevronLeft size={16} style={{ color: theme.gray }} />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto" style={{ borderColor: theme.borderGray }}>
@@ -315,14 +350,25 @@ function HomePageInner() {
         )}
 
         {!sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-6 h-12 rounded-r-md shadow-md cursor-pointer"
-            style={{ background: theme.white, border: `1px solid ${theme.borderGray}`, borderLeft: "none" }}
-            aria-label="Open sidebar"
+          <div
+            className="absolute z-20 flex items-center gap-0.5 p-0.5 rounded-xl"
+            style={{ ...GLASS_STYLE, top: SIDEBAR_INSET, left: SIDEBAR_INSET }}
           >
-            <ChevronRight size={14} style={{ color: theme.gray }} />
-          </button>
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-black/[0.05] transition-colors cursor-pointer"
+              aria-label="Open sidebar"
+            >
+              <ChevronRight size={16} style={{ color: theme.gray }} />
+            </button>
+            <button
+              onClick={openSearch}
+              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-black/[0.05] transition-colors cursor-pointer"
+              aria-label="Search"
+            >
+              <Search size={14} style={{ color: theme.gray }} />
+            </button>
+          </div>
         )}
 
         <div className="flex-1 relative min-w-0">
@@ -347,28 +393,23 @@ function HomePageInner() {
             />
           )}
 
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-            <div
-              className="px-3 py-1 rounded-full text-xs font-mono shadow-sm"
-              style={{
-                background: `${theme.white}ee`,
-                border: `1px solid ${theme.borderGray}`,
-                backdropFilter: "blur(8px)",
-                color: theme.darkGray,
-              }}
-            >
-              {METRIC_LABELS[metric] ?? metric}
-            </div>
-          </div>
-
           <div
-            className="absolute bottom-4 left-4 right-4 md:right-auto rounded-lg px-3 py-2 shadow-sm z-10"
+            className="absolute bottom-4 left-4 right-4 md:right-auto rounded-xl px-3 py-2 z-10"
             style={{
-              background: `${theme.white}ee`,
-              border: `1px solid ${theme.borderGray}`,
-              backdropFilter: "blur(8px)",
+              ...GLASS_STYLE,
+              left: !isMobile && sidebarOpen ? SIDEBAR_WIDTH + SIDEBAR_INSET * 2 : undefined,
             }}
           >
+            <div className="flex items-baseline justify-center md:justify-start gap-1.5 mb-1.5">
+              <span className="text-[11px] font-sans font-semibold" style={{ color: theme.darkGray }}>
+                {LEGEND_TITLES[metric] ?? METRIC_LABELS[metric] ?? metric}
+              </span>
+              {dataDate && (
+                <span className="text-[10px] font-mono" style={{ color: theme.mediumGray }}>
+                  {dataDate}
+                </span>
+              )}
+            </div>
             <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
               {(METRIC_LEGEND[metric] ?? METRIC_LEGEND.TAVG).map(({ label, color }) => (
                 <div key={label} className="flex items-center gap-1.5">
@@ -378,6 +419,18 @@ function HomePageInner() {
                   </span>
                 </div>
               ))}
+              {isSweMetric && (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full border" style={{ borderColor: theme.mediumGray }} />
+                  <span className="text-[10px] font-mono" style={{ color: theme.gray }}>No median</span>
+                </div>
+              )}
+              {isSweMetric && !activeOnly && (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: theme.mediumGray, opacity: 0.35 }} />
+                  <span className="text-[10px] font-mono" style={{ color: theme.gray }}>Not reporting</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -385,7 +438,7 @@ function HomePageInner() {
         {hasDetailPanel && (
           <div
             className={`${isMobile ? "fixed inset-0 z-[60]" : "absolute inset-0 z-20"} pointer-events-none`}
-            style={{ left: !isMobile && sidebarOpen ? 320 : 0 }}
+            style={{ left: !isMobile && sidebarOpen ? SIDEBAR_WIDTH + SIDEBAR_INSET : 0 }}
           >
             <div
               className="absolute inset-0 md:inset-4 pointer-events-auto md:rounded-xl shadow-2xl overflow-hidden transition-all duration-200 md:mx-auto"

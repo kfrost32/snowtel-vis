@@ -22,8 +22,8 @@ export default function SidebarSection({ label, defaultOpen = true, trailing, fl
         className="w-full flex items-center justify-between px-4 py-3 md:py-2.5 min-h-[44px] md:min-h-0 cursor-pointer hover:bg-black/[0.02] transition-colors"
       >
         <span
-          className="text-[11px] md:text-[10px] font-semibold uppercase tracking-wider font-sans select-none"
-          style={{ color: theme.mediumGray }}
+          className="text-[11px] font-semibold uppercase tracking-wider font-sans select-none"
+          style={{ color: theme.gray }}
         >
           {label}
         </span>
