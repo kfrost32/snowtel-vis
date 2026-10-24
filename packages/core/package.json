@@ -1,0 +1,13 @@
+{
+  "name": "@snotel/core",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./data/*": "./data/*",
+    "./*": "./src/*.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/geojson": "^7946.0.16"
+  }
+}

@@ -3,7 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const OUTPUT_PATH = path.join(__dirname, "..", "data", "huc-associations.json");
+const OUTPUT_PATH = path.join(__dirname, "..", "packages", "core", "data", "huc-associations.json");
 const IMAP_STATIONS_URL = "https://nwcc-apps.sc.egov.usda.gov/awdb/output/stations.js";
 
 const ID = 3, STATE = 4, NETWORK = 5, ASSOCIATED_HUCS = 11;

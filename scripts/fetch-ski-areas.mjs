@@ -5,11 +5,11 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
 const SOURCE_URL = "https://tiles.openskimap.org/geojson/ski_areas.geojson";
-const OUTPUT = path.join(ROOT, "data", "ski-areas.json");
+const OUTPUT = path.join(ROOT, "packages", "core", "data", "ski-areas.json");
 const MIN_RUNS = 3;
 const METERS_TO_FEET = 3.28084;
 
-const stations = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "stations.json"), "utf8"));
+const stations = JSON.parse(fs.readFileSync(path.join(ROOT, "packages", "core", "data", "stations.json"), "utf8"));
 const snotelStates = new Set(stations.features.map((f) => f.properties.state));
 
 function usState(props) {
