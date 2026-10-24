@@ -10,8 +10,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { theme } from "@/lib/theme";
 import { computeBasinSummaries, computeBasinCentroid } from "@/lib/basins";
-import { getStation, urlTriplet, parseTripletFromUrl } from "@/lib/stations";
-import StaleBanner from "@/components/StaleBanner";
+import { getStation, getPlaceholderConditions, urlTriplet, parseTripletFromUrl } from "@/lib/stations";
 import MapControls from "@/components/MapControls";
 import BottomSheet from "@/components/BottomSheet";
 import StationDetailPanel from "@/components/StationDetailPanel";
@@ -116,7 +115,8 @@ const StationMap = dynamic(() => import("@/components/StationMap"), {
 });
 
 function HomePageInner() {
-  const { stations, loading, error, fetchedAt, stale } = useStationList();
+  const { stations: liveStations, loading, error, stale } = useStationList();
+  const stations = loading ? getPlaceholderConditions() : liveStations;
   const { favorites, toggleStation, toggleBasin, isStationFav, isBasinFav } = useFavorites();
   const searchParams = useSearchParams();
   const [isMobile, setIsMobile] = useState(false);
@@ -163,10 +163,10 @@ function HomePageInner() {
       if (selectedStates.size > 0 && !selectedStates.has(s.state)) return false;
       if (elevMin && s.elevation < Number(elevMin)) return false;
       if (elevMax && s.elevation > Number(elevMax)) return false;
-      if (activeOnly && s.swe === null) return false;
+      if (activeOnly && (loading ? s.network !== "SNOTEL" : s.swe === null)) return false;
       return true;
     });
-  }, [stations, selectedStates, elevMin, elevMax, activeOnly]);
+  }, [stations, loading, selectedStates, elevMin, elevMax, activeOnly]);
 
   const dataDate = useMemo(() => {
     const latest = stations.reduce((max, s) => (s.lastUpdated > max ? s.lastUpdated : max), "");
@@ -358,7 +358,6 @@ function HomePageInner() {
 
   return (
     <>
-      <StaleBanner fetchedAt={fetchedAt} stale={stale} />
       <div className="h-dvh flex w-full relative">
         {sidebarOpen && (isMobile ? (
           <BottomSheet baseHeight="72dvh" onDismiss={() => setSidebarOpen(false)} zIndex={30} background="rgba(255, 255, 255, 0.96)">
@@ -398,27 +397,28 @@ function HomePageInner() {
         )}
 
         <div className="flex-1 relative min-w-0">
-          {loading ? (
-            <div className="w-full h-full flex items-center justify-center" style={{ background: theme.lightGray }}>
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="animate-spin" size={24} style={{ color: theme.mediumGray }} />
-                <span className="text-xs font-sans" style={{ color: theme.mediumGray }}>Loading stations…</span>
-              </div>
+          <StationMap
+            stations={filteredStations}
+            huc2Markers={huc2Markers}
+            huc4Markers={huc4Markers}
+            showStations={showStations}
+            showHuc2={showHuc2}
+            showHuc4={showHuc4}
+            metric={metric}
+            onStationSelect={handleStationClick}
+            onBasinSelect={handleBasinClick}
+            spots={spots}
+            showSpots={showSpots}
+          />
+
+          {(loading || stale) && (
+            <div
+              className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 h-8 px-3 rounded-full pointer-events-none"
+              style={GLASS_STYLE}
+            >
+              <Loader2 className="animate-spin" size={13} style={{ color: theme.gray }} />
+              <span className="text-[11px] font-sans font-medium" style={{ color: theme.darkGray }}>Updating conditions…</span>
             </div>
-          ) : (
-            <StationMap
-              stations={filteredStations}
-              huc2Markers={huc2Markers}
-              huc4Markers={huc4Markers}
-              showStations={showStations}
-              showHuc2={showHuc2}
-              showHuc4={showHuc4}
-              metric={metric}
-              onStationSelect={handleStationClick}
-              onBasinSelect={handleBasinClick}
-              spots={spots}
-              showSpots={showSpots}
-            />
           )}
 
           {isMobile && !legendOpen ? (

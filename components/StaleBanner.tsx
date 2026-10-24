@@ -24,7 +24,7 @@ export default function StaleBanner({ fetchedAt, stale }: StaleBannerProps) {
         className="w-1.5 h-1.5 rounded-full shrink-0"
         style={{ background: snowColors.below }}
       />
-      NRCS data source unavailable — showing cached data from {timeAgo(fetchedAt)}
+      Updating from NRCS — showing readings from {timeAgo(fetchedAt)}
     </div>
   );
 }

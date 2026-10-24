@@ -1,4 +1,4 @@
-import type { Station } from "./types";
+import type { Station, StationCurrentConditions } from "./types";
 import stationsGeoJson from "@/data/stations.json";
 
 const STATE_ABBREV: Record<string, string> = {
@@ -94,3 +94,16 @@ export function getStationsByState(state: string): Station[] {
 }
 
 export { urlTriplet, parseTripletFromUrl };
+
+let _placeholderConditions: StationCurrentConditions[] | null = null;
+
+export function getPlaceholderConditions(): StationCurrentConditions[] {
+  _placeholderConditions ??= getAllStations().map((s) => ({
+    ...s,
+    swe: null, sweNormal: null, pctOfNormal: null, snowDepth: null, temp: null, precipAccum: null,
+    sweChange1d: null, sweChange3d: null, sweChange7d: null,
+    depthChange1d: null, depthChange3d: null, depthChange7d: null,
+    lastUpdated: "",
+  }));
+  return _placeholderConditions;
+}
