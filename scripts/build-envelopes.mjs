@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
-const OUTPUT_DIR = path.join(ROOT, "public", "envelopes");
+const OUTPUT_DIR = path.join(ROOT, "apps", "web", "public", "envelopes");
 const CACHE_DIR = path.join(ROOT, "node_modules", ".cache", "snotel-envelopes");
 const SOAP_URL = "https://wcc.sc.egov.usda.gov/awdbWebService/services";
 
@@ -23,8 +23,8 @@ const now = new Date();
 const currentWaterYear = now.getUTCMonth() >= 9 ? now.getUTCFullYear() + 1 : now.getUTCFullYear();
 const lastCompleteWaterYear = currentWaterYear - 1;
 
-const geo = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "stations.json"), "utf8"));
-const associations = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "huc-associations.json"), "utf8"));
+const geo = JSON.parse(fs.readFileSync(path.join(ROOT, "packages", "core", "data", "stations.json"), "utf8"));
+const associations = JSON.parse(fs.readFileSync(path.join(ROOT, "packages", "core", "data", "huc-associations.json"), "utf8"));
 const stations = geo.features
   .map((f) => f.properties)
   .filter((p) => p.network === "SNOTEL")
