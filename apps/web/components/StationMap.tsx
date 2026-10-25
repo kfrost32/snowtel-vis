@@ -31,6 +31,11 @@ import {
   spotImageId,
   spotLayout,
   spotPaint,
+  stateBounds,
+  stateMask,
+  stateMaskPaint,
+  stateOutlinePaint,
+  stateOutlines,
   type RegionLevel,
   type RegionMarker,
 } from "@snotel/core/map-style";
@@ -51,7 +56,12 @@ interface StationMapProps {
   onBasinSelect?: (huc: string) => void;
   spots?: Spot[];
   showSpots?: boolean;
+  selectedStates?: string[];
+  fitPadding?: maplibregl.PaddingOptions;
 }
+
+const NO_STATES: string[] = [];
+const EMPTY_COLLECTION: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 function addSpotIcon(map: maplibregl.Map, kind: SpotKind) {
   const image = new Image(SPOT_ICON_SIZE * 2, SPOT_ICON_SIZE * 2);
@@ -79,6 +89,8 @@ function StationMapInner({
   onBasinSelect,
   spots = [],
   showSpots = true,
+  selectedStates = NO_STATES,
+  fitPadding,
 }: StationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -185,6 +197,11 @@ function StationMapInner({
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       });
+
+      map.addSource("state-mask", { type: "geojson", data: EMPTY_COLLECTION });
+      map.addLayer({ id: "state-mask", type: "fill", source: "state-mask", paint: stateMaskPaint });
+      map.addSource("state-outlines", { type: "geojson", data: EMPTY_COLLECTION });
+      map.addLayer({ id: "state-outlines", type: "line", source: "state-outlines", paint: stateOutlinePaint });
 
       // ── Stations: always on top ────────────────────────────────────────
       map.addSource("stations", {
@@ -386,6 +403,18 @@ function StationMapInner({
     if (map.getLayer("huc2-label-text")) map.setLayoutProperty("huc2-label-text", "visibility", vis(showHuc2));
     if (map.getLayer("spot-icons")) map.setLayoutProperty("spot-icons", "visibility", vis(showSpots));
   }, [showStations, showHuc2, showHuc4, showSpots, mapLoaded]);
+
+  const fitPaddingRef = useRef(fitPadding);
+  fitPaddingRef.current = fitPadding;
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    (map.getSource("state-mask") as maplibregl.GeoJSONSource | undefined)?.setData(stateMask(selectedStates));
+    (map.getSource("state-outlines") as maplibregl.GeoJSONSource | undefined)?.setData(stateOutlines(selectedStates));
+    const bounds = stateBounds(selectedStates);
+    if (bounds) map.fitBounds(bounds, { padding: fitPaddingRef.current ?? 48, duration: 800, maxZoom: 8 });
+  }, [selectedStates, mapLoaded]);
 
   return <div ref={containerRef} className="w-full h-full" />;
 }

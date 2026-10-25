@@ -13,6 +13,7 @@ import { hasFreshSnow } from "./recent";
 import { theme } from "./theme";
 import { shiftDate } from "./water-year";
 import { getAllStations } from "./stations";
+import stateBoundaries from "../data/state-boundaries.json";
 import { SPOT_COLORS, SPOT_KIND_LABELS, SPOT_TEXT_SIZE, spotElevationLabel, spotPlacement, type Spot, type SpotKind } from "./spots";
 
 export const BASEMAP_STYLE_URL = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
@@ -292,4 +293,58 @@ export const regionLabelLayout: Record<RegionLevel, SymbolLayerSpecification["la
 export const regionLabelPaint: Record<RegionLevel, SymbolLayerSpecification["paint"]> = {
   2: { "text-color": ["get", "textColor"], "text-halo-color": "rgba(255,255,255,0.95)", "text-halo-width": 2.5 },
   4: { "text-color": ["get", "textColor"], "text-halo-color": "rgba(255,255,255,0.95)", "text-halo-width": 2 },
+};
+
+const STATES = stateBoundaries as GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon, { state: string }>;
+const WORLD_RING: GeoJSON.Position[] = [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]];
+
+function selectedStateFeatures(states: Iterable<string>) {
+  const selected = new Set(states);
+  return STATES.features.filter((f) => selected.has(f.properties.state));
+}
+
+function exteriorRings(feature: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>): GeoJSON.Position[][] {
+  return feature.geometry.type === "Polygon" ? [feature.geometry.coordinates[0]] : feature.geometry.coordinates.map((polygon) => polygon[0]);
+}
+
+function signedArea(ring: GeoJSON.Position[]): number {
+  let area = 0;
+  for (let i = 0; i < ring.length - 1; i++) area += ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
+  return area / 2;
+}
+
+function clockwise(ring: GeoJSON.Position[]): GeoJSON.Position[] {
+  return signedArea(ring) < 0 ? ring : [...ring].reverse();
+}
+
+export function stateOutlines(states: Iterable<string>): GeoJSON.FeatureCollection {
+  return { type: "FeatureCollection", features: selectedStateFeatures(states) };
+}
+
+export function stateMask(states: Iterable<string>): GeoJSON.FeatureCollection {
+  const holes = selectedStateFeatures(states).flatMap(exteriorRings).map(clockwise);
+  if (!holes.length) return { type: "FeatureCollection", features: [] };
+  return {
+    type: "FeatureCollection",
+    features: [{ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [WORLD_RING, ...holes] } }],
+  };
+}
+
+export function stateBounds(states: Iterable<string>): [number, number, number, number] | null {
+  const points = selectedStateFeatures(states).flatMap(exteriorRings).flat();
+  if (!points.length) return null;
+  const lngs = points.map((p) => p[0]);
+  const lats = points.map((p) => p[1]);
+  return [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)];
+}
+
+export const stateMaskPaint: FillLayerSpecification["paint"] = {
+  "fill-color": theme.white,
+  "fill-opacity": 0.7,
+};
+
+export const stateOutlinePaint: LineLayerSpecification["paint"] = {
+  "line-color": theme.darkGray,
+  "line-width": 1.5,
+  "line-opacity": 0.8,
 };

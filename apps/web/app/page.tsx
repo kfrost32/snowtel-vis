@@ -170,8 +170,13 @@ function HomePageInner() {
   const legendTitle = LEGEND_TITLES[metric] ?? METRIC_LABELS[metric] ?? metric;
   const legendItems = METRIC_LEGEND[metric] ?? METRIC_LEGEND.TAVG;
 
-  const huc2Basins = useMemo(() => (!stations.length ? [] : computeBasinSummaries(stations, 2)), [stations]);
-  const huc4Basins = useMemo(() => (!stations.length ? [] : computeBasinSummaries(stations, 4)), [stations]);
+  const selectedStateList = useMemo(() => [...selectedStates], [selectedStates]);
+  const regionStations = useMemo(
+    () => (selectedStates.size ? stations.filter((s) => selectedStates.has(s.state)) : stations),
+    [stations, selectedStates]
+  );
+  const huc2Basins = useMemo(() => (!regionStations.length ? [] : computeBasinSummaries(regionStations, 2)), [regionStations]);
+  const huc4Basins = useMemo(() => (!regionStations.length ? [] : computeBasinSummaries(regionStations, 4)), [regionStations]);
 
   const huc2Markers = useMemo(() => regionMarkers(huc2Basins), [huc2Basins]);
   const huc4Markers = useMemo(() => regionMarkers(huc4Basins), [huc4Basins]);
@@ -184,7 +189,10 @@ function HomePageInner() {
   }, [allBasins, selectedBasinHuc]);
 
   const selectedStation = selectedTriplet ? getStation(selectedTriplet) : null;
-  const spots = useMemo(() => getAllSpots(), []);
+  const spots = useMemo(
+    () => getAllSpots().filter((spot) => !selectedStates.size || selectedStates.has(spot.state)),
+    [selectedStates]
+  );
   usePageTitle(selectedStation?.name ?? selectedBasin?.name ?? null);
   useAnalytics(selectedTriplet, selectedBasinHuc);
 
@@ -392,6 +400,8 @@ function HomePageInner() {
             onBasinSelect={handleBasinClick}
             spots={spots}
             showSpots={showSpots}
+            selectedStates={selectedStateList}
+            fitPadding={{ top: 48, right: 48, bottom: 48, left: !isMobile && sidebarOpen ? SIDEBAR_WIDTH + SIDEBAR_INSET * 2 + 48 : 48 }}
           />
 
           {(loading || stale) && (
