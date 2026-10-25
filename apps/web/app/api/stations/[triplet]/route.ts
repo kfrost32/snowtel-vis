@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStation, parseTripletFromUrl } from "@snotel/core/stations";
-import { fetchElementData, fetchMedianData, generateDates } from "@/lib/snotel-api";
+import { fetchDailyData, generateDates } from "@/lib/snotel-api";
 import { getCurrentWaterYear, getWaterYearStart } from "@snotel/core/water-year";
 import { getCached, setCache, wrapFresh, wrapStale } from "@/lib/api-cache";
 import type { DailyObservation, StationSeasonData } from "@snotel/core/types";
@@ -26,33 +26,22 @@ export async function GET(
     const wy = getCurrentWaterYear();
     const wyStart = getWaterYearStart(wy);
     const today = new Date().toISOString().split("T")[0];
-    const todayDate = new Date();
 
-    const [wteqMap, snwdMap, precMap, tmaxMap, tminMap, tavgMap, medianOctDec, medianJanNow] = await Promise.all([
-      fetchElementData([triplet], "WTEQ", wyStart, today, { strict: true, timeout: NRCS_TIMEOUT_MS }),
-      fetchElementData([triplet], "SNWD", wyStart, today, { timeout: NRCS_TIMEOUT_MS }),
-      fetchElementData([triplet], "PREC", wyStart, today, { timeout: NRCS_TIMEOUT_MS }),
-      fetchElementData([triplet], "TMAX", wyStart, today, { timeout: NRCS_TIMEOUT_MS }),
-      fetchElementData([triplet], "TMIN", wyStart, today, { timeout: NRCS_TIMEOUT_MS }),
-      fetchElementData([triplet], "TAVG", wyStart, today, { timeout: NRCS_TIMEOUT_MS }),
-      fetchMedianData([triplet], "WTEQ", 10, 1, 12, 31, { timeout: NRCS_TIMEOUT_MS }),
-      todayDate.getMonth() >= 9
-        ? Promise.resolve(new Map<string, (number | null)[]>())
-        : fetchMedianData([triplet], "WTEQ", 1, 1, todayDate.getMonth() + 1, todayDate.getDate(), { timeout: NRCS_TIMEOUT_MS }),
-    ]);
+    const series = (await fetchDailyData([triplet], ["WTEQ", "SNWD", "PREC", "TMAX", "TMIN", "TAVG"], wyStart, today, {
+      strict: true,
+      timeout: NRCS_TIMEOUT_MS,
+      median: true,
+    })).get(triplet) ?? {};
 
-    const wteq = wteqMap.get(triplet);
+    const wteq = series.WTEQ;
     const dates = wteq?.dates || generateDates(wyStart, today);
     const wteqVals = wteq?.values || [];
-    const snwdVals = snwdMap.get(triplet)?.values || [];
-    const precVals = precMap.get(triplet)?.values || [];
-    const tmaxVals = tmaxMap.get(triplet)?.values || [];
-    const tminVals = tminMap.get(triplet)?.values || [];
-    const tavgVals = tavgMap.get(triplet)?.values || [];
-
-    const octDecMedian = medianOctDec.get(triplet) || [];
-    const janNowMedian = medianJanNow.get(triplet) || [];
-    const allMedian = [...octDecMedian, ...janNowMedian];
+    const allMedian = wteq?.medians || [];
+    const snwdVals = series.SNWD?.values || [];
+    const precVals = series.PREC?.values || [];
+    const tmaxVals = series.TMAX?.values || [];
+    const tminVals = series.TMIN?.values || [];
+    const tavgVals = series.TAVG?.values || [];
 
     const season: DailyObservation[] = dates.map((date, i) => ({
       date,

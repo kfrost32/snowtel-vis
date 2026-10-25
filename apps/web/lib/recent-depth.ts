@@ -27,7 +27,7 @@ function recentDepth(values: HourlyValue[]): RecentDepth | null {
 export async function fetchRecentDepth(): Promise<RecentConditions> {
   const triplets = getAllStations().filter((s) => s.network === "SNOTEL").map((s) => s.triplet);
   const today = todayInDataTimezone();
-  const depth = await fetchHourlyData(triplets, "SNWD", shiftDate(today, -1), shiftDate(today, 1), {
+  const depth = await fetchHourlyData(triplets, ["SNWD"], shiftDate(today, -1), shiftDate(today, 1), {
     strict: true,
     timeout: BULK_TIMEOUT_MS,
     batchSize: BATCH_SIZE,
@@ -35,8 +35,8 @@ export async function fetchRecentDepth(): Promise<RecentConditions> {
 
   const stations: Record<string, RecentDepth> = {};
   let asOf: string | null = null;
-  for (const [triplet, values] of depth) {
-    const recent = recentDepth(values);
+  for (const [triplet, { SNWD }] of depth) {
+    const recent = SNWD && recentDepth(SNWD);
     if (!recent) continue;
     stations[triplet] = recent;
     if (!asOf || recent.depthAt > asOf) asOf = recent.depthAt;

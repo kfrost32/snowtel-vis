@@ -27,13 +27,9 @@ export async function GET(
     begin.setDate(begin.getDate() - 7);
     const beginDate = begin.toISOString().split("T")[0];
 
-    const [snwdMap, tobsMap] = await Promise.all([
-      fetchHourlyData([triplet], "SNWD", beginDate, endDate, { timeout: NRCS_TIMEOUT_MS }),
-      fetchHourlyData([triplet], "TOBS", beginDate, endDate, { timeout: NRCS_TIMEOUT_MS }),
-    ]);
-
-    const snwd = snwdMap.get(triplet) || [];
-    const tobs = tobsMap.get(triplet) || [];
+    const series = (await fetchHourlyData([triplet], ["SNWD", "TOBS"], beginDate, endDate, { strict: true, timeout: NRCS_TIMEOUT_MS })).get(triplet);
+    const snwd = series?.SNWD ?? [];
+    const tobs = series?.TOBS ?? [];
     const tobsByTime = new Map(tobs.map((v) => [v.datetime, v.value]));
 
     const data: HourlyObservation[] = snwd.map((s) => ({

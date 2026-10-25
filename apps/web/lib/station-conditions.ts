@@ -1,10 +1,11 @@
 import { getAllStations } from "@snotel/core/stations";
-import { fetchElementData, fetchMedianData } from "./snotel-api";
+import { fetchDailyData } from "./snotel-api";
 import type { StationCurrentConditions } from "@snotel/core/types";
 
 const LOOKBACK_DAYS = 8;
 const DATA_TIMEZONE = "America/Denver";
 const BULK_TIMEOUT_MS = 90000;
+const BATCH_SIZE = 50;
 
 export function todayInDataTimezone(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: DATA_TIMEZONE }).format(new Date());
@@ -32,15 +33,12 @@ export async function fetchStationConditions(): Promise<StationCurrentConditions
 
   const endDate = todayInDataTimezone();
   const beginDate = shiftDate(endDate, -LOOKBACK_DAYS);
-  const [, month, day] = endDate.split("-").map(Number);
-
-  const [wteqData, snwdData, precData, tobsData, medianData] = await Promise.all([
-    fetchElementData(snotelTriplets, "WTEQ", beginDate, endDate, { strict: true, timeout: BULK_TIMEOUT_MS }),
-    fetchElementData(snotelTriplets, "SNWD", beginDate, endDate, { timeout: BULK_TIMEOUT_MS }),
-    fetchElementData(snotelTriplets, "PREC", beginDate, endDate, { timeout: BULK_TIMEOUT_MS }),
-    fetchElementData(snotelTriplets, "TOBS", beginDate, endDate, { timeout: BULK_TIMEOUT_MS }),
-    fetchMedianData(snotelTriplets, "WTEQ", month, day, month, day, { strict: true, timeout: BULK_TIMEOUT_MS }),
-  ]);
+  const data = await fetchDailyData(snotelTriplets, ["WTEQ", "SNWD", "PREC", "TOBS"], beginDate, endDate, {
+    strict: true,
+    timeout: BULK_TIMEOUT_MS,
+    batchSize: BATCH_SIZE,
+    median: true,
+  });
 
   return stations.map((station): StationCurrentConditions => {
     if (station.network !== "SNOTEL") {
@@ -53,11 +51,12 @@ export async function fetchStationConditions(): Promise<StationCurrentConditions
       };
     }
 
-    const wteq = wteqData.get(station.triplet)?.values ?? [];
-    const snwd = snwdData.get(station.triplet)?.values ?? [];
-    const prec = precData.get(station.triplet)?.values ?? [];
-    const tobs = tobsData.get(station.triplet)?.values ?? [];
-    const sweNormal = medianData.get(station.triplet)?.[0] ?? null;
+    const series = data.get(station.triplet) ?? {};
+    const wteq = series.WTEQ?.values ?? [];
+    const snwd = series.SNWD?.values ?? [];
+    const prec = series.PREC?.values ?? [];
+    const tobs = series.TOBS?.values ?? [];
+    const sweNormal = series.WTEQ?.medians.at(-1) ?? null;
 
     const swe = wteq.at(-1) ?? null;
     const pctOfNormal = swe !== null && sweNormal !== null && sweNormal > 0

@@ -1,92 +1,56 @@
-export const SOAP_URL = "https://wcc.sc.egov.usda.gov/awdbWebService/services";
-const MAX_BATCH_SIZE = 300;
+export const REST_URL = "https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1";
+const MAX_STATION_ELEMENTS = 1000;
 
-export function buildSoapEnvelope(method: string, params: string): string {
-  return `<?xml version="1.0"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.wcc.nrcs.usda.gov/ns/awdbWebService">
-<soapenv:Body><web:${method}>${params}</web:${method}></soapenv:Body>
-</soapenv:Envelope>`;
+interface RestValue {
+  date: string;
+  value?: number | null;
+  median?: number | null;
 }
 
-async function soapRequestOnce(method: string, params: string, timeout: number): Promise<string> {
+interface RestStation {
+  stationTriplet: string;
+  data: { stationElement: { elementCode: string }; values?: RestValue[] }[];
+}
+
+export interface DailySeries {
+  dates: string[];
+  values: (number | null)[];
+  medians: (number | null)[];
+}
+
+export interface HourlyValue {
+  datetime: string;
+  value: number | null;
+}
+
+export interface BulkFetchOptions {
+  strict?: boolean;
+  timeout?: number;
+  batchSize?: number;
+}
+
+async function restRequestOnce(params: Record<string, string>, timeout: number): Promise<RestStation[]> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
-    const res = await fetch(SOAP_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/xml" },
-      body: buildSoapEnvelope(method, params),
+    const res = await fetch(`${REST_URL}/data?${new URLSearchParams(params)}`, {
       signal: controller.signal,
       cache: "no-store",
     });
-    if (!res.ok) throw new Error(`SOAP request failed: ${res.status}`);
-    return await res.text();
+    if (!res.ok) throw new Error(`NRCS request failed: ${res.status}`);
+    return await res.json();
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function soapRequest(method: string, params: string, timeout = 30000): Promise<string> {
+async function restRequest(params: Record<string, string>, timeout = 30000): Promise<RestStation[]> {
   try {
-    return await soapRequestOnce(method, params, timeout);
+    return await restRequestOnce(params, timeout);
   } catch (e) {
     if ((e as Error).name === "AbortError") throw e;
-    return soapRequestOnce(method, params, timeout);
+    return restRequestOnce(params, timeout);
   }
-}
-
-function parseNumericValue(val: string): number | null {
-  if (!val || val === "" || val === "-99.9" || val === "-99.0") return null;
-  const num = parseFloat(val);
-  return isNaN(num) ? null : num;
-}
-
-function extractReturnBlocks(xml: string): string[] {
-  const blocks: string[] = [];
-  let idx = 0;
-  while (true) {
-    const start = xml.indexOf("<return>", idx);
-    if (start === -1) break;
-    const end = xml.indexOf("</return>", start);
-    if (end === -1) break;
-    blocks.push(xml.substring(start + 8, end));
-    idx = end + 9;
-  }
-  return blocks;
-}
-
-function extractTag(block: string, tag: string): string | null {
-  const start = block.indexOf(`<${tag}>`);
-  if (start === -1) return null;
-  const end = block.indexOf(`</${tag}>`, start);
-  if (end === -1) return null;
-  return block.substring(start + tag.length + 2, end);
-}
-
-function extractAllTags(block: string, tag: string): string[] {
-  const results: string[] = [];
-  let idx = 0;
-  const openTag = `<${tag}>`;
-  const closeTag = `</${tag}>`;
-  while (true) {
-    const start = block.indexOf(openTag, idx);
-    if (start === -1) break;
-    const end = block.indexOf(closeTag, start);
-    if (end === -1) break;
-    results.push(block.substring(start + openTag.length, end));
-    idx = end + closeTag.length;
-  }
-  return results;
-}
-
-function generateNDates(beginDate: string, count: number): string[] {
-  const dates: string[] = [];
-  const d = new Date(beginDate.split(" ")[0] + "T12:00:00Z");
-  for (let i = 0; i < count; i++) {
-    dates.push(d.toISOString().split("T")[0]);
-    d.setUTCDate(d.getUTCDate() + 1);
-  }
-  return dates;
 }
 
 export function generateDates(beginDate: string, endDate: string): string[] {
@@ -101,153 +65,96 @@ export function generateDates(beginDate: string, endDate: string): string[] {
   return dates;
 }
 
-export function parseGetDataResponse(xml: string): Map<string, { dates: string[]; values: (number | null)[] }> {
-  const result = new Map<string, { dates: string[]; values: (number | null)[] }>();
-  const blocks = extractReturnBlocks(xml);
-  for (const block of blocks) {
-    const triplet = extractTag(block, "stationTriplet");
-    if (!triplet) continue;
-    const beginDate = extractTag(block, "beginDate");
-    const endDate = extractTag(block, "endDate");
-    if (!beginDate || !endDate) continue;
-    const rawValues = extractAllTags(block, "values");
-    const values = rawValues.map((v) => parseNumericValue(v));
-    const dates = generateNDates(beginDate, values.length);
-    result.set(triplet, { dates, values });
-  }
-  return result;
+function toDailySeries(beginDate: string, values: RestValue[]): DailySeries | null {
+  const last = values.at(-1);
+  if (!last) return null;
+  const byDate = new Map(values.map((v) => [v.date.split(" ")[0], v]));
+  const dates = generateDates(beginDate, last.date);
+  return {
+    dates,
+    values: dates.map((d) => byDate.get(d)?.value ?? null),
+    medians: dates.map((d) => byDate.get(d)?.median ?? null),
+  };
 }
 
-export interface HourlyValue {
-  datetime: string;
-  value: number | null;
-}
-
-export function parseHourlyDataResponse(xml: string): Map<string, HourlyValue[]> {
-  const result = new Map<string, HourlyValue[]>();
-  const blocks = extractReturnBlocks(xml);
-  for (const block of blocks) {
-    const triplet = extractTag(block, "stationTriplet");
-    if (!triplet) continue;
-    const valuesBlocks = extractAllTags(block, "values");
-    const hourlyValues: HourlyValue[] = [];
-    for (const vBlock of valuesBlocks) {
-      const dt = extractTag(vBlock, "dateTime");
-      const val = extractTag(vBlock, "value");
-      if (dt) {
-        hourlyValues.push({ datetime: dt, value: val ? parseNumericValue(val) : null });
-      }
+function groupByStation<T>(
+  stations: RestStation[],
+  convert: (values: RestValue[]) => T | null
+): Map<string, Record<string, T>> {
+  const result = new Map<string, Record<string, T>>();
+  for (const station of stations) {
+    const elements: Record<string, T> = {};
+    for (const { stationElement, values } of station.data) {
+      const series = convert(values ?? []);
+      if (series) elements[stationElement.elementCode] = series;
     }
-    result.set(triplet, hourlyValues);
+    result.set(station.stationTriplet, elements);
   }
   return result;
-}
-
-export function parseCentralTendencyResponse(xml: string): (number | null)[][] {
-  const results: (number | null)[][] = [];
-  const blocks = extractReturnBlocks(xml);
-  for (const block of blocks) {
-    const rawValues = extractAllTags(block, "values");
-    results.push(rawValues.map((v) => parseNumericValue(v)));
-  }
-  return results;
-}
-
-export interface BulkFetchOptions {
-  strict?: boolean;
-  timeout?: number;
-  batchSize?: number;
-}
-
-function tripletParams(triplets: string[]): string {
-  return triplets.map((t) => `<stationTriplets>${t}</stationTriplets>`).join("");
 }
 
 async function fetchInBatches<T>(
   triplets: string[],
-  batchSize: number,
-  strict: boolean,
+  elements: string[],
+  { strict = false, batchSize = Infinity }: BulkFetchOptions,
   request: (batch: string[]) => Promise<Map<string, T>>
 ): Promise<Map<string, T>> {
-  const fail = (e: unknown): Map<string, T> => {
-    if (strict) throw e;
-    return new Map<string, T>();
-  };
+  const size = Math.min(batchSize, Math.floor(MAX_STATION_ELEMENTS / elements.length));
   const fetchBatch = (batch: string[]): Promise<Map<string, T>> =>
-    request(batch).catch(async (e) => {
-      if ((e as Error).name !== "AbortError" || batch.length < 2) return fail(e);
+    request(batch).catch(async () => {
+      if (batch.length < 2) return new Map<string, T>();
       const mid = Math.ceil(batch.length / 2);
-      const halves = await Promise.all([batch.slice(0, mid), batch.slice(mid)].map((half) => request(half).catch(fail)));
+      const halves = await Promise.all([batch.slice(0, mid), batch.slice(mid)].map(fetchBatch));
       return new Map([...halves[0], ...halves[1]]);
     });
   const batches: string[][] = [];
-  for (let i = 0; i < triplets.length; i += batchSize) {
-    batches.push(triplets.slice(i, i + batchSize));
+  for (let i = 0; i < triplets.length; i += size) {
+    batches.push(triplets.slice(i, i + size));
   }
   const results = await Promise.all(batches.map(fetchBatch));
   const merged = new Map<string, T>();
   for (const map of results) {
     for (const [k, v] of map) merged.set(k, v);
   }
+  if (strict && merged.size === 0 && triplets.length > 0) throw new Error("NRCS returned no data");
   return merged;
 }
 
-export function fetchElementData(
+export function fetchDailyData(
   triplets: string[],
-  elementCd: string,
+  elements: string[],
   beginDate: string,
   endDate: string,
-  { strict = false, timeout, batchSize = MAX_BATCH_SIZE }: BulkFetchOptions = {}
-): Promise<Map<string, { dates: string[]; values: (number | null)[] }>> {
-  return fetchInBatches(triplets, batchSize, strict, (batch) =>
-    soapRequest("getData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><ordinal>1</ordinal><duration>DAILY</duration><getFlags>false</getFlags><beginDate>${beginDate}</beginDate><endDate>${endDate}</endDate><alwaysReturnDailyFeb29>false</alwaysReturnDailyFeb29>`, timeout)
-      .then(parseGetDataResponse)
+  { median = false, ...options }: BulkFetchOptions & { median?: boolean } = {}
+): Promise<Map<string, Record<string, DailySeries>>> {
+  return fetchInBatches(triplets, elements, options, (batch) =>
+    restRequest(
+      {
+        stationTriplets: batch.join(","),
+        elements: elements.join(","),
+        duration: "DAILY",
+        beginDate,
+        endDate,
+        ...(median && { centralTendencyType: "MEDIAN" }),
+      },
+      options.timeout
+    ).then((stations) => groupByStation(stations, (values) => toDailySeries(beginDate, values)))
   );
 }
 
 export function fetchHourlyData(
   triplets: string[],
-  elementCd: string,
+  elements: string[],
   beginDate: string,
   endDate: string,
-  { strict = false, timeout, batchSize = MAX_BATCH_SIZE }: BulkFetchOptions = {}
-): Promise<Map<string, HourlyValue[]>> {
-  return fetchInBatches(triplets, batchSize, strict, (batch) =>
-    soapRequest("getHourlyData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><ordinal>1</ordinal><beginDate>${beginDate}</beginDate><endDate>${endDate}</endDate>`, timeout)
-      .then(parseHourlyDataResponse)
-  );
-}
-
-export async function fetchMedianData(
-  triplets: string[],
-  elementCd: string,
-  beginMonth: number,
-  beginDay: number,
-  endMonth: number,
-  endDay: number,
-  { strict = false, timeout }: BulkFetchOptions = {}
-): Promise<Map<string, (number | null)[]>> {
-  const result = new Map<string, (number | null)[]>();
-  const batches: string[][] = [];
-  for (let i = 0; i < triplets.length; i += MAX_BATCH_SIZE) {
-    batches.push(triplets.slice(i, i + MAX_BATCH_SIZE));
-  }
-  const batchResults = await Promise.all(
-    batches.map((batch) =>
-      soapRequest("getCentralTendencyData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><duration>DAILY</duration><getFlags>false</getFlags><centralTendencyType>MEDIAN</centralTendencyType><beginMonth>${beginMonth}</beginMonth><beginDay>${beginDay}</beginDay><endMonth>${endMonth}</endMonth><endDay>${endDay}</endDay>`, timeout)
-        .then((xml) => ({ triplets: batch, data: parseCentralTendencyResponse(xml) }))
-        .catch((e) => {
-          if (strict) throw e;
-          return { triplets: batch, data: [] as (number | null)[][] };
-        })
+  options: BulkFetchOptions = {}
+): Promise<Map<string, Record<string, HourlyValue[]>>> {
+  return fetchInBatches(triplets, elements, options, (batch) =>
+    restRequest(
+      { stationTriplets: batch.join(","), elements: elements.join(","), duration: "HOURLY", beginDate, endDate },
+      options.timeout
+    ).then((stations) =>
+      groupByStation(stations, (values) => values.map((v) => ({ datetime: v.date, value: v.value ?? null })))
     )
   );
-  for (const { triplets: batchTriplets, data } of batchResults) {
-    for (let i = 0; i < batchTriplets.length; i++) {
-      result.set(batchTriplets[i], data[i] || []);
-    }
-  }
-  return result;
 }
-
-export { parseNumericValue };

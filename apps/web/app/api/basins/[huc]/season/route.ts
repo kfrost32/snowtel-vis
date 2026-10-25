@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 import { getAllStations } from "@snotel/core/stations";
-import { fetchElementData } from "@/lib/snotel-api";
+import { fetchDailyData } from "@/lib/snotel-api";
 import { getStationHucs } from "@snotel/core/basins";
 import { todayInDataTimezone } from "@/lib/station-conditions";
 import { getCurrentWaterYear, getWaterYearStart, getWaterYearDay } from "@snotel/core/water-year";
@@ -17,14 +17,16 @@ const getBasinSeason = unstable_cache(
     const triplets = getAllStations()
       .filter((s) => s.network === "SNOTEL" && getStationHucs(s).some((h) => h.startsWith(huc)))
       .map((s) => s.triplet);
-    const data = await fetchElementData(triplets, "WTEQ", getWaterYearStart(getCurrentWaterYear()), todayInDataTimezone(), {
+    const data = await fetchDailyData(triplets, ["WTEQ"], getWaterYearStart(getCurrentWaterYear()), todayInDataTimezone(), {
       strict: true,
       timeout: 90000,
       batchSize: 100,
     });
 
     const sums = new Map<number, { sum: number; n: number }>();
-    for (const { dates, values } of data.values()) {
+    for (const { WTEQ } of data.values()) {
+      if (!WTEQ) continue;
+      const { dates, values } = WTEQ;
       dates.forEach((date, i) => {
         const v = values[i];
         if (v === null) return;

@@ -15,7 +15,7 @@ interface ServiceStatus {
 interface StatusData {
   timestamp: number;
   services: {
-    soap: ServiceStatus;
+    rest: ServiceStatus;
     csv: ServiceStatus;
   };
   overall: "operational" | "degraded" | "down";
