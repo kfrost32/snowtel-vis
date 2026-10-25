@@ -7,6 +7,7 @@ import { STATE_NAMES } from "@snotel/core/constants";
 import { haversineDistance } from "@snotel/core/geo";
 import { formatDistance } from "@snotel/core/formatting";
 import type { Station } from "@snotel/core/types";
+import FavoriteCard from "@/components/FavoriteCard";
 import StationRow from "@/components/StationRow";
 import { useStationList } from "@/hooks/data";
 import { useFavorites } from "@/lib/favorites";
@@ -31,19 +32,25 @@ interface Row {
   distance: number | null;
 }
 
+interface Section {
+  title: string;
+  cards?: boolean;
+  data: Row[];
+}
+
 export default function StationsScreen() {
   const favorites = useFavorites();
   const { stations } = useStationList();
   const { status, coords, request } = useUserLocation();
   const byTriplet = useMemo(() => new Map(stations?.map((s) => [s.triplet, s])), [stations]);
 
-  const sections = useMemo(() => {
+  const sections = useMemo((): Section[] => {
     const distanceTo = (s: Station) => (coords ? haversineDistance(coords.latitude, coords.longitude, s.latitude, s.longitude) : null);
     const favoriteRows = favorites.flatMap((t) => {
       const station = getStation(t);
       return station ? [{ station, distance: distanceTo(station) }] : [];
     });
-    const result: { title: string; data: Row[] }[] = favoriteRows.length ? [{ title: "Favorites", data: favoriteRows }] : [];
+    const result: Section[] = favoriteRows.length ? [{ title: "Favorites", cards: true, data: favoriteRows }] : [];
     if (coords) {
       const excluded = new Set(favorites);
       const nearby = SNOTEL_STATIONS.filter((s) => !excluded.has(s.triplet))
@@ -70,6 +77,14 @@ export default function StationsScreen() {
         renderSectionHeader={({ section }) => <Text style={styles.title}>{section.title}</Text>}
         SectionSeparatorComponent={({ leadingItem, trailingSection }) => (leadingItem && trailingSection ? <View style={styles.sectionGap} /> : null)}
         renderItem={({ item, index, section }) => {
+          const detail = item.distance !== null ? formatDistance(item.distance) : undefined;
+          if (section.cards) {
+            return (
+              <View style={index > 0 && styles.cardGap}>
+                <FavoriteCard station={item.station} detail={detail} />
+              </View>
+            );
+          }
           const first = index === 0;
           const last = index === section.data.length - 1;
           return (
@@ -77,7 +92,7 @@ export default function StationsScreen() {
               <StationRow
                 station={item.station}
                 conditions={byTriplet.get(item.station.triplet)}
-                detail={item.distance !== null ? formatDistance(item.distance) : undefined}
+                detail={detail}
                 last={last}
               />
             </View>
@@ -115,6 +130,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 48 },
   title: { fontSize: 20, fontWeight: "700", color: colors.label, paddingHorizontal: 4, paddingBottom: 8 },
   sectionGap: { height: 24 },
+  cardGap: { marginTop: 12 },
   cell: { overflow: "hidden" },
   cellFirst: { borderTopLeftRadius: CARD_RADIUS, borderTopRightRadius: CARD_RADIUS },
   cellLast: { borderBottomLeftRadius: CARD_RADIUS, borderBottomRightRadius: CARD_RADIUS },

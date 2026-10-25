@@ -14,7 +14,7 @@ const AXIS_WIDTH = 34;
 const AXIS_HEIGHT = 18;
 const HEIGHT = PANEL * 2 + GAP + AXIS_HEIGHT;
 const FREEZING = 32;
-const DEPTH_COLOR = "#7AA0DD";
+export const DEPTH_COLOR = "#7AA0DD";
 const TEMP_COLOR = "#EA580C";
 
 export default function RecentChart({ data }: { data: HourlyObservation[] }) {
