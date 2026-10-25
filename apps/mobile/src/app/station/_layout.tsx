@@ -5,8 +5,7 @@ export default function StationLayout() {
   return (
     <Stack
       screenOptions={{
-        headerLargeTitle: true,
-        headerTransparent: true,
+        headerShown: false,
         contentStyle: { backgroundColor: colors.groupedBackground },
       }}
     >

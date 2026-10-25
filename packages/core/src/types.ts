@@ -24,6 +24,7 @@ export interface StationCurrentConditions extends Station {
   depthChange3d: number | null;
   depthChange7d: number | null;
   lastUpdated: string;
+  depthAt?: string | null;
 }
 
 export interface DailyObservation {

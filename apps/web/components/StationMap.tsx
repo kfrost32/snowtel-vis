@@ -18,6 +18,8 @@ import {
   hillshadePaint,
   stationCircleLayout,
   stationCirclePaint,
+  freshSnowFilter,
+  freshSnowPaint,
   stationFeatures,
   stationLabelLayout,
   stationLabelPaint,
@@ -208,6 +210,13 @@ function StationMapInner({
       map.addSource("stations", {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "fresh-snow",
+        type: "circle",
+        source: "stations",
+        filter: freshSnowFilter,
+        paint: freshSnowPaint,
       });
       map.addLayer({
         id: "station-circles",
@@ -424,6 +433,7 @@ function StationMapInner({
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
     const vis = (v: boolean) => (v ? "visible" : "none");
+    if (map.getLayer("fresh-snow")) map.setLayoutProperty("fresh-snow", "visibility", vis(showStations));
     if (map.getLayer("station-circles")) map.setLayoutProperty("station-circles", "visibility", vis(showStations));
     if (map.getLayer("station-labels")) map.setLayoutProperty("station-labels", "visibility", vis(showStations));
     if (map.getLayer("huc4-fill")) map.setLayoutProperty("huc4-fill", "visibility", vis(showHuc4));

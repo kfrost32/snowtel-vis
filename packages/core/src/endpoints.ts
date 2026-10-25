@@ -2,6 +2,7 @@ import { urlTriplet } from "./stations";
 
 export const endpoints = {
   stations: () => "/api/stations",
+  stationsRecent: () => "/api/stations/recent",
   stationSeason: (triplet: string) => `/api/stations/${urlTriplet(triplet)}`,
   stationHourly: (triplet: string) => `/api/stations/${urlTriplet(triplet)}/hourly`,
   stationEnvelope: (triplet: string) => `/envelopes/stations/${urlTriplet(triplet)}.json`,

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { X, Star } from "lucide-react";
 import { theme, glassmorphicButtonStyle } from "@snotel/core/theme";
-import { formatSwe, formatPctOfNormal, formatSnowDepth, formatChange } from "@snotel/core/formatting";
+import { formatSwe, formatPctOfNormal, formatSnowDepth, formatChange, formatReadingDateShort } from "@snotel/core/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor } from "@snotel/core/colors";
 import { getWaterYearDay, getCurrentWaterYear } from "@snotel/core/water-year";
 import { basinSeasonMap, statsAt } from "@snotel/core/station-stats";
@@ -51,7 +51,7 @@ export default function BasinDetailPanel({
   );
 
   const asOfLabel = basin.asOf
-    ? new Date(`${basin.asOf}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    ? formatReadingDateShort(basin.asOf)
     : null;
 
   const envelopeStats = useMemo(() => {

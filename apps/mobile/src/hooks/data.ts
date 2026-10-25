@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import useSWR from "swr";
 import { endpoints } from "@snotel/core/endpoints";
 import { basinSeasonMap, peakHistory, toBasinEnvelope, toStationEnvelope } from "@snotel/core/station-stats";
+import { RECENT_REFRESH_MS, withRecentDepth, type RecentConditions } from "@snotel/core/recent";
 import type { BasinEnvelopeFile, StationEnvelopeFile, YearsFile } from "@snotel/core/envelope-files";
 import type { ApiResponse, HourlyObservation, StationCurrentConditions, StationSeasonData } from "@snotel/core/types";
 
@@ -9,14 +10,23 @@ const STALE_RETRY_MS = 15000;
 
 export function useStationList() {
   const { data, isLoading } = useSWR<ApiResponse<StationCurrentConditions[]>>(endpoints.stations(), {
-    refreshInterval: (latest) => (latest?.stale ? STALE_RETRY_MS : 0),
+    refreshInterval: (latest) => (latest?.stale ? STALE_RETRY_MS : RECENT_REFRESH_MS),
   });
   return { stations: data?.data ?? null, loading: isLoading, stale: data?.stale ?? false };
 }
 
+export function useRecentConditions() {
+  const { data } = useSWR<ApiResponse<RecentConditions>>(endpoints.stationsRecent(), { refreshInterval: RECENT_REFRESH_MS });
+  return data?.data ?? null;
+}
+
 export function useStationConditions(triplet: string) {
   const { stations } = useStationList();
-  return useMemo(() => stations?.find((s) => s.triplet === triplet) ?? null, [stations, triplet]);
+  const recent = useRecentConditions();
+  return useMemo(() => {
+    const station = stations?.find((s) => s.triplet === triplet);
+    return station ? withRecentDepth([station], recent)[0] : null;
+  }, [stations, recent, triplet]);
 }
 
 export function useStationDetail(triplet: string) {

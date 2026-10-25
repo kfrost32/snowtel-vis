@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
-import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { computeBasinSummaries } from "@snotel/core/basins";
 import { HUC2_NAMES, HUC4_NAMES } from "@snotel/core/huc-names";
 import { statsAt } from "@snotel/core/station-stats";
 import { getWaterYearDay } from "@snotel/core/water-year";
 import { getConditionColor, getConditionLabel } from "@snotel/core/colors";
-import { formatPctOfNormal, formatReadingDateShort, formatSwe } from "@snotel/core/formatting";
+import { formatPctOfNormal, formatReadingEndOfDay, formatSwe } from "@snotel/core/formatting";
+import DetailHeader from "@/components/DetailHeader";
 import EnvelopeChart from "@/components/charts/EnvelopeChart";
 import Section from "@/components/Section";
 import StationRow from "@/components/StationRow";
@@ -38,70 +39,66 @@ export default function RegionScreen() {
   const pctColor = pct !== null ? getConditionColor(pct) : colors.secondaryLabel;
 
   return (
-    <>
-      <Stack.Title>{name}</Stack.Title>
-      <Stack.Toolbar placement="left">
-        <Stack.Toolbar.Button icon="xmark" accessibilityLabel="Close" onPress={() => router.dismiss()} />
-      </Stack.Toolbar>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
-        <Text style={styles.subtitle}>
-          {level === 2 ? "Region" : "Sub-region"}
-          {basin ? ` · ${basin.indexStationCount} of ${basin.stationCount} stations in index` : ""}
-          {basin?.asOf ? ` · As of ${formatReadingDateShort(basin.asOf)}` : ""}
-        </Text>
+    <ScrollView contentContainerStyle={styles.content}>
+      <DetailHeader
+        title={name}
+        subtitle={[
+          level === 2 ? "Region" : "Sub-region",
+          basin && `${basin.indexStationCount} of ${basin.stationCount} stations`,
+          basin?.asOf && formatReadingEndOfDay(basin.asOf),
+        ]}
+      />
 
-        {!basin ? (
-          <ActivityIndicator style={styles.loading} />
-        ) : (
-          <>
-            <Section>
-              <Hero value={formatPctOfNormal(pct)} color={pctColor} caption={pct !== null ? getConditionLabel(pct) : "No median yet"} />
-              <Row label="Average SWE" value={formatSwe(basin.avgSwe)} detail={stats ? `median ${formatSwe(stats.medianAtDay)}` : undefined} />
-              <Row label="Percentile" value={stats?.percentile != null ? String(stats.percentile) : "—"} detail="vs. all years today" />
-              <Row
-                label="Median peak"
-                value={formatPctOfNormal(stats?.pctOfMedianPeak ?? null)}
-                detail={stats ? `${Math.abs(stats.daysUntilPeak)}d ${stats.daysUntilPeak >= 0 ? "to go" : "past"}` : undefined}
-                last
+      {!basin ? (
+        <ActivityIndicator style={styles.loading} />
+      ) : (
+        <>
+          <Section>
+            <Hero value={formatPctOfNormal(pct)} color={pctColor} caption={pct !== null ? getConditionLabel(pct) : "No median yet"} />
+            <Row label="Average SWE" value={formatSwe(basin.avgSwe)} detail={stats ? `median ${formatSwe(stats.medianAtDay)}` : undefined} />
+            <Row label="Percentile" value={stats?.percentile != null ? String(stats.percentile) : "—"} detail="vs. all years today" />
+            <Row
+              label="Median peak"
+              value={formatPctOfNormal(stats?.pctOfMedianPeak ?? null)}
+              detail={stats ? `${Math.abs(stats.daysUntilPeak)}d ${stats.daysUntilPeak >= 0 ? "to go" : "past"}` : undefined}
+              last
+            />
+          </Section>
+
+          {loading ? (
+            <ActivityIndicator />
+          ) : envelope ? (
+            <Section title="Snow Water Equivalent">
+              <EnvelopeChart
+                envelope={envelope.envelope}
+                seasonMap={seasonMap}
+                todayWyDay={basin.asOf ? getWaterYearDay(basin.asOf) : null}
+                peakDay={envelope.medianPeakDay}
+                peakValue={envelope.medianPeakSwe}
+                format={formatSwe}
+                axisLabel={(v) => `${v}"`}
               />
             </Section>
+          ) : null}
 
-            {loading ? (
-              <ActivityIndicator />
-            ) : envelope ? (
-              <Section title="Snow Water Equivalent">
-                <EnvelopeChart
-                  envelope={envelope.envelope}
-                  seasonMap={seasonMap}
-                  todayWyDay={basin.asOf ? getWaterYearDay(basin.asOf) : null}
-                  peakDay={envelope.medianPeakDay}
-                  peakValue={envelope.medianPeakSwe}
-                  format={formatSwe}
-                  axisLabel={(v) => `${v}"`}
-                />
-              </Section>
-            ) : null}
-
-            <View style={styles.stations}>
-              <Text style={styles.sectionTitle}>Stations</Text>
-              <View style={styles.group}>
-                {sorted.map((s, i) => (
-                  <StationRow key={s.triplet} station={s} conditions={s} last={i === sorted.length - 1} />
-                ))}
-              </View>
+          <View style={styles.stations}>
+            <Text style={styles.sectionTitle}>Stations</Text>
+            <View style={styles.group}>
+              {sorted.map((s, i) => (
+                <StationRow key={s.triplet} station={s} conditions={s} last={i === sorted.length - 1} />
+              ))}
             </View>
+          </View>
 
-            <Text style={styles.footer}>Regional index is total SWE over total median SWE for reporting stations · USDA NRCS</Text>
-          </>
-        )}
-      </ScrollView>
-    </>
+          <Text style={styles.footer}>Regional index is total SWE over total median SWE for reporting stations · USDA NRCS</Text>
+        </>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 16, paddingBottom: 48, gap: 24 },
-  subtitle: { fontSize: 15, color: colors.secondaryLabel, paddingHorizontal: 4 },
+  content: { paddingHorizontal: 16, paddingTop: 28, paddingBottom: 48, gap: 24 },
   loading: { marginTop: 40 },
   stations: { gap: 8 },
   sectionTitle: { fontSize: 20, fontWeight: "700", color: colors.label, paddingHorizontal: 4 },

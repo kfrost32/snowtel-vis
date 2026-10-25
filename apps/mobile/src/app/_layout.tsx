@@ -1,13 +1,22 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
-import { useColorScheme } from "react-native";
+import { AppState, useColorScheme } from "react-native";
 import { SWRConfig } from "swr";
 import { fetcher } from "@/lib/api";
+
+function onAppActive(callback: () => void) {
+  let state = AppState.currentState;
+  const subscription = AppState.addEventListener("change", (next) => {
+    if (state !== "active" && next === "active") callback();
+    state = next;
+  });
+  return () => subscription.remove();
+}
 
 export default function RootLayout() {
   const dark = useColorScheme() === "dark";
   return (
     <ThemeProvider value={dark ? DarkTheme : DefaultTheme}>
-      <SWRConfig value={{ fetcher, revalidateOnFocus: false, dedupingInterval: 60000, errorRetryCount: 2 }}>
+      <SWRConfig value={{ fetcher, dedupingInterval: 60000, errorRetryCount: 2, initFocus: onAppActive }}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen

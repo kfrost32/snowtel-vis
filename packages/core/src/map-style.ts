@@ -9,7 +9,8 @@ import type { BasinSummary, StationCurrentConditions } from "./types";
 import { getMapMarkerColor, getMetricMapColor } from "./colors";
 import { computeBasinCentroid, computePolygonCentroid } from "./basins";
 import { formatDepthChange } from "./formatting";
-import { theme } from "./theme";
+import { hasFreshSnow } from "./recent";
+import { snowColors, theme } from "./theme";
 
 export const BASEMAP_STYLE_URL = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 export const INITIAL_CENTER: [number, number] = [-110, 44];
@@ -53,8 +54,21 @@ export function stationDetail(metric: string, s: StationCurrentConditions): stri
   return `${Math.round(s.pctOfNormal!)}% · ${s.swe!.toFixed(1)}" SWE · ${elevation}`;
 }
 
+function isHollow(metric: string, s: StationCurrentConditions): boolean {
+  return isSweMetric(metric) && s.pctOfNormal === null;
+}
+
+function isInactive(metric: string, s: StationCurrentConditions): boolean {
+  switch (metric) {
+    case "WTEQ":
+    case "WTEQ_PCT": return s.swe === null;
+    case "SNWD": return !s.snowDepth;
+    case "SNWD_CHANGE_1D": return !s.depthChange1d;
+    default: return false;
+  }
+}
+
 export function stationFeatures(stations: StationCurrentConditions[], metric: string): GeoJSON.FeatureCollection<GeoJSON.Point> {
-  const swe = isSweMetric(metric);
   return {
     type: "FeatureCollection",
     features: stations.filter((s) => s.latitude && s.longitude).map((s) => ({
@@ -64,10 +78,11 @@ export function stationFeatures(stations: StationCurrentConditions[], metric: st
         triplet: s.triplet,
         name: s.name,
         color: getMetricMapColor(metric, s),
-        inactive: swe && s.swe === null,
-        hollow: swe && s.pctOfNormal === null,
-        label: swe && s.pctOfNormal === null ? "" : metricDotLabel(metric, s),
+        inactive: isInactive(metric, s),
+        hollow: isHollow(metric, s),
+        label: isHollow(metric, s) ? "" : metricDotLabel(metric, s),
         hoverDetail: stationDetail(metric, s),
+        fresh: metric !== "SNWD_CHANGE_1D" && hasFreshSnow(s) && !isHollow(metric, s) && !isInactive(metric, s),
         sortKey: s.latitude,
       },
     })),
@@ -94,6 +109,15 @@ export const stationCirclePaint: CircleLayerSpecification["paint"] = {
   ],
   "circle-stroke-color": ["case", ["get", "hollow"], theme.mediumGray, theme.white],
   "circle-opacity": ["case", ["get", "inactive"], 0.35, 1],
+};
+
+export const freshSnowFilter: CircleLayerSpecification["filter"] = ["==", ["get", "fresh"], true];
+
+export const freshSnowPaint: CircleLayerSpecification["paint"] = {
+  "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 8, 5, 12, 7, 19, 10, 26],
+  "circle-color": "rgba(0,0,0,0)",
+  "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 3, 1.5, 7, 3],
+  "circle-stroke-color": snowColors.freshSnow,
 };
 
 export const STATION_LABEL_MINZOOM = 6;

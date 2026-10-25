@@ -163,57 +163,59 @@ function tripletParams(triplets: string[]): string {
   return triplets.map((t) => `<stationTriplets>${t}</stationTriplets>`).join("");
 }
 
-export async function fetchElementData(
+async function fetchInBatches<T>(
   triplets: string[],
-  elementCd: string,
-  beginDate: string,
-  endDate: string,
-  { strict = false, timeout, batchSize = MAX_BATCH_SIZE }: BulkFetchOptions = {}
-): Promise<Map<string, { dates: string[]; values: (number | null)[] }>> {
-  const merged = new Map<string, { dates: string[]; values: (number | null)[] }>();
+  batchSize: number,
+  strict: boolean,
+  request: (batch: string[]) => Promise<Map<string, T>>
+): Promise<Map<string, T>> {
+  const fail = (e: unknown): Map<string, T> => {
+    if (strict) throw e;
+    return new Map<string, T>();
+  };
+  const fetchBatch = (batch: string[]): Promise<Map<string, T>> =>
+    request(batch).catch(async (e) => {
+      if ((e as Error).name !== "AbortError" || batch.length < 2) return fail(e);
+      const mid = Math.ceil(batch.length / 2);
+      const halves = await Promise.all([batch.slice(0, mid), batch.slice(mid)].map((half) => request(half).catch(fail)));
+      return new Map([...halves[0], ...halves[1]]);
+    });
   const batches: string[][] = [];
   for (let i = 0; i < triplets.length; i += batchSize) {
     batches.push(triplets.slice(i, i + batchSize));
   }
-  const results = await Promise.all(
-    batches.map((batch) =>
-      soapRequest("getData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><ordinal>1</ordinal><duration>DAILY</duration><getFlags>false</getFlags><beginDate>${beginDate}</beginDate><endDate>${endDate}</endDate><alwaysReturnDailyFeb29>false</alwaysReturnDailyFeb29>`, timeout)
-        .then(parseGetDataResponse)
-        .catch((e) => {
-          if (strict) throw e;
-          return new Map<string, { dates: string[]; values: (number | null)[] }>();
-        })
-    )
-  );
+  const results = await Promise.all(batches.map(fetchBatch));
+  const merged = new Map<string, T>();
   for (const map of results) {
     for (const [k, v] of map) merged.set(k, v);
   }
   return merged;
 }
 
-export async function fetchHourlyData(
+export function fetchElementData(
   triplets: string[],
   elementCd: string,
   beginDate: string,
   endDate: string,
-  { timeout }: BulkFetchOptions = {}
-): Promise<Map<string, HourlyValue[]>> {
-  const merged = new Map<string, HourlyValue[]>();
-  const batches: string[][] = [];
-  for (let i = 0; i < triplets.length; i += MAX_BATCH_SIZE) {
-    batches.push(triplets.slice(i, i + MAX_BATCH_SIZE));
-  }
-  const results = await Promise.all(
-    batches.map((batch) =>
-      soapRequest("getHourlyData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><ordinal>1</ordinal><beginDate>${beginDate}</beginDate><endDate>${endDate}</endDate>`, timeout)
-        .then(parseHourlyDataResponse)
-        .catch(() => new Map<string, HourlyValue[]>())
-    )
+  { strict = false, timeout, batchSize = MAX_BATCH_SIZE }: BulkFetchOptions = {}
+): Promise<Map<string, { dates: string[]; values: (number | null)[] }>> {
+  return fetchInBatches(triplets, batchSize, strict, (batch) =>
+    soapRequest("getData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><ordinal>1</ordinal><duration>DAILY</duration><getFlags>false</getFlags><beginDate>${beginDate}</beginDate><endDate>${endDate}</endDate><alwaysReturnDailyFeb29>false</alwaysReturnDailyFeb29>`, timeout)
+      .then(parseGetDataResponse)
   );
-  for (const map of results) {
-    for (const [k, v] of map) merged.set(k, v);
-  }
-  return merged;
+}
+
+export function fetchHourlyData(
+  triplets: string[],
+  elementCd: string,
+  beginDate: string,
+  endDate: string,
+  { strict = false, timeout, batchSize = MAX_BATCH_SIZE }: BulkFetchOptions = {}
+): Promise<Map<string, HourlyValue[]>> {
+  return fetchInBatches(triplets, batchSize, strict, (batch) =>
+    soapRequest("getHourlyData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><ordinal>1</ordinal><beginDate>${beginDate}</beginDate><endDate>${endDate}</endDate>`, timeout)
+      .then(parseHourlyDataResponse)
+  );
 }
 
 export async function fetchMedianData(

@@ -12,8 +12,9 @@ import { computeBasinSummaries } from "@snotel/core/basins";
 import { filterStations } from "@snotel/core/filters";
 import { regionMarkers } from "@snotel/core/map-style";
 import { getAllSpots } from "@snotel/core/spots";
+import { dataAsOfLabel, withRecentDepth } from "@snotel/core/recent";
 import StationMap from "@/components/StationMap";
-import { useStationList } from "@/hooks/data";
+import { useRecentConditions, useStationList } from "@/hooks/data";
 import { activeFilterCount, updateMapSettings, useMapSettings } from "@/lib/map-settings";
 import { colors } from "@/theme";
 
@@ -21,7 +22,7 @@ const METRICS = [
   { key: "WTEQ_PCT", label: "% Median" },
   { key: "WTEQ", label: "SWE" },
   { key: "SNWD", label: "Depth" },
-  { key: "CHANGE_1D", label: "24h" },
+  { key: "SNWD_CHANGE_1D", label: "24h" },
 ];
 
 const SPOTS = getAllSpots();
@@ -29,7 +30,11 @@ const SPOTS = getAllSpots();
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const settings = useMapSettings();
-  const { stations, loading, stale } = useStationList();
+  const { stations: daily, loading, stale } = useStationList();
+  const recent = useRecentConditions();
+  const stations = useMemo(() => (daily ? withRecentDepth(daily, recent) : null), [daily, recent]);
+  const metric = settings.metric;
+  const caption = useMemo(() => (daily ? dataAsOfLabel(metric, daily, recent) : null), [metric, daily, recent]);
   const filterCount = activeFilterCount(settings);
   const scrim = useColorScheme() === "dark" ? "#000000" : "#FFFFFF";
 
@@ -49,7 +54,7 @@ export default function MapScreen() {
     <View style={styles.container}>
       <StationMap
         stations={visible}
-        metric={settings.metric}
+        metric={metric}
         regions={regions}
         spots={SPOTS}
         show={{
@@ -73,7 +78,7 @@ export default function MapScreen() {
       <View style={[styles.top, { top: insets.top + 8 }]} pointerEvents="box-none">
         <Host matchContents={{ vertical: true }} style={styles.picker}>
           <Picker
-            selection={settings.metric}
+            selection={metric}
             onSelectionChange={(metric: string) => updateMapSettings({ metric })}
             modifiers={[pickerStyle("segmented"), controlSize("large")]}
           >
@@ -87,6 +92,10 @@ export default function MapScreen() {
             <GlassView style={styles.status} glassEffectStyle="regular">
               <ActivityIndicator size="small" />
               <Text style={styles.statusText}>Updating conditions</Text>
+            </GlassView>
+          ) : caption ? (
+            <GlassView style={styles.status} glassEffectStyle="regular">
+              <Text style={styles.statusText}>{caption}</Text>
             </GlassView>
           ) : <View />}
           <Pressable onPress={() => router.push("/layers")} accessibilityRole="button" accessibilityLabel="Map layers and filters" hitSlop={6}>

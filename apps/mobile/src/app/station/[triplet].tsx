@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { ActivityIndicator, ScrollView, Share, StyleSheet, Text, View, type ColorValue } from "react-native";
-import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { STATE_NAMES } from "@snotel/core/constants";
 import * as Haptics from "expo-haptics";
 import { getStation, parseTripletFromUrl, urlTriplet } from "@snotel/core/stations";
 import { DELTA_DAYS, envelopeStats, seasonDeltas, statsAt } from "@snotel/core/station-stats";
@@ -11,8 +12,9 @@ import {
   formatChange,
   formatDepthChange,
   formatElevation,
+  formatHourlyTime,
   formatPctOfNormal,
-  formatReadingDateShort,
+  formatReadingEndOfDay,
   formatSnowDepth,
   formatSwe,
 } from "@snotel/core/formatting";
@@ -20,6 +22,7 @@ import { noComparisonReason } from "@snotel/core/map-style";
 import EnvelopeChart from "@/components/charts/EnvelopeChart";
 import PeakChart from "@/components/charts/PeakChart";
 import RecentChart from "@/components/charts/RecentChart";
+import DetailHeader, { HeaderButton } from "@/components/DetailHeader";
 import Section from "@/components/Section";
 import { Hero, Row, summaryStyles } from "@/components/Summary";
 import { useStationConditions, useStationDetail, useStationHourly } from "@/hooks/data";
@@ -60,128 +63,122 @@ export default function StationScreen() {
   const pctColor = pct !== null ? getConditionColor(pct) : colors.secondaryLabel;
   const pctCaption = pct !== null ? getConditionLabel(pct) : (conditions && noComparisonReason(conditions)) ?? "No median yet";
 
+  const subtitle = station
+    ? [STATE_NAMES[station.state] ?? station.state, formatElevation(station.elevation), current?.lastUpdated && formatReadingEndOfDay(current.lastUpdated)]
+    : undefined;
+
   const header = (
-    <>
-      <Stack.Title>{station?.name ?? "Station"}</Stack.Title>
-      <Stack.Toolbar placement="left">
-        <Stack.Toolbar.Button icon="xmark" accessibilityLabel="Close" onPress={() => router.dismiss()} />
-      </Stack.Toolbar>
-      <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button
-          icon={favorite ? "star.fill" : "star"}
-          tintColor={favorite ? colors.favorite : undefined}
-          accessibilityLabel={favorite ? "Remove from favorites" : "Add to favorites"}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            toggleFavorite(triplet);
-          }}
-        />
-        <Stack.Toolbar.Button
-          icon="square.and.arrow.up"
-          accessibilityLabel="Share"
-          onPress={() => Share.share({ url: webUrl(`/station/${urlTriplet(triplet)}`) })}
-        />
-      </Stack.Toolbar>
-    </>
+    <DetailHeader title={station?.name ?? "Station"} subtitle={subtitle}>
+      <HeaderButton
+        icon={favorite ? "star.fill" : "star"}
+        tint={favorite ? colors.favorite : undefined}
+        label={favorite ? "Remove from favorites" : "Add to favorites"}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          toggleFavorite(triplet);
+        }}
+      />
+      <HeaderButton
+        icon="square.and.arrow.up"
+        label="Share"
+        onPress={() => Share.share({ url: webUrl(`/station/${urlTriplet(triplet)}`) })}
+      />
+    </DetailHeader>
   );
 
   if (!station) {
     return (
-      <>
+      <View style={[styles.content, styles.fill]}>
         {header}
-        <View style={styles.center}>
-          <Text style={styles.secondary}>Station not found</Text>
-        </View>
-      </>
+        <Text style={styles.secondary}>Station not found</Text>
+      </View>
     );
   }
 
   return (
-    <>
+    <ScrollView contentContainerStyle={styles.content}>
       {header}
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
-        <Text style={styles.subtitle}>
-          {station.state} · {formatElevation(station.elevation)}
-          {current?.lastUpdated ? ` · As of ${formatReadingDateShort(current.lastUpdated)}` : ""}
-        </Text>
 
-        {loading && !current ? (
-          <ActivityIndicator style={styles.loading} />
-        ) : !current ? (
-          <Text style={[styles.secondary, styles.loading]}>No current data for this station.</Text>
-        ) : (
-          <>
-            <Section>
-              <Hero value={formatPctOfNormal(pct)} color={pctColor} caption={pctCaption} />
-              <Row label="Snow water equivalent" value={formatSwe(current.swe)} detail={stats ? `median ${formatSwe(stats.medianAtDay)}` : undefined} />
-              <Row label="Percentile" value={stats?.percentile != null ? String(stats.percentile) : "—"} detail="vs. all years today" />
-              <Row
-                label="Median peak"
-                value={formatPctOfNormal(stats?.pctOfMedianPeak ?? null)}
-                detail={stats ? `${Math.abs(stats.daysUntilPeak)}d ${stats.daysUntilPeak >= 0 ? "to go" : "past"}` : undefined}
+      {loading && !current ? (
+        <ActivityIndicator style={styles.loading} />
+      ) : !current ? (
+        <Text style={[styles.secondary, styles.loading]}>No current data for this station.</Text>
+      ) : (
+        <>
+          <Section>
+            <Hero value={formatPctOfNormal(pct)} color={pctColor} caption={pctCaption} />
+            <Row label="Snow water equivalent" value={formatSwe(current.swe)} detail={stats ? `median ${formatSwe(stats.medianAtDay)}` : undefined} />
+            <Row label="Percentile" value={stats?.percentile != null ? String(stats.percentile) : "—"} detail="vs. all years today" />
+            <Row
+              label="Median peak"
+              value={formatPctOfNormal(stats?.pctOfMedianPeak ?? null)}
+              detail={stats ? `${Math.abs(stats.daysUntilPeak)}d ${stats.daysUntilPeak >= 0 ? "to go" : "past"}` : undefined}
+            />
+            <Row
+              label="Snow depth"
+              value={formatSnowDepth(conditions?.depthAt ? conditions.snowDepth : current.snowDepth)}
+              detail={conditions?.depthAt ? formatHourlyTime(conditions.depthAt) : undefined}
+            />
+            <Row label="Precipitation" value={current.precipAccum !== null ? `${current.precipAccum.toFixed(1)}"` : "—"} detail="water year" last />
+          </Section>
+
+          {envelope && (
+            <Section title="Snow Water Equivalent">
+              <EnvelopeChart
+                envelope={envelope.envelope}
+                seasonMap={sweMap}
+                todayWyDay={todayWyDay}
+                peakDay={envelope.medianPeakDay}
+                peakValue={envelope.medianPeakSwe}
+                format={formatSwe}
+                axisLabel={(v) => `${v}"`}
               />
-              <Row label="Snow depth" value={formatSnowDepth(current.snowDepth)} />
-              <Row label="Precipitation" value={current.precipAccum !== null ? `${current.precipAccum.toFixed(1)}"` : "—"} detail="water year" last />
             </Section>
+          )}
 
-            {envelope && (
-              <Section title="Snow Water Equivalent">
-                <EnvelopeChart
-                  envelope={envelope.envelope}
-                  seasonMap={sweMap}
-                  todayWyDay={todayWyDay}
-                  peakDay={envelope.medianPeakDay}
-                  peakValue={envelope.medianPeakSwe}
-                  format={formatSwe}
-                  axisLabel={(v) => `${v}"`}
-                />
-              </Section>
-            )}
+          <Section title="Changes">
+            <View style={styles.changeHeader}>
+              <Text style={[styles.changeLabel, styles.changeFirst]} />
+              {DELTA_DAYS.map((d) => (
+                <Text key={d} style={styles.changeLabel}>{d === 1 ? "24h" : `${d} days`}</Text>
+              ))}
+            </View>
+            <ChangeRow label="SWE" values={deltas.swe} format={formatChange} color={getChangeColor} />
+            <ChangeRow label="Snow depth" values={deltas.depth} format={formatDepthChange} color={getDepthChangeColor} last />
+          </Section>
 
-            <Section title="Changes">
-              <View style={styles.changeHeader}>
-                <Text style={[styles.changeLabel, styles.changeFirst]} />
-                {DELTA_DAYS.map((d) => (
-                  <Text key={d} style={styles.changeLabel}>{d === 1 ? "24h" : `${d} days`}</Text>
-                ))}
-              </View>
-              <ChangeRow label="SWE" values={deltas.swe} format={formatChange} color={getChangeColor} />
-              <ChangeRow label="Snow depth" values={deltas.depth} format={formatDepthChange} color={getDepthChangeColor} last />
+          {hourly && hourly.length > 0 && (
+            <Section title="Last 7 Days">
+              <RecentChart data={hourly} />
             </Section>
+          )}
 
-            {hourly && hourly.length > 0 && (
-              <Section title="Last 7 Days">
-                <RecentChart data={hourly} />
-              </Section>
-            )}
+          {envelope && envelope.depthEnvelope.some((d) => d.median !== null) && (
+            <Section title="Snow Depth">
+              <EnvelopeChart
+                envelope={envelope.depthEnvelope}
+                seasonMap={depthMap}
+                todayWyDay={todayWyDay}
+                peakDay={envelope.medianPeakDepthDay}
+                peakValue={envelope.medianPeakDepth}
+                format={formatSnowDepth}
+                axisLabel={(v) => `${v}"`}
+              />
+            </Section>
+          )}
 
-            {envelope && envelope.depthEnvelope.some((d) => d.median !== null) && (
-              <Section title="Snow Depth">
-                <EnvelopeChart
-                  envelope={envelope.depthEnvelope}
-                  seasonMap={depthMap}
-                  todayWyDay={todayWyDay}
-                  peakDay={envelope.medianPeakDepthDay}
-                  peakValue={envelope.medianPeakDepth}
-                  format={formatSnowDepth}
-                  axisLabel={(v) => `${v}"`}
-                />
-              </Section>
-            )}
+          {peaks.length > 0 && envelope && (
+            <Section title="Peak SWE by Year">
+              <PeakChart peaks={peaks} medianPeak={envelope.medianPeakSwe} />
+            </Section>
+          )}
 
-            {peaks.length > 0 && envelope && (
-              <Section title="Peak SWE by Year">
-                <PeakChart peaks={peaks} medianPeak={envelope.medianPeakSwe} />
-              </Section>
-            )}
-
-            <Text style={styles.footer}>
-              {station.triplet} · Data from USDA NRCS SNOTEL
-            </Text>
-          </>
-        )}
-      </ScrollView>
-    </>
+          <Text style={styles.footer}>
+            {station.triplet} · Data from USDA NRCS SNOTEL
+          </Text>
+        </>
+      )}
+    </ScrollView>
   );
 }
 
@@ -209,9 +206,8 @@ function ChangeRow({
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 16, paddingBottom: 48, gap: 24 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  subtitle: { fontSize: 15, color: colors.secondaryLabel, paddingHorizontal: 4 },
+  content: { paddingHorizontal: 16, paddingTop: 28, paddingBottom: 48, gap: 24 },
+  fill: { flex: 1 },
   secondary: { fontSize: 15, color: colors.secondaryLabel },
   loading: { marginTop: 40, textAlign: "center" },
   changeHeader: { flexDirection: "row", paddingBottom: 6 },

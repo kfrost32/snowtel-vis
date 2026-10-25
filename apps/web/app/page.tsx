@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
+import { useRecentConditions } from "@/hooks/useRecentConditions";
+import { dataAsOfLabel, withRecentDepth } from "@snotel/core/recent";
 import { useFavorites } from "@/hooks/useFavorites";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -117,7 +119,11 @@ const StationMap = dynamic(() => import("@/components/StationMap"), {
 
 function HomePageInner() {
   const { stations: liveStations, loading, error, stale } = useStationList();
-  const stations = loading ? getPlaceholderConditions() : liveStations;
+  const recent = useRecentConditions();
+  const stations = useMemo(
+    () => (loading ? getPlaceholderConditions() : withRecentDepth(liveStations, recent)),
+    [loading, liveStations, recent]
+  );
   const { favorites, toggleStation, toggleBasin, isStationFav, isBasinFav } = useFavorites();
   const searchParams = useSearchParams();
   const [isMobile, setIsMobile] = useState(false);
@@ -168,11 +174,7 @@ function HomePageInner() {
     [stations, loading, selectedStates, elevMin, elevMax, activeOnly]
   );
 
-  const dataDate = useMemo(() => {
-    const latest = stations.reduce((max, s) => (s.lastUpdated > max ? s.lastUpdated : max), "");
-    if (!latest) return null;
-    return new Date(`${latest}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  }, [stations]);
+  const dataDate = useMemo(() => dataAsOfLabel(metric, stations, recent), [stations, metric, recent]);
 
   const isSweMetric = metric === "WTEQ" || metric === "WTEQ_PCT";
   const legendTitle = LEGEND_TITLES[metric] ?? METRIC_LABELS[metric] ?? metric;

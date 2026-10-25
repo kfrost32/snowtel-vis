@@ -81,6 +81,18 @@ export const formatReadingDate = (dateStr: string): string => {
 export const formatReadingDateShort = (dateStr: string): string =>
   readingDay(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
+export const formatReadingEndOfDay = (dateStr: string): string => {
+  const day = readingDay(dateStr);
+  return `${day.getMonth() + 1}/${day.getDate()} end of day`;
+};
+
+export function formatHourlyTime(datetime: string, now = new Date()): string {
+  const date = new Date(datetime.replace(" ", "T"));
+  const time = date.toLocaleTimeString("en-US", { hour: "numeric" });
+  if (date.toDateString() === now.toDateString()) return time;
+  return `${date.getMonth() + 1}/${date.getDate()} ${time}`;
+}
+
 export const formatHour = (datetime: string): string =>
   new Date(datetime.replace(" ", "T")).toLocaleString("en-US", { weekday: "short", hour: "numeric" });
 

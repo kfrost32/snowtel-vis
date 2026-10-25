@@ -30,7 +30,8 @@ const listeners = new Set<() => void>();
 
 function read(): MapSettings {
   try {
-    return { ...DEFAULTS, ...JSON.parse(Storage.getItemSync(KEY) ?? "{}") };
+    const stored = { ...DEFAULTS, ...JSON.parse(Storage.getItemSync(KEY) ?? "{}") };
+    return stored.metric === "CHANGE_1D" ? { ...stored, metric: "SNWD_CHANGE_1D" } : stored;
   } catch {
     return DEFAULTS;
   }

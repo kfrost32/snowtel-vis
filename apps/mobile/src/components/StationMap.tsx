@@ -12,6 +12,8 @@ import {
   TERRAIN_MAXZOOM,
   TERRAIN_TILES,
   WESTERN_US_BOUNDS,
+  freshSnowFilter,
+  freshSnowPaint,
   hillshadePaint,
   regionFillPaint,
   regionLabelLayout,
@@ -51,6 +53,7 @@ const BOUNDARIES: Record<RegionLevel, GeoJSON.FeatureCollection> = {
 const { "hillshade-shadow-color": _shadow, "hillshade-highlight-color": _highlight, ...hillshadeBase } = hillshadePaint ?? {};
 const HILLSHADE_PAINT = nativePaint({ ...hillshadeBase, "hillshade-exaggeration": 0.15 });
 const CIRCLE_PAINT = nativePaint(stationCirclePaint);
+const FRESH_PAINT = nativePaint(freshSnowPaint);
 const LABEL_PAINT = nativePaint(stationLabelPaint);
 const FILL_PAINT = nativePaint(regionFillPaint);
 const OUTLINE_PAINT = { 2: nativePaint(regionOutlinePaint[2]), 4: nativePaint(regionOutlinePaint[4]) };
@@ -155,6 +158,7 @@ export default function StationMap({ stations, metric, regions, spots, show, onS
       })}
 
       <GeoJSONSource id="stations" data={stationData}>
+        <Layer id="fresh-snow" type="circle" filter={freshSnowFilter} paint={FRESH_PAINT} layout={visibility(show.stations)} />
         <Layer id="station-circles" type="circle" layout={{ ...stationCircleLayout, ...visibility(show.stations) }} paint={CIRCLE_PAINT} />
         <Layer
           id="station-labels"

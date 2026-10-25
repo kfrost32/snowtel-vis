@@ -10,7 +10,7 @@ export function todayInDataTimezone(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: DATA_TIMEZONE }).format(new Date());
 }
 
-function shiftDate(dateStr: string, days: number): string {
+export function shiftDate(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T12:00:00Z");
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().split("T")[0];
