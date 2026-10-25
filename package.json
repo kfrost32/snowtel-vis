@@ -12,9 +12,11 @@
     "typecheck": "npm exec -w @snotel/core -- tsc --noEmit",
     "ios": "npm run ios -w mobile",
     "mobile": "npm run start -w mobile",
-    "refresh-snapshots": "tsx scripts/refresh-snapshots.ts"
+    "refresh-snapshots": "tsx scripts/refresh-snapshots.ts",
+    "build-spot-icons": "tsx scripts/build-spot-icons.ts"
   },
   "devDependencies": {
+    "sharp": "^0.34.5",
     "tsx": "^4.23.15"
   }
 }

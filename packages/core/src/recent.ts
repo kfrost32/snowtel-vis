@@ -1,7 +1,7 @@
 import type { HourlyObservation, StationCurrentConditions } from "./types";
 import { formatHourlyTime, formatReadingEndOfDay } from "./formatting";
 
-const FRESH_SNOW_INCHES = 1;
+const FRESH_SNOW_INCHES = 2;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const RECENT_REFRESH_MS = 60 * 60 * 1000;

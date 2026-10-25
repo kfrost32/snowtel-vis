@@ -10,8 +10,10 @@ import { getMapMarkerColor, getMetricMapColor } from "./colors";
 import { computeBasinCentroid, computePolygonCentroid } from "./basins";
 import { formatDepthChange, formatReadingEndOfDay } from "./formatting";
 import { hasFreshSnow } from "./recent";
-import { snowColors, theme } from "./theme";
+import { theme } from "./theme";
 import { shiftDate } from "./water-year";
+import { getAllStations } from "./stations";
+import { SPOT_COLORS, SPOT_KIND_LABELS, SPOT_TEXT_SIZE, spotElevationLabel, spotPlacement, type Spot, type SpotKind } from "./spots";
 
 export const BASEMAP_STYLE_URL = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 export const INITIAL_CENTER: [number, number] = [-110, 44];
@@ -82,6 +84,8 @@ export function stationFeatures(stations: StationCurrentConditions[], metric: st
       const outdated = s.network === "SNOTEL" && s.swe !== null && s.lastUpdated < cutoff;
       const inactive = outdated || isInactive(metric, s);
       const hollow = isHollow(metric, s);
+      const fresh = hasFreshSnow(s);
+      const detail = outdated ? `${stationDetail(metric, s)} · ${formatReadingEndOfDay(s.lastUpdated)}` : stationDetail(metric, s);
       return {
         type: "Feature",
         geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
@@ -92,8 +96,8 @@ export function stationFeatures(stations: StationCurrentConditions[], metric: st
           inactive,
           hollow,
           label: hollow ? "" : metricDotLabel(metric, s),
-          hoverDetail: outdated ? `${stationDetail(metric, s)} · ${formatReadingEndOfDay(s.lastUpdated)}` : stationDetail(metric, s),
-          fresh: metric !== "SNWD_CHANGE_1D" && hasFreshSnow(s) && !hollow && !inactive,
+          hoverDetail: fresh ? `${detail} · ${formatDepthChange(s.depthChange1d ?? null)} in 24h` : detail,
+          fresh,
           sortKey: s.latitude,
         },
       };
@@ -116,20 +120,55 @@ export const stationCirclePaint: CircleLayerSpecification["paint"] = {
   ],
   "circle-stroke-width": [
     "interpolate", ["linear"], ["zoom"],
-    3, ["case", ["get", "inactive"], 0, 1],
-    7, ["case", ["get", "inactive"], 0, ["get", "hollow"], 1.5, 2.5],
+    3, ["case", ["get", "inactive"], 0, ["get", "hollow"], 1, ["get", "fresh"], 1.25, 0.5],
+    7, ["case", ["get", "inactive"], 0, ["get", "hollow"], 1.5, ["get", "fresh"], 3, 1],
   ],
   "circle-stroke-color": ["case", ["get", "hollow"], theme.mediumGray, theme.white],
   "circle-opacity": ["case", ["get", "inactive"], 0.35, 1],
 };
 
-export const freshSnowFilter: CircleLayerSpecification["filter"] = ["==", ["get", "fresh"], true];
+export const SPOT_MINZOOM = 7.5;
 
-export const freshSnowPaint: CircleLayerSpecification["paint"] = {
-  "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 8, 5, 12, 7, 19, 10, 26],
-  "circle-color": "rgba(0,0,0,0)",
-  "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 3, 1.5, 7, 3],
-  "circle-stroke-color": snowColors.freshSnow,
+export function spotImageId(kind: SpotKind): string {
+  return `spot-${kind}`;
+}
+
+export function spotFeatures(spots: Spot[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
+  const stations = getAllStations();
+  return {
+    type: "FeatureCollection",
+    features: spots.map((spot) => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [spot.longitude, spot.latitude] },
+      properties: {
+        ...spotPlacement(spot, stations),
+        id: spot.id,
+        icon: spotImageId(spot.kind),
+        name: spot.name,
+        color: SPOT_COLORS[spot.kind],
+        hoverDetail: [SPOT_KIND_LABELS[spot.kind], spotElevationLabel(spot)].filter(Boolean).join(" · "),
+      },
+    })),
+  };
+}
+
+export const spotLayout: SymbolLayerSpecification["layout"] = {
+  "icon-image": ["get", "icon"],
+  "icon-size": ["interpolate", ["linear"], ["zoom"], SPOT_MINZOOM, 0.7, 12, 1],
+  "icon-allow-overlap": true,
+  "icon-offset": ["get", "iconOffset"],
+  "text-field": ["step", ["zoom"], "", 10, ["get", "name"]],
+  "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+  "text-size": SPOT_TEXT_SIZE,
+  "text-anchor": ["get", "textAnchor"],
+  "text-offset": ["get", "textOffset"],
+  "text-optional": true,
+};
+
+export const spotPaint: SymbolLayerSpecification["paint"] = {
+  "text-color": ["get", "color"],
+  "text-halo-color": "rgba(255,255,255,0.95)",
+  "text-halo-width": 1.5,
 };
 
 export const STATION_LABEL_MINZOOM = 6;

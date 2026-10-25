@@ -1,19 +1,18 @@
 import { useMemo, useRef } from "react";
 import { StyleSheet, useColorScheme } from "react-native";
-import { Camera, GeoJSONSource, Layer, Map, RasterDEMSource, type MapRef } from "@maplibre/maplibre-react-native";
+import { Camera, GeoJSONSource, Images, Layer, Map, RasterDEMSource, type MapRef } from "@maplibre/maplibre-react-native";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { CircleLayerSpecification, SymbolLayerSpecification } from "@maplibre/maplibre-gl-style-spec";
+import type { SymbolLayerSpecification } from "@maplibre/maplibre-gl-style-spec";
 import type { StationCurrentConditions } from "@snotel/core/types";
 import {
   BASEMAP_STYLE_URL,
   BASEMAP_STYLE_URL_DARK,
+  SPOT_MINZOOM,
   STATION_LABEL_MINZOOM,
   TERRAIN_MAXZOOM,
   TERRAIN_TILES,
   WESTERN_US_BOUNDS,
-  freshSnowFilter,
-  freshSnowPaint,
   hillshadePaint,
   regionFillPaint,
   regionLabelLayout,
@@ -21,6 +20,10 @@ import {
   regionLabels,
   regionOutlinePaint,
   regionPolygons,
+  spotFeatures,
+  spotImageId,
+  spotLayout,
+  spotPaint,
   stationCircleLayout,
   stationCirclePaint,
   stationFeatures,
@@ -29,7 +32,7 @@ import {
   type RegionLevel,
   type RegionMarker,
 } from "@snotel/core/map-style";
-import { SPOT_COLORS, SPOT_TEXT_SIZE, type Spot } from "@snotel/core/spots";
+import type { Spot } from "@snotel/core/spots";
 import huc2Boundaries from "@snotel/core/data/huc2-boundaries.json";
 import huc4Boundaries from "@snotel/core/data/huc4-boundaries.json";
 import { nativePaint } from "@/lib/map-paint";
@@ -53,28 +56,16 @@ const BOUNDARIES: Record<RegionLevel, GeoJSON.FeatureCollection> = {
 const { "hillshade-shadow-color": _shadow, "hillshade-highlight-color": _highlight, ...hillshadeBase } = hillshadePaint ?? {};
 const HILLSHADE_PAINT = nativePaint({ ...hillshadeBase, "hillshade-exaggeration": 0.15 });
 const CIRCLE_PAINT = nativePaint(stationCirclePaint);
-const FRESH_PAINT = nativePaint(freshSnowPaint);
 const LABEL_PAINT = nativePaint(stationLabelPaint);
 const FILL_PAINT = nativePaint(regionFillPaint);
 const OUTLINE_PAINT = { 2: nativePaint(regionOutlinePaint[2]), 4: nativePaint(regionOutlinePaint[4]) };
 const REGION_LABEL_PAINT = { 2: nativePaint(regionLabelPaint[2]), 4: nativePaint(regionLabelPaint[4]) };
 
-const SPOT_MINZOOM = 7.5;
-const SPOT_CIRCLE_PAINT = nativePaint<CircleLayerSpecification["paint"]>({
-  "circle-radius": ["interpolate", ["linear"], ["zoom"], 7.5, 4, 12, 7],
-  "circle-color": "#FFFFFF",
-  "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 7.5, 2, 12, 3],
-  "circle-stroke-color": ["get", "color"],
-});
-const SPOT_LABEL_LAYOUT: SymbolLayerSpecification["layout"] = {
-  "text-field": ["step", ["zoom"], "", 10, ["get", "name"]],
-  "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-  "text-size": SPOT_TEXT_SIZE,
-  "text-anchor": "top",
-  "text-offset": [0, 0.9],
-  "text-optional": true,
+const SPOT_IMAGES = {
+  [spotImageId("resort")]: require("../../assets/map/spot-resort.png"),
+  [spotImageId("backcountry")]: require("../../assets/map/spot-backcountry.png"),
 };
-const SPOT_LABEL_PAINT = nativePaint<SymbolLayerSpecification["paint"]>({ "text-color": ["get", "color"], "text-halo-color": "rgba(255,255,255,0.95)", "text-halo-width": 1.5 });
+const SPOT_PAINT = nativePaint(spotPaint);
 
 const TAP_SLOP = 12;
 const visibility = (on: boolean) => ({ visibility: on ? ("visible" as const) : ("none" as const) });
@@ -92,17 +83,7 @@ export default function StationMap({ stations, metric, regions, spots, show, onS
     }),
     [regions]
   );
-  const spotData = useMemo<GeoJSON.FeatureCollection>(
-    () => ({
-      type: "FeatureCollection",
-      features: spots.map((spot) => ({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [spot.longitude, spot.latitude] },
-        properties: { id: spot.id, name: spot.name, color: SPOT_COLORS[spot.kind] },
-      })),
-    }),
-    [spots]
-  );
+  const spotData = useMemo(() => spotFeatures(spots), [spots]);
 
   const handlePress = async (point: [number, number]) => {
     const map = mapRef.current;
@@ -158,7 +139,6 @@ export default function StationMap({ stations, metric, regions, spots, show, onS
       })}
 
       <GeoJSONSource id="stations" data={stationData}>
-        <Layer id="fresh-snow" type="circle" filter={freshSnowFilter} paint={FRESH_PAINT} layout={visibility(show.stations)} />
         <Layer id="station-circles" type="circle" layout={{ ...stationCircleLayout, ...visibility(show.stations) }} paint={CIRCLE_PAINT} />
         <Layer
           id="station-labels"
@@ -169,9 +149,9 @@ export default function StationMap({ stations, metric, regions, spots, show, onS
         />
       </GeoJSONSource>
 
+      <Images images={SPOT_IMAGES} />
       <GeoJSONSource id="spots" data={spotData}>
-        <Layer id="spot-badges" type="circle" minzoom={SPOT_MINZOOM} paint={SPOT_CIRCLE_PAINT} layout={visibility(show.spots)} />
-        <Layer id="spot-labels" type="symbol" minzoom={SPOT_MINZOOM} layout={{ ...SPOT_LABEL_LAYOUT, ...visibility(show.spots) }} paint={SPOT_LABEL_PAINT} />
+        <Layer id="spot-icons" type="symbol" minzoom={SPOT_MINZOOM} layout={{ ...spotLayout, ...visibility(show.spots) }} paint={SPOT_PAINT} />
       </GeoJSONSource>
 
       {([4, 2] as const).map((level) => (

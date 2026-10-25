@@ -26,7 +26,6 @@ export const snowColors = {
   medianPeak: "#16A34A",
   freezing: "#93C5FD",
   currentYear: "#F59E0B",
-  freshSnow: "#06B6D4",
   lightSnow: "#06B6D4",
   averageSnow: "#3B82F6",
   heavySnow: "#64748B",

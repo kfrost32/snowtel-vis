@@ -6,19 +6,18 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@snotel/core/types";
 import { prefetchStation } from "@/lib/prefetch";
 import { theme } from "@snotel/core/theme";
-import { SPOT_COLORS, SPOT_KIND_LABELS, SPOT_TEXT_SIZE, spotElevationLabel, spotPlacement, type Spot, type SpotKind } from "@snotel/core/spots";
+import { SPOT_ICON_SIZE, SPOT_KINDS, spotIconSvg, type Spot, type SpotKind } from "@snotel/core/spots";
 import {
   BASEMAP_STYLE_URL,
   INITIAL_CENTER,
   INITIAL_ZOOM,
+  SPOT_MINZOOM,
   STATION_LABEL_MINZOOM,
   TERRAIN_MAXZOOM,
   TERRAIN_TILES,
   hillshadePaint,
   stationCircleLayout,
   stationCirclePaint,
-  freshSnowFilter,
-  freshSnowPaint,
   stationFeatures,
   stationLabelLayout,
   stationLabelPaint,
@@ -28,6 +27,10 @@ import {
   regionLabels,
   regionOutlinePaint,
   regionPolygons,
+  spotFeatures,
+  spotImageId,
+  spotLayout,
+  spotPaint,
   type RegionLevel,
   type RegionMarker,
 } from "@snotel/core/map-style";
@@ -50,34 +53,12 @@ interface StationMapProps {
   showSpots?: boolean;
 }
 
-const SPOT_GLYPHS: Record<SpotKind, string[]> = {
-  resort: ["m2 9 20-5", "M12 12V6.5", "M9 12v5", "M15 12v5", "M4 17h16", "M7 12h10a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3z"],
-  backcountry: ["m8 3 4 8 5-5 5 15H2L8 3z"],
-};
-
-function spotIcon(kind: SpotKind): ImageData {
-  const size = 44;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
-  ctx.fill();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = "rgba(15, 23, 42, 0.18)";
-  ctx.stroke();
-  ctx.strokeStyle = SPOT_COLORS[kind];
-  const glyph = 24;
-  const scale = 22 / glyph;
-  ctx.translate((size - glyph * scale) / 2, (size - glyph * scale) / 2);
-  ctx.scale(scale, scale);
-  ctx.lineWidth = 2.25;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  for (const d of SPOT_GLYPHS[kind]) ctx.stroke(new Path2D(d));
-  return ctx.getImageData(0, 0, size, size);
+function addSpotIcon(map: maplibregl.Map, kind: SpotKind) {
+  const image = new Image(SPOT_ICON_SIZE * 2, SPOT_ICON_SIZE * 2);
+  image.onload = () => {
+    if (!map.hasImage(spotImageId(kind))) map.addImage(spotImageId(kind), image, { pixelRatio: 2 });
+  };
+  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(spotIconSvg(kind, 2))}`;
 }
 
 function escapeHtml(text: string): string {
@@ -211,13 +192,6 @@ function StationMapInner({
         data: { type: "FeatureCollection", features: [] },
       });
       map.addLayer({
-        id: "fresh-snow",
-        type: "circle",
-        source: "stations",
-        filter: freshSnowFilter,
-        paint: freshSnowPaint,
-      });
-      map.addLayer({
         id: "station-circles",
         type: "circle",
         source: "stations",
@@ -234,8 +208,7 @@ function StationMapInner({
       });
 
       // ── Ski areas & backcountry spots ──────────────────────────────────
-      map.addImage("spot-resort", spotIcon("resort"), { pixelRatio: 2 });
-      map.addImage("spot-backcountry", spotIcon("backcountry"), { pixelRatio: 2 });
+      for (const kind of SPOT_KINDS) addSpotIcon(map, kind);
       map.addSource("spots", {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
@@ -244,24 +217,9 @@ function StationMapInner({
         id: "spot-icons",
         type: "symbol",
         source: "spots",
-        minzoom: 7.5,
-        layout: {
-          "icon-image": ["concat", "spot-", ["get", "kind"]],
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 7.5, 0.7, 12, 1],
-          "icon-allow-overlap": true,
-          "icon-offset": ["get", "iconOffset"],
-          "text-field": ["step", ["zoom"], "", 10, ["get", "name"]],
-          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          "text-size": SPOT_TEXT_SIZE,
-          "text-anchor": ["get", "textAnchor"],
-          "text-offset": ["get", "textOffset"],
-          "text-optional": true,
-        },
-        paint: {
-          "text-color": ["get", "color"],
-          "text-halo-color": "rgba(255,255,255,0.95)",
-          "text-halo-width": 1.5,
-        },
+        minzoom: SPOT_MINZOOM,
+        layout: spotLayout,
+        paint: spotPaint,
       });
 
       // Basin labels — added last so they render above station dots
@@ -390,22 +348,8 @@ function StationMapInner({
     if (!map || !mapLoaded) return;
     const source = map.getSource("spots") as maplibregl.GeoJSONSource | undefined;
     if (!source) return;
-    source.setData({
-      type: "FeatureCollection",
-      features: spots.map((spot) => ({
-        type: "Feature" as const,
-        geometry: { type: "Point" as const, coordinates: [spot.longitude, spot.latitude] },
-        properties: {
-          ...spotPlacement(spot, stations),
-          id: spot.id,
-          kind: spot.kind,
-          name: spot.name,
-          color: SPOT_COLORS[spot.kind],
-          hoverDetail: [SPOT_KIND_LABELS[spot.kind], spotElevationLabel(spot)].filter(Boolean).join(" · "),
-        },
-      })),
-    });
-  }, [spots, stations, mapLoaded]);
+    source.setData(spotFeatures(spots));
+  }, [spots, mapLoaded]);
 
   // fly-to
   useEffect(() => {
@@ -432,7 +376,6 @@ function StationMapInner({
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
     const vis = (v: boolean) => (v ? "visible" : "none");
-    if (map.getLayer("fresh-snow")) map.setLayoutProperty("fresh-snow", "visibility", vis(showStations));
     if (map.getLayer("station-circles")) map.setLayoutProperty("station-circles", "visibility", vis(showStations));
     if (map.getLayer("station-labels")) map.setLayoutProperty("station-labels", "visibility", vis(showStations));
     if (map.getLayer("huc4-fill")) map.setLayoutProperty("huc4-fill", "visibility", vis(showHuc4));
