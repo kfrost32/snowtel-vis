@@ -10,7 +10,8 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "club.hereandthere.snotel",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "appleTeamId": "LT5W63UH96"
     },
     "android": {
       "adaptiveIcon": {
@@ -36,7 +37,13 @@
         }
       ],
       "expo-sqlite",
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "SNOTEL uses your location to list the snow stations nearest you."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

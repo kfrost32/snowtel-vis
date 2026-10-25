@@ -12,10 +12,11 @@ import { colors, numeric } from "@/theme";
 interface StationRowProps {
   station: Station;
   conditions?: StationCurrentConditions | null;
+  detail?: string;
   last?: boolean;
 }
 
-export default function StationRow({ station, conditions, last }: StationRowProps) {
+export default function StationRow({ station, conditions, detail, last }: StationRowProps) {
   const favorite = useIsFavorite(station.triplet);
   const href = `/station/${urlTriplet(station.triplet)}` as const;
 
@@ -26,7 +27,7 @@ export default function StationRow({ station, conditions, last }: StationRowProp
           <View style={styles.text}>
             <Text style={styles.name} numberOfLines={1}>{station.name}</Text>
             <Text style={styles.meta} numberOfLines={1}>
-              {station.state} · {formatElevation(station.elevation)}
+              {[station.state, formatElevation(station.elevation), detail].filter(Boolean).join(" · ")}
             </Text>
           </View>
           {conditions && (

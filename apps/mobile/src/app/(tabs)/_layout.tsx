@@ -7,9 +7,9 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Label>Map</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: "map", selected: "map.fill" }} md="map" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="favorites">
-        <NativeTabs.Trigger.Label>Favorites</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: "star", selected: "star.fill" }} md="star" />
+      <NativeTabs.Trigger name="stations">
+        <NativeTabs.Trigger.Label>Stations</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: "mountain.2", selected: "mountain.2.fill" }} md="landscape" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="search" role="search">
         <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>

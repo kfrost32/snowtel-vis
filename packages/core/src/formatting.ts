@@ -17,6 +17,9 @@ export const formatElevation = (value: number): string => {
   return `${value.toLocaleString()}′`;
 };
 
+export const formatDistance = (miles: number): string =>
+  `${miles < 10 ? miles.toFixed(1) : Math.round(miles).toLocaleString()} mi`;
+
 export const formatPctOfNormal = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
   return `${Math.round(value)}%`;
