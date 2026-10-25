@@ -6,6 +6,7 @@ const LOOKBACK_DAYS = 8;
 const DATA_TIMEZONE = "America/Denver";
 const BULK_TIMEOUT_MS = 90000;
 const BATCH_SIZE = 50;
+const CARRY_OVER_DAYS = 14;
 
 export function todayInDataTimezone(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: DATA_TIMEZONE }).format(new Date());
@@ -34,7 +35,6 @@ export async function fetchStationConditions(): Promise<StationCurrentConditions
   const endDate = todayInDataTimezone();
   const beginDate = shiftDate(endDate, -LOOKBACK_DAYS);
   const data = await fetchDailyData(snotelTriplets, ["WTEQ", "SNWD", "PREC", "TOBS"], beginDate, endDate, {
-    strict: true,
     timeout: BULK_TIMEOUT_MS,
     batchSize: BATCH_SIZE,
     median: true,
@@ -77,7 +77,21 @@ export async function fetchStationConditions(): Promise<StationCurrentConditions
       depthChange1d: change(snwd, 1, 0),
       depthChange3d: change(snwd, 3, 0),
       depthChange7d: change(snwd, 7, 0),
-      lastUpdated: endDate,
+      lastUpdated: series.WTEQ?.dates.at(-1) ?? endDate,
     };
+  });
+}
+
+export function mergeConditions(
+  fresh: StationCurrentConditions[],
+  previous: StationCurrentConditions[] | null
+): StationCurrentConditions[] {
+  if (!previous) return fresh;
+  const cutoff = shiftDate(todayInDataTimezone(), -CARRY_OVER_DAYS);
+  const before = new Map(previous.map((s) => [s.triplet, s]));
+  return fresh.map((s) => {
+    const old = before.get(s.triplet);
+    if (!old || old.swe === null || old.lastUpdated < cutoff) return s;
+    return s.swe === null || old.lastUpdated > s.lastUpdated ? old : s;
   });
 }

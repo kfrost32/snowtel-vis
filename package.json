@@ -11,6 +11,10 @@
     "lint": "npm run lint -w web",
     "typecheck": "npm exec -w @snotel/core -- tsc --noEmit",
     "ios": "npm run ios -w mobile",
-    "mobile": "npm run start -w mobile"
+    "mobile": "npm run start -w mobile",
+    "refresh-snapshots": "tsx scripts/refresh-snapshots.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
   }
 }

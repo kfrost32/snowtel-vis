@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { AppState, useColorScheme } from "react-native";
 import { SWRConfig } from "swr";
 import { fetcher } from "@/lib/api";
+import { persistedCache } from "@/lib/swr-cache";
 
 function onAppActive(callback: () => void) {
   let state = AppState.currentState;
@@ -16,7 +17,7 @@ export default function RootLayout() {
   const dark = useColorScheme() === "dark";
   return (
     <ThemeProvider value={dark ? DarkTheme : DefaultTheme}>
-      <SWRConfig value={{ fetcher, dedupingInterval: 60000, errorRetryCount: 2, initFocus: onAppActive }}>
+      <SWRConfig value={{ provider: persistedCache, fetcher, dedupingInterval: 60000, errorRetryCount: 2, initFocus: onAppActive }}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen

@@ -8,7 +8,7 @@ import type {
 import type { BasinSummary, StationCurrentConditions } from "./types";
 import { getMapMarkerColor, getMetricMapColor } from "./colors";
 import { computeBasinCentroid, computePolygonCentroid } from "./basins";
-import { formatDepthChange } from "./formatting";
+import { formatDepthChange, formatReadingEndOfDay } from "./formatting";
 import { hasFreshSnow } from "./recent";
 import { snowColors, theme } from "./theme";
 
@@ -68,24 +68,38 @@ function isInactive(metric: string, s: StationCurrentConditions): boolean {
   }
 }
 
+function reportingCutoff(stations: StationCurrentConditions[]): string {
+  const latest = stations.reduce((max, s) => (s.swe !== null && s.lastUpdated > max ? s.lastUpdated : max), "");
+  if (!latest) return "";
+  const date = new Date(latest + "T12:00:00Z");
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().split("T")[0];
+}
+
 export function stationFeatures(stations: StationCurrentConditions[], metric: string): GeoJSON.FeatureCollection<GeoJSON.Point> {
+  const cutoff = reportingCutoff(stations);
   return {
     type: "FeatureCollection",
-    features: stations.filter((s) => s.latitude && s.longitude).map((s) => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
-      properties: {
-        triplet: s.triplet,
-        name: s.name,
-        color: getMetricMapColor(metric, s),
-        inactive: isInactive(metric, s),
-        hollow: isHollow(metric, s),
-        label: isHollow(metric, s) ? "" : metricDotLabel(metric, s),
-        hoverDetail: stationDetail(metric, s),
-        fresh: metric !== "SNWD_CHANGE_1D" && hasFreshSnow(s) && !isHollow(metric, s) && !isInactive(metric, s),
-        sortKey: s.latitude,
-      },
-    })),
+    features: stations.filter((s) => s.latitude && s.longitude).map((s) => {
+      const outdated = s.network === "SNOTEL" && s.swe !== null && s.lastUpdated < cutoff;
+      const inactive = outdated || isInactive(metric, s);
+      const hollow = isHollow(metric, s);
+      return {
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
+        properties: {
+          triplet: s.triplet,
+          name: s.name,
+          color: getMetricMapColor(metric, s),
+          inactive,
+          hollow,
+          label: hollow ? "" : metricDotLabel(metric, s),
+          hoverDetail: outdated ? `${stationDetail(metric, s)} · ${formatReadingEndOfDay(s.lastUpdated)}` : stationDetail(metric, s),
+          fresh: metric !== "SNWD_CHANGE_1D" && hasFreshSnow(s) && !hollow && !inactive,
+          sortKey: s.latitude,
+        },
+      };
+    }),
   };
 }
 

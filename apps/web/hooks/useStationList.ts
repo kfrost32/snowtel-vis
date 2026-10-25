@@ -13,7 +13,7 @@ export function useStationList() {
   });
   return {
     stations: data?.data ?? [],
-    loading: isLoading,
+    loading: isLoading && !data,
     error: error?.message ?? null,
     fetchedAt: data?.fetchedAt ?? null,
     stale: data?.stale ?? false,

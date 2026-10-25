@@ -11,7 +11,7 @@ export function useSeasonData(triplet: string) {
   );
   return {
     data: data?.data ?? null,
-    loading: isLoading,
+    loading: isLoading && !data,
     error: error?.message ?? null,
     fetchedAt: data?.fetchedAt ?? null,
     stale: data?.stale ?? false,

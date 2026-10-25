@@ -1,51 +1,29 @@
 import { NextResponse } from "next/server";
-import { unstable_cache } from "next/cache";
 import { fetchRecentDepth } from "@/lib/recent-depth";
-import { getCached, setCache, wrapStale } from "@/lib/api-cache";
+import { getSnapshot } from "@/lib/snapshot-cache";
+import { snapshotKeys } from "@/lib/snapshot-store";
 import type { RecentConditions } from "@snotel/core/recent";
 
+export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const CACHE_KEY = "stations-recent";
-const RETRY_AFTER_FAILURE_MS = 5 * 60 * 1000;
 const CACHE_HEADER = { "Cache-Control": "public, max-age=600, s-maxage=1800, stale-while-revalidate=3600" };
+const STALE_HEADER = { "Cache-Control": "public, max-age=0, s-maxage=60" };
 const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
-
-const getRecent = unstable_cache(
-  async () => ({ data: await fetchRecentDepth(), fetchedAt: Date.now() }),
-  [CACHE_KEY],
-  { revalidate: 3600 }
-);
-
-let inFlight: ReturnType<typeof getRecent> | null = null;
-let failedAt = 0;
-
-function loadRecent() {
-  inFlight ??= getRecent()
-    .then((fresh) => {
-      setCache(CACHE_KEY, fresh.data);
-      return fresh;
-    })
-    .catch((e) => {
-      failedAt = Date.now();
-      throw e;
-    })
-    .finally(() => {
-      inFlight = null;
-    });
-  return inFlight;
-}
+const MAX_AGE_MS = 60 * 60 * 1000;
+const WAIT_FOR_LIVE_MS = 4000;
 
 export async function GET() {
-  const stale = getCached<RecentConditions>(CACHE_KEY);
-  if (stale && Date.now() - failedAt < RETRY_AFTER_FAILURE_MS) {
-    return NextResponse.json(wrapStale(stale), { headers: CACHE_HEADER });
-  }
   try {
-    const fresh = await loadRecent();
-    return NextResponse.json({ ...fresh, stale: false }, { headers: CACHE_HEADER });
-  } catch {
-    if (stale) return NextResponse.json(wrapStale(stale), { headers: CACHE_HEADER });
-    return NextResponse.json({ error: "Failed to fetch recent conditions" }, { status: 500, headers: NO_CACHE_HEADER });
+    const result = await getSnapshot<RecentConditions>({
+      key: snapshotKeys.recent,
+      maxAge: MAX_AGE_MS,
+      waitMs: WAIT_FOR_LIVE_MS,
+      load: fetchRecentDepth,
+    });
+    return NextResponse.json(result, { headers: result.stale ? STALE_HEADER : CACHE_HEADER });
+  } catch (e) {
+    console.error("Recent conditions fetch failed:", (e as Error).message);
+    return NextResponse.json({ error: "Failed to fetch recent conditions" }, { status: 503, headers: NO_CACHE_HEADER });
   }
 }

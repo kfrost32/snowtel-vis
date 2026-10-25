@@ -24,7 +24,6 @@ export interface HourlyValue {
 }
 
 export interface BulkFetchOptions {
-  strict?: boolean;
   timeout?: number;
   batchSize?: number;
 }
@@ -66,7 +65,7 @@ export function generateDates(beginDate: string, endDate: string): string[] {
 }
 
 function toDailySeries(beginDate: string, values: RestValue[]): DailySeries | null {
-  const last = values.at(-1);
+  const last = values.findLast((v) => v.value != null);
   if (!last) return null;
   const byDate = new Map(values.map((v) => [v.date.split(" ")[0], v]));
   const dates = generateDates(beginDate, last.date);
@@ -96,27 +95,29 @@ function groupByStation<T>(
 async function fetchInBatches<T>(
   triplets: string[],
   elements: string[],
-  { strict = false, batchSize = Infinity }: BulkFetchOptions,
+  { batchSize = Infinity }: BulkFetchOptions,
   request: (batch: string[]) => Promise<Map<string, T>>
 ): Promise<Map<string, T>> {
   const size = Math.min(batchSize, Math.floor(MAX_STATION_ELEMENTS / elements.length));
-  const fetchBatch = (batch: string[]): Promise<Map<string, T>> =>
-    request(batch).catch(async () => {
-      if (batch.length < 2) return new Map<string, T>();
-      const mid = Math.ceil(batch.length / 2);
-      const halves = await Promise.all([batch.slice(0, mid), batch.slice(mid)].map(fetchBatch));
-      return new Map([...halves[0], ...halves[1]]);
-    });
   const batches: string[][] = [];
   for (let i = 0; i < triplets.length; i += size) {
     batches.push(triplets.slice(i, i + size));
   }
-  const results = await Promise.all(batches.map(fetchBatch));
+  const settled = await Promise.allSettled(batches.map(request));
+  const firstFailure = settled.find((r): r is PromiseRejectedResult => r.status === "rejected");
+  if (firstFailure && settled.every((r) => r.status === "rejected")) throw firstFailure.reason;
+
+  const split = async (batch: string[]): Promise<Map<string, T>> => {
+    if (batch.length < 2) return new Map<string, T>();
+    const mid = Math.ceil(batch.length / 2);
+    const halves = await Promise.all([batch.slice(0, mid), batch.slice(mid)].map((half) => request(half).catch(() => split(half))));
+    return new Map([...halves[0], ...halves[1]]);
+  };
+  const results = await Promise.all(settled.map((r, i) => (r.status === "fulfilled" ? r.value : split(batches[i]))));
   const merged = new Map<string, T>();
   for (const map of results) {
     for (const [k, v] of map) merged.set(k, v);
   }
-  if (strict && merged.size === 0 && triplets.length > 0) throw new Error("NRCS returned no data");
   return merged;
 }
 

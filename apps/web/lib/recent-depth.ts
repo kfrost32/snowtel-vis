@@ -28,7 +28,6 @@ export async function fetchRecentDepth(): Promise<RecentConditions> {
   const triplets = getAllStations().filter((s) => s.network === "SNOTEL").map((s) => s.triplet);
   const today = todayInDataTimezone();
   const depth = await fetchHourlyData(triplets, ["SNWD"], shiftDate(today, -1), shiftDate(today, 1), {
-    strict: true,
     timeout: BULK_TIMEOUT_MS,
     batchSize: BATCH_SIZE,
   });
