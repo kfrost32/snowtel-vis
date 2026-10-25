@@ -54,7 +54,7 @@ export default function RegionScreen() {
       ) : (
         <>
           <Section>
-            <Hero value={formatPctOfNormal(pct)} color={pctColor} caption={pct !== null ? getConditionLabel(pct) : "No median yet"} />
+            <Hero value={formatPctOfNormal(pct)} label="of median" color={pctColor} caption={pct !== null ? getConditionLabel(pct) : "No median yet"} />
             <Row label="Average SWE" value={formatSwe(basin.avgSwe)} detail={stats ? `median ${formatSwe(stats.medianAtDay)}` : undefined} />
             <Row label="Percentile" value={stats?.percentile != null ? String(stats.percentile) : "—"} detail="vs. all years today" />
             <Row

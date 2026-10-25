@@ -1,24 +1,48 @@
 import { StyleSheet, Text, View, type ColorValue } from "react-native";
 import { colors, numeric } from "@/theme";
 
-export function Hero({ value, color, caption }: { value: string; color: ColorValue; caption: string }) {
+export function Hero({
+  value,
+  label,
+  caption,
+  color = colors.label,
+  captionColor = color,
+}: {
+  value: string;
+  label: string;
+  caption?: string;
+  color?: ColorValue;
+  captionColor?: ColorValue;
+}) {
   return (
     <View style={styles.hero}>
       <Text style={[styles.heroValue, numeric, { color }]}>{value}</Text>
       <View style={styles.heroCaption}>
-        <Text style={styles.heroLabel}>of median</Text>
-        <Text style={[styles.heroCondition, { color }]}>{caption}</Text>
+        <Text style={styles.heroLabel}>{label}</Text>
+        {caption && <Text style={[styles.heroCondition, { color: captionColor }]}>{caption}</Text>}
       </View>
     </View>
   );
 }
 
-export function Row({ label, value, detail, last }: { label: string; value: string; detail?: string; last?: boolean }) {
+export function Row({
+  label,
+  value,
+  detail,
+  valueColor,
+  last,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+  valueColor?: ColorValue;
+  last?: boolean;
+}) {
   return (
     <View style={[styles.row, !last && styles.divider]}>
       <Text style={styles.rowLabel}>{label}</Text>
       <View style={styles.rowValue}>
-        <Text style={[styles.rowValueText, numeric]}>{value}</Text>
+        <Text style={[styles.rowValueText, numeric, valueColor !== undefined && { color: valueColor }]}>{value}</Text>
         {detail && <Text style={styles.rowDetail}>{detail}</Text>}
       </View>
     </View>

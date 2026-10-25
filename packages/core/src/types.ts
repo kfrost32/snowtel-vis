@@ -104,6 +104,7 @@ export interface HourlyObservation {
   datetime: string;
   snowDepth: number | null;
   temp: number | null;
+  swe?: number | null;
 }
 
 export interface ApiResponse<T> {

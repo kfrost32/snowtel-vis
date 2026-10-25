@@ -17,12 +17,14 @@ async function fetchHourly(triplet: string): Promise<HourlyObservation[]> {
   begin.setDate(begin.getDate() - 7);
   const beginDate = begin.toISOString().split("T")[0];
 
-  const series = (await fetchHourlyData([triplet], ["SNWD", "TOBS"], beginDate, endDate, { timeout: NRCS_TIMEOUT_MS })).get(triplet);
+  const series = (await fetchHourlyData([triplet], ["SNWD", "TOBS", "WTEQ"], beginDate, endDate, { timeout: NRCS_TIMEOUT_MS })).get(triplet);
   const tobsByTime = new Map((series?.TOBS ?? []).map((v) => [v.datetime, v.value]));
+  const sweByTime = new Map((series?.WTEQ ?? []).map((v) => [v.datetime, v.value]));
   return (series?.SNWD ?? []).map((s) => ({
     datetime: s.datetime,
     snowDepth: s.value,
     temp: tobsByTime.get(s.datetime) ?? null,
+    swe: sweByTime.get(s.datetime) ?? null,
   }));
 }
 

@@ -19,6 +19,7 @@ import {
   formatSwe,
 } from "@snotel/core/formatting";
 import { noComparisonReason } from "@snotel/core/map-style";
+import { lastStorm, stormDetail } from "@snotel/core/storm";
 import EnvelopeChart from "@/components/charts/EnvelopeChart";
 import PeakChart from "@/components/charts/PeakChart";
 import RecentChart from "@/components/charts/RecentChart";
@@ -46,22 +47,24 @@ export default function StationScreen() {
     if (!conditions || !envelope) return null;
     return statsAt(conditions.lastUpdated, conditions.swe, conditions.pctOfNormal, envelope, years);
   }, [season, conditions, envelope, years]);
-  const deltas = useMemo(
-    () =>
-      season
-        ? seasonDeltas(season.season)
-        : {
-            swe: [conditions?.sweChange1d ?? null, conditions?.sweChange3d ?? null, conditions?.sweChange7d ?? null],
-            depth: [conditions?.depthChange1d ?? null, conditions?.depthChange3d ?? null, conditions?.depthChange7d ?? null],
-          },
-    [season, conditions]
-  );
+  const deltas = useMemo(() => {
+    const daily = season
+      ? seasonDeltas(season.season)
+      : {
+          swe: [conditions?.sweChange1d ?? null, conditions?.sweChange3d ?? null, conditions?.sweChange7d ?? null],
+          depth: [conditions?.depthChange1d ?? null, conditions?.depthChange3d ?? null, conditions?.depthChange7d ?? null],
+        };
+    return conditions?.depthAt ? { ...daily, depth: [conditions.depthChange1d ?? null, ...daily.depth.slice(1)] } : daily;
+  }, [season, conditions]);
   const current = season?.current ?? conditions;
   const todayWyDay = current?.lastUpdated ? getWaterYearDay(current.lastUpdated) : null;
 
   const pct = current?.pctOfNormal ?? null;
   const pctColor = pct !== null ? getConditionColor(pct) : colors.secondaryLabel;
   const pctCaption = pct !== null ? getConditionLabel(pct) : (conditions && noComparisonReason(conditions)) ?? "No median yet";
+  const depth = conditions?.depthAt ? conditions.snowDepth : current?.snowDepth ?? null;
+  const depthChange = deltas.depth[0];
+  const storm = useMemo(() => (hourly ? lastStorm(hourly) : null), [hourly]);
 
   const subtitle = station
     ? [STATE_NAMES[station.state] ?? station.state, formatElevation(station.elevation), current?.lastUpdated && formatReadingEndOfDay(current.lastUpdated)]
@@ -106,18 +109,41 @@ export default function StationScreen() {
       ) : (
         <>
           <Section>
-            <Hero value={formatPctOfNormal(pct)} color={pctColor} caption={pctCaption} />
+            {depth !== null ? (
+              <Hero
+                value={formatSnowDepth(depth)}
+                label={conditions?.depthAt ? `snow depth · ${formatHourlyTime(conditions.depthAt)}` : "snow depth"}
+                caption={depthChange !== null ? `${formatDepthChange(depthChange)} in 24h` : undefined}
+                captionColor={getDepthChangeColor(depthChange)}
+              />
+            ) : (
+              <Hero value={formatSwe(current.swe)} label="snow water equivalent" />
+            )}
+            {storm && <Row label="Last storm" value={`+${formatSnowDepth(storm.newSnow)}`} detail={stormDetail(storm)} />}
+            <View style={styles.changeHeader}>
+              <Text style={[styles.changeLabel, styles.changeFirst]} />
+              {DELTA_DAYS.map((d) => (
+                <Text key={d} style={styles.changeLabel}>{d === 1 ? "24h" : `${d} days`}</Text>
+              ))}
+            </View>
+            <ChangeRow label="SWE" values={deltas.swe} format={formatChange} color={getChangeColor} />
+            <ChangeRow label="Snow depth" values={deltas.depth} format={formatDepthChange} color={getDepthChangeColor} last />
+          </Section>
+
+          {hourly && hourly.length > 0 && (
+            <Section title="Last 7 Days">
+              <RecentChart data={hourly} />
+            </Section>
+          )}
+
+          <Section title="Snowpack">
             <Row label="Snow water equivalent" value={formatSwe(current.swe)} detail={stats ? `median ${formatSwe(stats.medianAtDay)}` : undefined} />
+            <Row label="% of median" value={formatPctOfNormal(pct)} detail={pctCaption} valueColor={pctColor} />
             <Row label="Percentile" value={stats?.percentile != null ? String(stats.percentile) : "—"} detail="vs. all years today" />
             <Row
               label="Median peak"
               value={formatPctOfNormal(stats?.pctOfMedianPeak ?? null)}
               detail={stats ? `${Math.abs(stats.daysUntilPeak)}d ${stats.daysUntilPeak >= 0 ? "to go" : "past"}` : undefined}
-            />
-            <Row
-              label="Snow depth"
-              value={formatSnowDepth(conditions?.depthAt ? conditions.snowDepth : current.snowDepth)}
-              detail={conditions?.depthAt ? formatHourlyTime(conditions.depthAt) : undefined}
             />
             <Row label="Precipitation" value={current.precipAccum !== null ? `${current.precipAccum.toFixed(1)}"` : "—"} detail="water year" last />
           </Section>
@@ -133,23 +159,6 @@ export default function StationScreen() {
                 format={formatSwe}
                 axisLabel={(v) => `${v}"`}
               />
-            </Section>
-          )}
-
-          <Section title="Changes">
-            <View style={styles.changeHeader}>
-              <Text style={[styles.changeLabel, styles.changeFirst]} />
-              {DELTA_DAYS.map((d) => (
-                <Text key={d} style={styles.changeLabel}>{d === 1 ? "24h" : `${d} days`}</Text>
-              ))}
-            </View>
-            <ChangeRow label="SWE" values={deltas.swe} format={formatChange} color={getChangeColor} />
-            <ChangeRow label="Snow depth" values={deltas.depth} format={formatDepthChange} color={getDepthChangeColor} last />
-          </Section>
-
-          {hourly && hourly.length > 0 && (
-            <Section title="Last 7 Days">
-              <RecentChart data={hourly} />
             </Section>
           )}
 
