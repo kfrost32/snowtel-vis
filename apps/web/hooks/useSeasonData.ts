@@ -3,11 +3,11 @@
 import useSWR from "swr";
 import type { StationSeasonData } from "@snotel/core/types";
 import type { ApiResponse } from "@snotel/core/types";
-import { urlTriplet } from "@snotel/core/stations";
+import { endpoints } from "@snotel/core/endpoints";
 
 export function useSeasonData(triplet: string) {
   const { data, error, isLoading } = useSWR<ApiResponse<StationSeasonData>>(
-    `/api/stations/${urlTriplet(triplet)}`
+    endpoints.stationSeason(triplet)
   );
   return {
     data: data?.data ?? null,

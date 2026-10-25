@@ -195,7 +195,8 @@ export async function fetchHourlyData(
   triplets: string[],
   elementCd: string,
   beginDate: string,
-  endDate: string
+  endDate: string,
+  { timeout }: BulkFetchOptions = {}
 ): Promise<Map<string, HourlyValue[]>> {
   const merged = new Map<string, HourlyValue[]>();
   const batches: string[][] = [];
@@ -204,7 +205,7 @@ export async function fetchHourlyData(
   }
   const results = await Promise.all(
     batches.map((batch) =>
-      soapRequest("getHourlyData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><ordinal>1</ordinal><beginDate>${beginDate}</beginDate><endDate>${endDate}</endDate>`)
+      soapRequest("getHourlyData", `${tripletParams(batch)}<elementCd>${elementCd}</elementCd><ordinal>1</ordinal><beginDate>${beginDate}</beginDate><endDate>${endDate}</endDate>`, timeout)
         .then(parseHourlyDataResponse)
         .catch(() => new Map<string, HourlyValue[]>())
     )

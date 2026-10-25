@@ -5,13 +5,13 @@ import { X, MapPin, Mountain, Star, ChevronDown } from "lucide-react";
 import { theme, glassmorphicButtonStyle } from "@snotel/core/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
-import { getStation, urlTriplet } from "@snotel/core/stations";
+import { getStation } from "@snotel/core/stations";
 import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatDepthChange } from "@snotel/core/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor, getDepthChangeColor } from "@snotel/core/colors";
 import InfoTooltip from "@/components/InfoTooltip";
 import { metricDescriptions } from "@snotel/core/metric-descriptions";
-import { getWaterYearDay, calendarRow } from "@snotel/core/water-year";
-import { percentileRank } from "@snotel/core/envelope-files";
+import { envelopeStats as computeEnvelopeStats, seasonDeltas } from "@snotel/core/station-stats";
+import { endpoints } from "@snotel/core/endpoints";
 import EnvelopeStatGrid from "@/components/EnvelopeStatGrid";
 import { buildSeasonMap } from "@snotel/core/season";
 import { useSeasonData } from "@/hooks/useSeasonData";
@@ -67,7 +67,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
   const { data: historicalData, loading: historicalLoading } = useHistoricalData(triplet);
   const { data: hourlyData, loading: hourlyLoading } = useHourlyData(triplet);
   const { data: envelopeData, loading: envelopeLoading } = useEnvelopeData(triplet);
-  const envelopeOptions = useEnvelopeOptions(`/envelopes/years/stations/${urlTriplet(triplet)}.json`);
+  const envelopeOptions = useEnvelopeOptions(endpoints.stationYears(triplet));
   const yearOptions = useMemo(() => {
     const currentWy = getCurrentWaterYear();
     return historicalData
@@ -76,25 +76,10 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
       .map((p) => ({ year: p.waterYear, label: String(p.waterYear) }));
   }, [historicalData]);
 
-  const envelopeStats = useMemo(() => {
-    const current = seasonData?.current;
-    if (!envelopeData || !current?.lastUpdated) return null;
-    const lastUpdated = current.lastUpdated;
-    const currentWyDay = getWaterYearDay(lastUpdated);
-    const seasonMap = buildSeasonMap(seasonData?.season ?? []);
-    const currentSwe = seasonMap.get(currentWyDay) ?? null;
-    const medianEntry = envelopeData.envelope.find((d) => d.wyDay === currentWyDay);
-    const medianAtDay = medianEntry?.median ?? null;
-    const pctOfMedianPeak = currentSwe !== null && envelopeData.medianPeakSwe
-      ? Math.round((currentSwe / envelopeData.medianPeakSwe) * 100)
-      : null;
-    const daysUntilPeak = envelopeData.medianPeakRow - calendarRow(lastUpdated);
-    const dateLabel = new Date(lastUpdated + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const percentile = envelopeOptions.yearsFile && currentSwe !== null
-      ? percentileRank(envelopeOptions.yearsFile, lastUpdated, currentSwe)
-      : null;
-    return { currentSwe, medianAtDay, pctOfNormal: current.pctOfNormal, pctOfMedianPeak, daysUntilPeak, dateLabel, percentile };
-  }, [envelopeData, seasonData, envelopeOptions.yearsFile]);
+  const envelopeStats = useMemo(
+    () => computeEnvelopeStats(seasonData, envelopeData, envelopeOptions.yearsFile ?? null),
+    [envelopeData, seasonData, envelopeOptions.yearsFile]
+  );
 
   if (!station) {
     return (
@@ -179,20 +164,12 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
                 </div>
               ))
             ) : current ? (() => {
-              const season = seasonData?.season ?? [];
-              const n = season.length - 1;
-              const change1d = n >= 1 && season[n].swe !== null && season[n - 1].swe !== null ? season[n].swe! - season[n - 1].swe! : null;
-              const deltaSwe = n >= 3 && season[n].swe !== null && season[n - 3].swe !== null ? season[n].swe! - season[n - 3].swe! : null;
-              const change7d = n >= 7 && season[n].swe !== null && season[n - 7].swe !== null ? season[n].swe! - season[n - 7].swe! : null;
-              const deltaDepth = n >= 3 && season[n].snowDepth !== null && season[n - 3].snowDepth !== null ? season[n].snowDepth! - season[n - 3].snowDepth! : null;
-              const depthChange1d = n >= 1 && season[n].snowDepth !== null && season[n - 1].snowDepth !== null ? Math.round(season[n].snowDepth! - season[n - 1].snowDepth!) : null;
-              const depthChange7d = n >= 7 && season[n].snowDepth !== null && season[n - 7].snowDepth !== null ? Math.round(season[n].snowDepth! - season[n - 7].snowDepth!) : null;
-              const sweDeltas = [change1d, deltaSwe, change7d] as (number | null)[];
-              const depthDeltas = [depthChange1d, deltaDepth !== null ? Math.round(deltaDepth) : null, depthChange7d] as (number | null)[];
+              const { swe: sweDeltas, depth: depthDeltas } = seasonDeltas(seasonData?.season ?? []);
+              const [depthChange1d, depthChange3d] = depthDeltas;
               const stats = [
                 { label: "SWE", tip: metricDescriptions.swe, value: formatSwe(current.swe), sub: current.sweNormal !== null ? `nml ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray, custom: null },
                 { label: "% Median", tip: metricDescriptions.pctOfNormal, value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal), custom: null },
-                { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: (depthChange1d !== null || deltaDepth !== null) ? `${formatDepthChange(depthChange1d)} / ${formatDepthChange(deltaDepth !== null ? Math.round(deltaDepth) : null)} (1/3d)` : null, subColor: getDepthChangeColor(depthChange1d), custom: null },
+                { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: (depthChange1d !== null || depthChange3d !== null) ? `${formatDepthChange(depthChange1d)} / ${formatDepthChange(depthChange3d)} (1/3d)` : null, subColor: getDepthChangeColor(depthChange1d), custom: null },
                 { label: "YTD Precip", tip: metricDescriptions.precip, value: current.precipAccum !== null ? `${current.precipAccum.toFixed(1)}"` : "—", sub: null, subColor: null, custom: null },
                 { label: "Snow ∆ (1/3/7d)", tip: "Snow depth change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "depthDeltas" },
                 { label: "SWE ∆ (1/3/7d)", tip: "SWE change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "sweDeltas" },
@@ -251,7 +228,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
                   { label: "% of Median", value: formatPctOfNormal(envelopeStats.pctOfNormal), color: getConditionColor(envelopeStats.pctOfNormal), hideOnMobile: true },
                   { label: "Percentile", value: envelopeStats.percentile !== null ? String(envelopeStats.percentile) : "—" },
                   { label: "% Median Peak", value: formatPctOfNormal(envelopeStats.pctOfMedianPeak) },
-                  { label: `Median ${envelopeStats.dateLabel}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray, hideOnMobile: true },
+                  { label: `Median ${new Date(envelopeStats.asOf + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray, hideOnMobile: true },
                   { label: envelopeStats.daysUntilPeak >= 0 ? "To Median Peak" : "Past Median Peak", value: `${Math.abs(envelopeStats.daysUntilPeak)}d`, color: theme.darkGray },
                 ]}
               />

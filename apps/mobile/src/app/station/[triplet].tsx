@@ -1,0 +1,223 @@
+import { useMemo } from "react";
+import { ActivityIndicator, ScrollView, Share, StyleSheet, Text, View, type ColorValue } from "react-native";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import * as Haptics from "expo-haptics";
+import { getStation, parseTripletFromUrl, urlTriplet } from "@snotel/core/stations";
+import { DELTA_DAYS, envelopeStats, seasonDeltas, statsAt } from "@snotel/core/station-stats";
+import { buildSeasonMap } from "@snotel/core/season";
+import { getWaterYearDay } from "@snotel/core/water-year";
+import { getChangeColor, getConditionColor, getConditionLabel, getDepthChangeColor } from "@snotel/core/colors";
+import {
+  formatChange,
+  formatDepthChange,
+  formatElevation,
+  formatPctOfNormal,
+  formatReadingDateShort,
+  formatSnowDepth,
+  formatSwe,
+} from "@snotel/core/formatting";
+import { noComparisonReason } from "@snotel/core/map-style";
+import EnvelopeChart from "@/components/charts/EnvelopeChart";
+import PeakChart from "@/components/charts/PeakChart";
+import RecentChart from "@/components/charts/RecentChart";
+import Section from "@/components/Section";
+import { Hero, Row, summaryStyles } from "@/components/Summary";
+import { useStationConditions, useStationDetail, useStationHourly } from "@/hooks/data";
+import { toggleFavorite, useIsFavorite } from "@/lib/favorites";
+import { webUrl } from "@/lib/api";
+import { colors, numeric } from "@/theme";
+
+export default function StationScreen() {
+  const params = useLocalSearchParams<{ triplet: string }>();
+  const triplet = parseTripletFromUrl(params.triplet);
+  const station = getStation(triplet);
+  const favorite = useIsFavorite(triplet);
+  const conditions = useStationConditions(triplet);
+  const hourly = useStationHourly(triplet);
+  const { season, envelope, years, peaks, loading } = useStationDetail(triplet);
+
+  const sweMap = useMemo(() => buildSeasonMap(season?.season ?? []), [season]);
+  const depthMap = useMemo(() => buildSeasonMap(season?.season ?? [], (d) => d.snowDepth), [season]);
+  const stats = useMemo(() => {
+    if (season) return envelopeStats(season, envelope, years);
+    if (!conditions || !envelope) return null;
+    return statsAt(conditions.lastUpdated, conditions.swe, conditions.pctOfNormal, envelope, years);
+  }, [season, conditions, envelope, years]);
+  const deltas = useMemo(
+    () =>
+      season
+        ? seasonDeltas(season.season)
+        : {
+            swe: [conditions?.sweChange1d ?? null, conditions?.sweChange3d ?? null, conditions?.sweChange7d ?? null],
+            depth: [conditions?.depthChange1d ?? null, conditions?.depthChange3d ?? null, conditions?.depthChange7d ?? null],
+          },
+    [season, conditions]
+  );
+  const current = season?.current ?? conditions;
+  const todayWyDay = current?.lastUpdated ? getWaterYearDay(current.lastUpdated) : null;
+
+  const pct = current?.pctOfNormal ?? null;
+  const pctColor = pct !== null ? getConditionColor(pct) : colors.secondaryLabel;
+  const pctCaption = pct !== null ? getConditionLabel(pct) : (conditions && noComparisonReason(conditions)) ?? "No median yet";
+
+  const header = (
+    <>
+      <Stack.Title>{station?.name ?? "Station"}</Stack.Title>
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button icon="xmark" accessibilityLabel="Close" onPress={() => router.dismiss()} />
+      </Stack.Toolbar>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={favorite ? "star.fill" : "star"}
+          tintColor={favorite ? colors.favorite : undefined}
+          accessibilityLabel={favorite ? "Remove from favorites" : "Add to favorites"}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            toggleFavorite(triplet);
+          }}
+        />
+        <Stack.Toolbar.Button
+          icon="square.and.arrow.up"
+          accessibilityLabel="Share"
+          onPress={() => Share.share({ url: webUrl(`/station/${urlTriplet(triplet)}`) })}
+        />
+      </Stack.Toolbar>
+    </>
+  );
+
+  if (!station) {
+    return (
+      <>
+        {header}
+        <View style={styles.center}>
+          <Text style={styles.secondary}>Station not found</Text>
+        </View>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {header}
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
+        <Text style={styles.subtitle}>
+          {station.state} · {formatElevation(station.elevation)}
+          {current?.lastUpdated ? ` · As of ${formatReadingDateShort(current.lastUpdated)}` : ""}
+        </Text>
+
+        {loading && !current ? (
+          <ActivityIndicator style={styles.loading} />
+        ) : !current ? (
+          <Text style={[styles.secondary, styles.loading]}>No current data for this station.</Text>
+        ) : (
+          <>
+            <Section>
+              <Hero value={formatPctOfNormal(pct)} color={pctColor} caption={pctCaption} />
+              <Row label="Snow water equivalent" value={formatSwe(current.swe)} detail={stats ? `median ${formatSwe(stats.medianAtDay)}` : undefined} />
+              <Row label="Percentile" value={stats?.percentile != null ? String(stats.percentile) : "—"} detail="vs. all years today" />
+              <Row
+                label="Median peak"
+                value={formatPctOfNormal(stats?.pctOfMedianPeak ?? null)}
+                detail={stats ? `${Math.abs(stats.daysUntilPeak)}d ${stats.daysUntilPeak >= 0 ? "to go" : "past"}` : undefined}
+              />
+              <Row label="Snow depth" value={formatSnowDepth(current.snowDepth)} />
+              <Row label="Precipitation" value={current.precipAccum !== null ? `${current.precipAccum.toFixed(1)}"` : "—"} detail="water year" last />
+            </Section>
+
+            {envelope && (
+              <Section title="Snow Water Equivalent">
+                <EnvelopeChart
+                  envelope={envelope.envelope}
+                  seasonMap={sweMap}
+                  todayWyDay={todayWyDay}
+                  peakDay={envelope.medianPeakDay}
+                  peakValue={envelope.medianPeakSwe}
+                  format={formatSwe}
+                  axisLabel={(v) => `${v}"`}
+                />
+              </Section>
+            )}
+
+            <Section title="Changes">
+              <View style={styles.changeHeader}>
+                <Text style={[styles.changeLabel, styles.changeFirst]} />
+                {DELTA_DAYS.map((d) => (
+                  <Text key={d} style={styles.changeLabel}>{d === 1 ? "24h" : `${d} days`}</Text>
+                ))}
+              </View>
+              <ChangeRow label="SWE" values={deltas.swe} format={formatChange} color={getChangeColor} />
+              <ChangeRow label="Snow depth" values={deltas.depth} format={formatDepthChange} color={getDepthChangeColor} last />
+            </Section>
+
+            {hourly && hourly.length > 0 && (
+              <Section title="Last 7 Days">
+                <RecentChart data={hourly} />
+              </Section>
+            )}
+
+            {envelope && envelope.depthEnvelope.some((d) => d.median !== null) && (
+              <Section title="Snow Depth">
+                <EnvelopeChart
+                  envelope={envelope.depthEnvelope}
+                  seasonMap={depthMap}
+                  todayWyDay={todayWyDay}
+                  peakDay={envelope.medianPeakDepthDay}
+                  peakValue={envelope.medianPeakDepth}
+                  format={formatSnowDepth}
+                  axisLabel={(v) => `${v}"`}
+                />
+              </Section>
+            )}
+
+            {peaks.length > 0 && envelope && (
+              <Section title="Peak SWE by Year">
+                <PeakChart peaks={peaks} medianPeak={envelope.medianPeakSwe} />
+              </Section>
+            )}
+
+            <Text style={styles.footer}>
+              {station.triplet} · Data from USDA NRCS SNOTEL
+            </Text>
+          </>
+        )}
+      </ScrollView>
+    </>
+  );
+}
+
+function ChangeRow({
+  label,
+  values,
+  format,
+  color,
+  last,
+}: {
+  label: string;
+  values: (number | null)[];
+  format: (v: number | null) => string;
+  color: (v: number | null) => ColorValue;
+  last?: boolean;
+}) {
+  return (
+    <View style={[styles.changeRow, !last && summaryStyles.divider]}>
+      <Text style={[summaryStyles.rowLabel, styles.changeFirst]}>{label}</Text>
+      {values.map((v, i) => (
+        <Text key={i} style={[styles.changeValue, numeric, { color: color(v) }]}>{format(v)}</Text>
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { paddingHorizontal: 16, paddingBottom: 48, gap: 24 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  subtitle: { fontSize: 15, color: colors.secondaryLabel, paddingHorizontal: 4 },
+  secondary: { fontSize: 15, color: colors.secondaryLabel },
+  loading: { marginTop: 40, textAlign: "center" },
+  changeHeader: { flexDirection: "row", paddingBottom: 6 },
+  changeRow: { flexDirection: "row", alignItems: "center", paddingVertical: 11 },
+  changeFirst: { flex: 1.4 },
+  changeLabel: { flex: 1, fontSize: 12, fontWeight: "600", color: colors.secondaryLabel, textAlign: "right" },
+  changeValue: { flex: 1, fontSize: 16, fontWeight: "600", textAlign: "right" },
+  footer: { fontSize: 12, color: colors.tertiaryLabel, textAlign: "center" },
+});

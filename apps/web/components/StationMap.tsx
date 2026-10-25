@@ -4,31 +4,41 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@snotel/core/types";
-import { getMapMarkerColor, getMetricMapColor } from "@snotel/core/colors";
-import { computePolygonCentroid } from "@snotel/core/basins";
-import { formatSwe, formatSnowDepth, formatTemp, formatPrecip, formatDepthChange } from "@snotel/core/formatting";
 import { urlTriplet } from "@snotel/core/stations";
 import { prefetchStation } from "@/lib/prefetch";
 import { theme } from "@snotel/core/theme";
-import { SPOT_COLORS, SPOT_KIND_LABELS, spotElevationLabel, type Spot, type SpotKind } from "@snotel/core/spots";
+import { SPOT_COLORS, SPOT_KIND_LABELS, SPOT_TEXT_SIZE, spotElevationLabel, spotPlacement, type Spot, type SpotKind } from "@snotel/core/spots";
+import {
+  BASEMAP_STYLE_URL,
+  INITIAL_CENTER,
+  INITIAL_ZOOM,
+  STATION_LABEL_MINZOOM,
+  TERRAIN_MAXZOOM,
+  TERRAIN_TILES,
+  hillshadePaint,
+  stationCircleLayout,
+  stationCirclePaint,
+  stationFeatures,
+  stationLabelLayout,
+  stationLabelPaint,
+  regionFillPaint,
+  regionLabelLayout,
+  regionLabelPaint,
+  regionLabels,
+  regionOutlinePaint,
+  regionPolygons,
+  type RegionLevel,
+  type RegionMarker,
+} from "@snotel/core/map-style";
 import huc2Boundaries from "@snotel/core/data/huc2-boundaries.json";
 import huc4Boundaries from "@snotel/core/data/huc4-boundaries.json";
-
-export interface BasinMarker {
-  huc: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  medianPctOfNormal: number | null;
-  stationCount: number;
-}
 
 interface StationMapProps {
   stations: StationCurrentConditions[];
   onVisibleStationsChange?: (triplets: Set<string>) => void;
   flyTo?: { lng: number; lat: number; triplet: string } | null;
-  huc2Markers?: BasinMarker[];
-  huc4Markers?: BasinMarker[];
+  huc2Markers?: RegionMarker[];
+  huc4Markers?: RegionMarker[];
   showStations?: boolean;
   showHuc2?: boolean;
   showHuc4?: boolean;
@@ -43,35 +53,6 @@ const SPOT_GLYPHS: Record<SpotKind, string[]> = {
   resort: ["m2 9 20-5", "M12 12V6.5", "M9 12v5", "M15 12v5", "M4 17h16", "M7 12h10a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3z"],
   backcountry: ["m8 3 4 8 5-5 5 15H2L8 3z"],
 };
-
-const NUDGE_RADIUS_DEG = 0.03;
-const NUDGE_PX = 30;
-const LABEL_EMS = 1.3;
-const TEXT_SIZE = 11;
-
-function spotPlacement(spot: Spot, stations: StationCurrentConditions[]) {
-  const cosLat = Math.cos((spot.latitude * Math.PI) / 180);
-  let dx = 0, dy = 0, nearest = Infinity;
-  for (const s of stations) {
-    const sx = (spot.longitude - s.longitude) * cosLat;
-    const sy = spot.latitude - s.latitude;
-    const d = Math.hypot(sx, sy);
-    if (d < nearest) { nearest = d; dx = sx; dy = sy; }
-  }
-  if (nearest > NUDGE_RADIUS_DEG) {
-    return { iconOffset: [0, 0], textAnchor: "top", textOffset: [0, LABEL_EMS] };
-  }
-  const [ux, uy] = nearest === 0 ? [0, 1] : [dx / nearest, dy / nearest];
-  const iconOffset = [ux * NUDGE_PX, -uy * NUDGE_PX];
-  const [anchor, dir] = Math.abs(uy) >= Math.abs(ux)
-    ? uy > 0 ? ["bottom", [0, -1]] : ["top", [0, 1]]
-    : ux > 0 ? ["left", [1, 0]] : ["right", [-1, 0]];
-  return {
-    iconOffset,
-    textAnchor: anchor,
-    textOffset: [iconOffset[0] / TEXT_SIZE + dir[0] * LABEL_EMS, iconOffset[1] / TEXT_SIZE + dir[1] * LABEL_EMS],
-  };
-}
 
 function spotIcon(kind: SpotKind): ImageData {
   const size = 44;
@@ -96,14 +77,6 @@ function spotIcon(kind: SpotKind): ImageData {
   ctx.lineJoin = "round";
   for (const d of SPOT_GLYPHS[kind]) ctx.stroke(new Path2D(d));
   return ctx.getImageData(0, 0, size, size);
-}
-
-function noComparisonReason(s: StationCurrentConditions): string | null {
-  if (s.network === "Snow Course") return "Monthly manual reading";
-  if (s.swe === null) return "Not reporting";
-  if (s.sweNormal === null) return "No median yet";
-  if (s.sweNormal === 0) return "Median is 0\" today";
-  return null;
 }
 
 function escapeHtml(text: string): string {
@@ -154,9 +127,9 @@ function StationMapInner({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-      center: [-110, 44],
-      zoom: 4,
+      style: BASEMAP_STYLE_URL,
+      center: INITIAL_CENTER,
+      zoom: INITIAL_ZOOM,
       attributionControl: false,
     });
 
@@ -171,21 +144,16 @@ function StationMapInner({
       // ── Terrain hillshade ──────────────────────────────────────────────
       map.addSource("terrain-dem", {
         type: "raster-dem",
-        tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+        tiles: TERRAIN_TILES,
         encoding: "terrarium",
         tileSize: 256,
-        maxzoom: 15,
+        maxzoom: TERRAIN_MAXZOOM,
       });
       map.addLayer({
         id: "hillshade",
         type: "hillshade",
         source: "terrain-dem",
-        paint: {
-          "hillshade-exaggeration": 0.3,
-          "hillshade-shadow-color": "#5a5a5a",
-          "hillshade-highlight-color": "#ffffff",
-          "hillshade-accent-color": "#4a4a4a",
-        },
+        paint: hillshadePaint,
       });
 
       // ── HUC-4: colored fill + thin outline ────────────────────────────
@@ -197,21 +165,14 @@ function StationMapInner({
         id: "huc4-fill",
         type: "fill",
         source: "huc4-polygons",
-        paint: {
-          "fill-color": ["coalesce", ["get", "fillColor"], theme.mediumGray],
-          "fill-opacity": 0.35,
-        },
+        paint: regionFillPaint,
         layout: { visibility: "none" },
       });
       map.addLayer({
         id: "huc4-outline",
         type: "line",
         source: "huc4-polygons",
-        paint: {
-          "line-color": ["coalesce", ["get", "fillColor"], theme.mediumGray],
-          "line-width": 1,
-          "line-opacity": 0.5,
-        },
+        paint: regionOutlinePaint[4],
         layout: { visibility: "none" },
       });
       map.addSource("huc4-labels", {
@@ -228,21 +189,14 @@ function StationMapInner({
         id: "huc2-fill",
         type: "fill",
         source: "huc2-polygons",
-        paint: {
-          "fill-color": ["coalesce", ["get", "fillColor"], theme.mediumGray],
-          "fill-opacity": 0.35,
-        },
+        paint: regionFillPaint,
         layout: { visibility: "none" },
       });
       map.addLayer({
         id: "huc2-outline",
         type: "line",
         source: "huc2-polygons",
-        paint: {
-          "line-color": ["coalesce", ["get", "fillColor"], theme.mediumGray],
-          "line-width": 2.5,
-          "line-opacity": 0.75,
-        },
+        paint: regionOutlinePaint[2],
         layout: { visibility: "none" },
       });
       map.addSource("huc2-labels", {
@@ -259,45 +213,16 @@ function StationMapInner({
         id: "station-circles",
         type: "circle",
         source: "stations",
-        layout: {
-          "circle-sort-key": ["get", "sortKey"],
-        },
-        paint: {
-          "circle-color": ["case", ["get", "inactive"], theme.mediumGray, ["get", "hollow"], "rgba(0,0,0,0)", ["get", "color"]],
-          "circle-radius": [
-            "interpolate", ["linear"], ["zoom"],
-            3, ["case", ["get", "inactive"], 1, ["get", "hollow"], 2.5, 5],
-            5, ["case", ["get", "inactive"], 1.5, ["get", "hollow"], 3.5, 8],
-            7, ["case", ["get", "inactive"], 2.5, ["get", "hollow"], 5, 14],
-            10, ["case", ["get", "inactive"], 3.5, ["get", "hollow"], 7, 20],
-          ],
-          "circle-stroke-width": [
-            "interpolate", ["linear"], ["zoom"],
-            3, ["case", ["get", "inactive"], 0, 1],
-            7, ["case", ["get", "inactive"], 0, ["get", "hollow"], 1.5, 2.5],
-          ],
-          "circle-stroke-color": ["case", ["get", "hollow"], theme.mediumGray, theme.white],
-          "circle-opacity": ["case", ["get", "inactive"], 0.35, 1],
-        },
+        layout: stationCircleLayout,
+        paint: stationCirclePaint,
       });
       map.addLayer({
         id: "station-labels",
         type: "symbol",
         source: "stations",
-        minzoom: 6,
-        layout: {
-          "text-field": ["get", "label"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 5, 8, 6, 9, 10, 12],
-          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          "text-allow-overlap": false,
-          "text-ignore-placement": false,
-          "symbol-sort-key": ["get", "sortKey"],
-        },
-        paint: {
-          "text-color": theme.white,
-          "text-halo-color": "rgba(0,0,0,0.5)",
-          "text-halo-width": 1,
-        },
+        minzoom: STATION_LABEL_MINZOOM,
+        layout: stationLabelLayout,
+        paint: stationLabelPaint,
       });
 
       // ── Ski areas & backcountry spots ──────────────────────────────────
@@ -319,7 +244,7 @@ function StationMapInner({
           "icon-offset": ["get", "iconOffset"],
           "text-field": ["step", ["zoom"], "", 10, ["get", "name"]],
           "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          "text-size": TEXT_SIZE,
+          "text-size": SPOT_TEXT_SIZE,
           "text-anchor": ["get", "textAnchor"],
           "text-offset": ["get", "textOffset"],
           "text-optional": true,
@@ -336,37 +261,15 @@ function StationMapInner({
         id: "huc4-label-text",
         type: "symbol",
         source: "huc4-labels",
-        layout: {
-          "text-field": ["get", "label"],
-          "text-size": 13,
-          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          "text-allow-overlap": false,
-          "text-padding": 6,
-          visibility: "none",
-        },
-        paint: {
-          "text-color": ["get", "textColor"],
-          "text-halo-color": "rgba(255,255,255,0.95)",
-          "text-halo-width": 2,
-        },
+        layout: { ...regionLabelLayout[4], visibility: "none" },
+        paint: regionLabelPaint[4],
       });
       map.addLayer({
         id: "huc2-label-text",
         type: "symbol",
         source: "huc2-labels",
-        layout: {
-          "text-field": ["get", "label"],
-          "text-size": 15,
-          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          "text-allow-overlap": false,
-          "text-padding": 8,
-          visibility: "none",
-        },
-        paint: {
-          "text-color": ["get", "textColor"],
-          "text-halo-color": "rgba(255,255,255,0.95)",
-          "text-halo-width": 2.5,
-        },
+        layout: { ...regionLabelLayout[2], visibility: "none" },
+        paint: regionLabelPaint[2],
       });
 
       // ── Interactions ───────────────────────────────────────────────────
@@ -463,76 +366,13 @@ function StationMapInner({
   const onBasinSelectRef = useRef(onBasinSelect);
   onBasinSelectRef.current = onBasinSelect;
 
-  function metricDotLabel(m: string, s: StationCurrentConditions): string {
-    const fmtChange = (v: number | null) => v === null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1)}"`;
-    switch (m) {
-      case "WTEQ": return s.swe !== null ? `${s.swe.toFixed(1)}"` : "";
-      case "WTEQ_PCT": return s.pctOfNormal !== null ? `${Math.round(s.pctOfNormal)}%` : "";
-      case "CHANGE_1D": return fmtChange(s.sweChange1d);
-      case "CHANGE_3D": return fmtChange(s.sweChange3d ?? null);
-      case "CHANGE_7D": return fmtChange(s.sweChange7d);
-      case "SNWD_CHANGE_1D": return formatDepthChange(s.depthChange1d ?? null);
-      case "SNWD_CHANGE_3D": return formatDepthChange(s.depthChange3d ?? null);
-      case "SNWD_CHANGE_7D": return formatDepthChange(s.depthChange7d ?? null);
-      case "SNWD": return s.snowDepth !== null ? `${Math.round(s.snowDepth)}"` : "—";
-      case "PREC": return s.precipAccum !== null ? `${Math.round(s.precipAccum)}"` : "";
-      case "TAVG": return s.temp !== null ? `${Math.round(s.temp)}°` : "";
-      default: return "";
-    }
-  }
-
-  function hoverDetail(m: string, s: StationCurrentConditions): string {
-    const elevation = `${s.elevation.toLocaleString()} ft`;
-    if (m !== "WTEQ" && m !== "WTEQ_PCT") return `${metricDotLabel(m, s) || "—"} · ${elevation}`;
-    const reason = noComparisonReason(s);
-    if (reason) return `${reason} · ${elevation}`;
-    return `${Math.round(s.pctOfNormal!)}% · ${s.swe!.toFixed(1)}" SWE · ${elevation}`;
-  }
-
-  function formatMetricValue(m: string, val: number | null): string {
-    switch (m) {
-      case "SNWD": return formatSnowDepth(val);
-      case "PREC": return formatPrecip(val);
-      case "TAVG": return formatTemp(val);
-      default: return formatSwe(val);
-    }
-  }
-
-  function metricLabel(m: string): string {
-    switch (m) {
-      case "SNWD": return "Snow Depth";
-      case "PREC": return "Precip";
-      case "TAVG": return "Temp";
-      default: return "SWE";
-    }
-  }
-
-
-// Update station data
+  // Update station data
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
     const source = map.getSource("stations") as maplibregl.GeoJSONSource | undefined;
     if (!source) return;
-    const isSweMetric = metric === "WTEQ" || metric === "WTEQ_PCT";
-    source.setData({
-      type: "FeatureCollection",
-      features: stations.filter((s) => s.latitude && s.longitude).map((s) => ({
-        type: "Feature" as const,
-        geometry: { type: "Point" as const, coordinates: [s.longitude, s.latitude] },
-        properties: {
-          triplet: s.triplet, name: s.name, state: s.state, elevation: s.elevation,
-          swe: s.swe, snowDepth: s.snowDepth, precipAccum: s.precipAccum, temp: s.temp,
-          pctOfNormal: s.pctOfNormal, sweChange1d: s.sweChange1d, sweChange3d: s.sweChange3d, sweChange7d: s.sweChange7d, depthChange1d: s.depthChange1d, depthChange3d: s.depthChange3d, depthChange7d: s.depthChange7d,
-          color: getMetricMapColor(metric, s),
-          inactive: isSweMetric && s.swe === null,
-          hoverDetail: hoverDetail(metric, s),
-          hollow: isSweMetric && s.pctOfNormal === null,
-          label: isSweMetric && s.pctOfNormal === null ? "" : metricDotLabel(metric, s),
-          sortKey: s.latitude,
-        },
-      })),
-    });
+    source.setData(stationFeatures(stations, metric));
     map.once("render", updateVisibleStations);
   }, [stations, mapLoaded, metric, updateVisibleStations]);
 
@@ -566,99 +406,18 @@ function StationMapInner({
     map.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: 11, duration: 1500 });
   }, [flyTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update HUC-4 layer data
-  useEffect(() => {
+  const updateRegions = useCallback((level: RegionLevel, markers: RegionMarker[] | undefined, boundaries: GeoJSON.FeatureCollection) => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
-    const polySource = map.getSource("huc4-polygons") as maplibregl.GeoJSONSource | undefined;
-    const labelSource = map.getSource("huc4-labels") as maplibregl.GeoJSONSource | undefined;
+    const polySource = map.getSource(`huc${level}-polygons`) as maplibregl.GeoJSONSource | undefined;
+    const labelSource = map.getSource(`huc${level}-labels`) as maplibregl.GeoJSONSource | undefined;
     if (!polySource || !labelSource) return;
+    polySource.setData(regionPolygons(boundaries, markers ?? [], level));
+    labelSource.setData(regionLabels(boundaries, markers ?? [], level));
+  }, [mapLoaded]);
 
-    const markerMap = new Map((huc4Markers || []).map((b) => [b.huc, b]));
-    polySource.setData({
-      type: "FeatureCollection",
-      features: (huc4Boundaries as GeoJSON.FeatureCollection).features.map((f) => {
-        const huc = f.properties?.huc4;
-        const marker = markerMap.get(huc);
-        return {
-          ...f,
-          properties: {
-            ...f.properties,
-            hucId: huc,
-            fillColor: marker ? getMapMarkerColor(marker.medianPctOfNormal) : theme.borderGray,
-            medianPctOfNormal: marker?.medianPctOfNormal ?? null,
-            stationCount: marker?.stationCount ?? 0,
-            name: marker?.name ?? f.properties?.name ?? "",
-          },
-        };
-      }),
-    });
-    const huc4CentroidMap = new Map<string, { latitude: number; longitude: number }>();
-    for (const f of (huc4Boundaries as GeoJSON.FeatureCollection).features) {
-      const huc = f.properties?.huc4;
-      const centroid = computePolygonCentroid(f.geometry);
-      if (huc && centroid) huc4CentroidMap.set(huc, centroid);
-    }
-    labelSource.setData({
-      type: "FeatureCollection",
-      features: (huc4Markers || []).filter((b) => b.medianPctOfNormal !== null).map((b) => {
-        const centroid = huc4CentroidMap.get(b.huc) ?? { latitude: b.latitude, longitude: b.longitude };
-        const color = getMapMarkerColor(b.medianPctOfNormal);
-        return {
-          type: "Feature" as const,
-          geometry: { type: "Point" as const, coordinates: [centroid.longitude, centroid.latitude] },
-          properties: { label: `${Math.round(b.medianPctOfNormal!)}%`, textColor: color },
-        };
-      }),
-    });
-  }, [huc4Markers, mapLoaded]);
-
-  // Update HUC-2 layer data
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapLoaded) return;
-    const polySource = map.getSource("huc2-polygons") as maplibregl.GeoJSONSource | undefined;
-    const labelSource = map.getSource("huc2-labels") as maplibregl.GeoJSONSource | undefined;
-    if (!polySource || !labelSource) return;
-
-    const markerMap = new Map((huc2Markers || []).map((b) => [b.huc, b]));
-    polySource.setData({
-      type: "FeatureCollection",
-      features: (huc2Boundaries as GeoJSON.FeatureCollection).features.map((f) => {
-        const huc = f.properties?.huc2;
-        const marker = markerMap.get(huc);
-        return {
-          ...f,
-          properties: {
-            ...f.properties,
-            hucId: huc,
-            fillColor: marker ? getMapMarkerColor(marker.medianPctOfNormal) : theme.borderGray,
-            medianPctOfNormal: marker?.medianPctOfNormal ?? null,
-            stationCount: marker?.stationCount ?? 0,
-            name: marker?.name ?? f.properties?.name ?? "",
-          },
-        };
-      }),
-    });
-    const huc2CentroidMap = new Map<string, { latitude: number; longitude: number }>();
-    for (const f of (huc2Boundaries as GeoJSON.FeatureCollection).features) {
-      const huc = f.properties?.huc2;
-      const centroid = computePolygonCentroid(f.geometry);
-      if (huc && centroid) huc2CentroidMap.set(huc, centroid);
-    }
-    labelSource.setData({
-      type: "FeatureCollection",
-      features: (huc2Markers || []).filter((b) => b.medianPctOfNormal !== null).map((b) => {
-        const centroid = huc2CentroidMap.get(b.huc) ?? { latitude: b.latitude, longitude: b.longitude };
-        const color = getMapMarkerColor(b.medianPctOfNormal);
-        return {
-          type: "Feature" as const,
-          geometry: { type: "Point" as const, coordinates: [centroid.longitude, centroid.latitude] },
-          properties: { label: `${b.name}\n${Math.round(b.medianPctOfNormal!)}%`, textColor: color },
-        };
-      }),
-    });
-  }, [huc2Markers, mapLoaded]);
+  useEffect(() => updateRegions(4, huc4Markers, huc4Boundaries as GeoJSON.FeatureCollection), [huc4Markers, updateRegions]);
+  useEffect(() => updateRegions(2, huc2Markers, huc2Boundaries as GeoJSON.FeatureCollection), [huc2Markers, updateRegions]);
 
   // Layer visibility
   useEffect(() => {

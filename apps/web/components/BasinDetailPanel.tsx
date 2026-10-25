@@ -5,8 +5,8 @@ import { X, Star } from "lucide-react";
 import { theme, glassmorphicButtonStyle } from "@snotel/core/theme";
 import { formatSwe, formatPctOfNormal, formatSnowDepth, formatChange } from "@snotel/core/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor } from "@snotel/core/colors";
-import { getWaterYearDay, getCurrentWaterYear, calendarRow } from "@snotel/core/water-year";
-import { percentileRank } from "@snotel/core/envelope-files";
+import { getWaterYearDay, getCurrentWaterYear } from "@snotel/core/water-year";
+import { basinSeasonMap, statsAt } from "@snotel/core/station-stats";
 import EnvelopeStatGrid from "@/components/EnvelopeStatGrid";
 import type { BasinSummary } from "@snotel/core/types";
 import ConditionBadge from "@/components/ConditionBadge";
@@ -16,6 +16,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { useBasinEnvelopeData } from "@/hooks/useBasinEnvelopeData";
 import { useEnvelopeOptions } from "@/hooks/useEnvelopeOptions";
 import EnvelopeCardTitle from "@/components/EnvelopeCardTitle";
+import { endpoints } from "@snotel/core/endpoints";
 import EnvelopeChartActions from "@/components/EnvelopeChartActions";
 
 const FIRST_COMPARE_YEAR = 1981;
@@ -36,7 +37,7 @@ export default function BasinDetailPanel({
   onToggleFavorite,
 }: BasinDetailPanelProps) {
   const { data: envelopeData, loading: envelopeLoading } = useBasinEnvelopeData(basin.huc);
-  const envelopeOptions = useEnvelopeOptions(`/envelopes/years/basins/${basin.huc}.json`);
+  const envelopeOptions = useEnvelopeOptions(endpoints.basinYears(basin.huc));
   const yearOptions = useMemo(
     () =>
       Array.from({ length: getCurrentWaterYear() - FIRST_COMPARE_YEAR }, (_, i) => getCurrentWaterYear() - 1 - i)
@@ -44,34 +45,20 @@ export default function BasinDetailPanel({
     []
   );
 
-  const basinSeasonMap = useMemo(() => {
-    if (!envelopeData?.currentSeason) return undefined;
-    const m = new Map<number, number>();
-    for (const d of envelopeData.currentSeason) {
-      m.set(d.wyDay, d.swe);
-    }
-    return m;
-  }, [envelopeData]);
+  const seasonMap = useMemo(
+    () => (envelopeData ? basinSeasonMap(envelopeData.currentSeason) : undefined),
+    [envelopeData]
+  );
 
   const asOfLabel = basin.asOf
     ? new Date(`${basin.asOf}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })
     : null;
 
   const envelopeStats = useMemo(() => {
-    if (!envelopeData || !basinSeasonMap || !basin.asOf) return null;
-    const currentWyDay = getWaterYearDay(basin.asOf);
-    const currentSwe = basinSeasonMap.get(currentWyDay) ?? null;
-    const medianEntry = envelopeData.envelope.find((d) => d.wyDay === currentWyDay);
-    const medianAtDay = medianEntry?.median ?? null;
-    const daysUntilPeak = envelopeData.medianPeakRow - calendarRow(basin.asOf);
-    const pctOfMedianPeak = currentSwe !== null && envelopeData.medianPeakSwe
-      ? Math.round((currentSwe / envelopeData.medianPeakSwe) * 100)
-      : null;
-    const percentile = envelopeOptions.yearsFile && currentSwe !== null
-      ? percentileRank(envelopeOptions.yearsFile, basin.asOf, currentSwe)
-      : null;
-    return { currentSwe, medianAtDay, pctOfNormal: basin.medianPctOfNormal, daysUntilPeak, pctOfMedianPeak, percentile };
-  }, [envelopeData, basinSeasonMap, basin.medianPctOfNormal, basin.asOf, envelopeOptions.yearsFile]);
+    if (!envelopeData || !seasonMap || !basin.asOf) return null;
+    const currentSwe = seasonMap.get(getWaterYearDay(basin.asOf)) ?? null;
+    return statsAt(basin.asOf, currentSwe, basin.medianPctOfNormal, envelopeData, envelopeOptions.yearsFile ?? null);
+  }, [envelopeData, seasonMap, basin.medianPctOfNormal, basin.asOf, envelopeOptions.yearsFile]);
 
   const sortedStations = useMemo(
     () => [...basin.stations].sort((a, b) => (b.pctOfNormal ?? -1) - (a.pctOfNormal ?? -1)),
@@ -169,7 +156,7 @@ export default function BasinDetailPanel({
             ) : envelopeData ? (
               <SweEnvelopeChart
                 envelope={envelopeData}
-                seasonMap={basinSeasonMap}
+                seasonMap={seasonMap}
                 lastUpdated={basin.asOf}
                 options={envelopeOptions}
               />

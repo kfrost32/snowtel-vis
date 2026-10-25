@@ -2,28 +2,15 @@
 
 import { useMemo } from "react";
 import useSWR from "swr";
-import type { StationEnvelope } from "@snotel/core/types";
-import { expandEnvelope, type StationEnvelopeFile } from "@snotel/core/envelope-files";
-import { urlTriplet } from "@snotel/core/stations";
-import { calendarRowToWyDay, getCurrentWaterYear } from "@snotel/core/water-year";
+import type { StationEnvelopeFile } from "@snotel/core/envelope-files";
+import { endpoints } from "@snotel/core/endpoints";
+import { toStationEnvelope } from "@snotel/core/station-stats";
 
 export function useEnvelopeData(triplet: string) {
   const { data: file, error, isLoading } = useSWR<StationEnvelopeFile>(
-    `/envelopes/stations/${urlTriplet(triplet)}.json`
+    endpoints.stationEnvelope(triplet)
   );
-  const data = useMemo((): StationEnvelope | null => {
-    if (!file) return null;
-    const wy = getCurrentWaterYear();
-    return {
-      envelope: expandEnvelope(file.swe, wy),
-      medianPeakDay: calendarRowToWyDay(file.swe.peakDay, wy),
-      medianPeakRow: file.swe.peakDay,
-      medianPeakSwe: file.swe.peak,
-      depthEnvelope: expandEnvelope(file.depth, wy),
-      medianPeakDepthDay: calendarRowToWyDay(file.depth.peakDay, wy),
-      medianPeakDepth: file.depth.peak,
-    };
-  }, [file]);
+  const data = useMemo(() => (file ? toStationEnvelope(file) : null), [file]);
   return {
     data,
     loading: isLoading,

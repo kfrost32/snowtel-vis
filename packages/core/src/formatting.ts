@@ -67,12 +67,22 @@ export const formatDateFull = (dateStr: string): string => {
 export const formatWeekday = (datetime: string): string =>
   new Date(datetime.replace(" ", "T")).toLocaleDateString("en-US", { weekday: "short" });
 
-export const formatReadingDate = (dateStr: string): string => {
+function readingDay(dateStr: string): Date {
   const date = new Date(dateStr + "T00:00:00");
   date.setDate(date.getDate() - 1);
-  const label = date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return date;
+}
+
+export const formatReadingDate = (dateStr: string): string => {
+  const label = readingDay(dateStr).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   return `${label}, end of day`;
 };
+
+export const formatReadingDateShort = (dateStr: string): string =>
+  readingDay(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+export const formatHour = (datetime: string): string =>
+  new Date(datetime.replace(" ", "T")).toLocaleString("en-US", { weekday: "short", hour: "numeric" });
 
 export function timeAgo(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);

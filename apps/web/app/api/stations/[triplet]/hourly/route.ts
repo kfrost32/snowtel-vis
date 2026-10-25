@@ -6,6 +6,7 @@ import type { HourlyObservation } from "@snotel/core/types";
 
 const CACHE_HEADER = { "Cache-Control": "public, max-age=900, s-maxage=7200, stale-while-revalidate=1800" };
 const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
+const NRCS_TIMEOUT_MS = 8000;
 
 export async function GET(
   _request: Request,
@@ -27,8 +28,8 @@ export async function GET(
     const beginDate = begin.toISOString().split("T")[0];
 
     const [snwdMap, tobsMap] = await Promise.all([
-      fetchHourlyData([triplet], "SNWD", beginDate, endDate),
-      fetchHourlyData([triplet], "TOBS", beginDate, endDate),
+      fetchHourlyData([triplet], "SNWD", beginDate, endDate, { timeout: NRCS_TIMEOUT_MS }),
+      fetchHourlyData([triplet], "TOBS", beginDate, endDate, { timeout: NRCS_TIMEOUT_MS }),
     ]);
 
     const snwd = snwdMap.get(triplet) || [];

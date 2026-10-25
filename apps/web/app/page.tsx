@@ -9,7 +9,9 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { theme } from "@snotel/core/theme";
-import { computeBasinSummaries, computeBasinCentroid } from "@snotel/core/basins";
+import { computeBasinSummaries } from "@snotel/core/basins";
+import { regionMarkers } from "@snotel/core/map-style";
+import { filterStations } from "@snotel/core/filters";
 import { getStation, getPlaceholderConditions, urlTriplet, parseTripletFromUrl } from "@snotel/core/stations";
 import MapControls from "@/components/MapControls";
 import BottomSheet from "@/components/BottomSheet";
@@ -17,7 +19,6 @@ import StationDetailPanel from "@/components/StationDetailPanel";
 import BasinDetailPanel from "@/components/BasinDetailPanel";
 import { getAllSpots } from "@snotel/core/spots";
 import { SidebarSection, SidebarFavoriteItem } from "@/components/sidebar";
-import type { BasinMarker } from "@/components/StationMap";
 import type { BasinSummary } from "@snotel/core/types";
 
 const PCT_LEGEND = [
@@ -158,15 +159,14 @@ function HomePageInner() {
     setSelectedBasinHuc((prev) => prev === basin ? prev : basin);
   }, [searchParams]);
 
-  const filteredStations = useMemo(() => {
-    return stations.filter((s) => {
-      if (selectedStates.size > 0 && !selectedStates.has(s.state)) return false;
-      if (elevMin && s.elevation < Number(elevMin)) return false;
-      if (elevMax && s.elevation > Number(elevMax)) return false;
-      if (activeOnly && (loading ? s.network !== "SNOTEL" : s.swe === null)) return false;
-      return true;
-    });
-  }, [stations, loading, selectedStates, elevMin, elevMax, activeOnly]);
+  const filteredStations = useMemo(
+    () => filterStations(
+      stations,
+      { states: selectedStates, elevMin: elevMin ? Number(elevMin) : null, elevMax: elevMax ? Number(elevMax) : null, activeOnly },
+      !loading
+    ),
+    [stations, loading, selectedStates, elevMin, elevMax, activeOnly]
+  );
 
   const dataDate = useMemo(() => {
     const latest = stations.reduce((max, s) => (s.lastUpdated > max ? s.lastUpdated : max), "");
@@ -181,14 +181,8 @@ function HomePageInner() {
   const huc2Basins = useMemo(() => (!stations.length ? [] : computeBasinSummaries(stations, 2)), [stations]);
   const huc4Basins = useMemo(() => (!stations.length ? [] : computeBasinSummaries(stations, 4)), [stations]);
 
-  const toMarkers = (basins: ReturnType<typeof computeBasinSummaries>): BasinMarker[] =>
-    basins.map((b) => {
-      const centroid = computeBasinCentroid(b.stations);
-      return { huc: b.huc, name: b.name, latitude: centroid.latitude, longitude: centroid.longitude, medianPctOfNormal: b.medianPctOfNormal, stationCount: b.stationCount };
-    });
-
-  const huc2Markers = useMemo(() => toMarkers(huc2Basins), [huc2Basins]);
-  const huc4Markers = useMemo(() => toMarkers(huc4Basins), [huc4Basins]);
+  const huc2Markers = useMemo(() => regionMarkers(huc2Basins), [huc2Basins]);
+  const huc4Markers = useMemo(() => regionMarkers(huc4Basins), [huc4Basins]);
 
   const allBasins = useMemo(() => [...huc2Basins, ...huc4Basins], [huc2Basins, huc4Basins]);
 

@@ -7,6 +7,7 @@ import type { DailyObservation, StationSeasonData } from "@snotel/core/types";
 
 const CACHE_HEADER = { "Cache-Control": "public, max-age=1800, s-maxage=14400, stale-while-revalidate=3600" };
 const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
+const NRCS_TIMEOUT_MS = 8000;
 
 export async function GET(
   _request: Request,
@@ -28,16 +29,16 @@ export async function GET(
     const todayDate = new Date();
 
     const [wteqMap, snwdMap, precMap, tmaxMap, tminMap, tavgMap, medianOctDec, medianJanNow] = await Promise.all([
-      fetchElementData([triplet], "WTEQ", wyStart, today),
-      fetchElementData([triplet], "SNWD", wyStart, today),
-      fetchElementData([triplet], "PREC", wyStart, today),
-      fetchElementData([triplet], "TMAX", wyStart, today),
-      fetchElementData([triplet], "TMIN", wyStart, today),
-      fetchElementData([triplet], "TAVG", wyStart, today),
-      fetchMedianData([triplet], "WTEQ", 10, 1, 12, 31),
+      fetchElementData([triplet], "WTEQ", wyStart, today, { strict: true, timeout: NRCS_TIMEOUT_MS }),
+      fetchElementData([triplet], "SNWD", wyStart, today, { timeout: NRCS_TIMEOUT_MS }),
+      fetchElementData([triplet], "PREC", wyStart, today, { timeout: NRCS_TIMEOUT_MS }),
+      fetchElementData([triplet], "TMAX", wyStart, today, { timeout: NRCS_TIMEOUT_MS }),
+      fetchElementData([triplet], "TMIN", wyStart, today, { timeout: NRCS_TIMEOUT_MS }),
+      fetchElementData([triplet], "TAVG", wyStart, today, { timeout: NRCS_TIMEOUT_MS }),
+      fetchMedianData([triplet], "WTEQ", 10, 1, 12, 31, { timeout: NRCS_TIMEOUT_MS }),
       todayDate.getMonth() >= 9
         ? Promise.resolve(new Map<string, (number | null)[]>())
-        : fetchMedianData([triplet], "WTEQ", 1, 1, todayDate.getMonth() + 1, todayDate.getDate()),
+        : fetchMedianData([triplet], "WTEQ", 1, 1, todayDate.getMonth() + 1, todayDate.getDate(), { timeout: NRCS_TIMEOUT_MS }),
     ]);
 
     const wteq = wteqMap.get(triplet);

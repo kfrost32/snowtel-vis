@@ -4,8 +4,9 @@ import { useMemo } from "react";
 import useSWR from "swr";
 import type { StationEnvelope } from "@snotel/core/types";
 import type { ApiResponse } from "@snotel/core/types";
-import { expandEnvelope, type BasinEnvelopeFile } from "@snotel/core/envelope-files";
-import { calendarRowToWyDay, getCurrentWaterYear } from "@snotel/core/water-year";
+import type { BasinEnvelopeFile } from "@snotel/core/envelope-files";
+import { toBasinEnvelope } from "@snotel/core/station-stats";
+import { endpoints } from "@snotel/core/endpoints";
 
 interface BasinEnvelopeData extends StationEnvelope {
   currentSeason: { wyDay: number; swe: number }[];
@@ -14,25 +15,14 @@ interface BasinEnvelopeData extends StationEnvelope {
 
 export function useBasinEnvelopeData(huc: string | null) {
   const { data: file, error, isLoading } = useSWR<BasinEnvelopeFile>(
-    huc ? `/envelopes/basins/${huc}.json` : null
+    huc ? endpoints.basinEnvelope(huc) : null
   );
   const { data: season } = useSWR<ApiResponse<{ wyDay: number; swe: number }[]>>(
-    huc ? `/api/basins/${huc}/season` : null
+    huc ? endpoints.basinSeason(huc) : null
   );
   const data = useMemo((): BasinEnvelopeData | null => {
     if (!file) return null;
-    const wy = getCurrentWaterYear();
-    return {
-      envelope: expandEnvelope(file.swe, wy),
-      medianPeakDay: calendarRowToWyDay(file.swe.peakDay, wy),
-      medianPeakRow: file.swe.peakDay,
-      medianPeakSwe: file.swe.peak,
-      depthEnvelope: [],
-      medianPeakDepthDay: 0,
-      medianPeakDepth: 0,
-      currentSeason: season?.data ?? [],
-      stationCount: file.stationCount,
-    };
+    return { ...toBasinEnvelope(file), currentSeason: season?.data ?? [], stationCount: file.stationCount };
   }, [file, season]);
   return {
     data,
