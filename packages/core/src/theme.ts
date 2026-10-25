@@ -27,6 +27,9 @@ export const snowColors = {
   freezing: "#93C5FD",
   currentYear: "#F59E0B",
   freshSnow: "#06B6D4",
+  lightSnow: "#06B6D4",
+  averageSnow: "#3B82F6",
+  heavySnow: "#64748B",
 };
 
 export const percentileBands = [

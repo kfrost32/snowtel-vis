@@ -19,12 +19,13 @@ import {
   formatSwe,
 } from "@snotel/core/formatting";
 import { noComparisonReason } from "@snotel/core/map-style";
-import { lastStorm, stormDetail } from "@snotel/core/storm";
+import { lastStorm } from "@snotel/core/storm";
 import EnvelopeChart from "@/components/charts/EnvelopeChart";
 import PeakChart from "@/components/charts/PeakChart";
 import RecentChart from "@/components/charts/RecentChart";
 import DetailHeader, { HeaderButton } from "@/components/DetailHeader";
 import Section from "@/components/Section";
+import StormCard from "@/components/StormCard";
 import { Hero, Row, summaryStyles } from "@/components/Summary";
 import { useStationConditions, useStationDetail, useStationHourly } from "@/hooks/data";
 import { toggleFavorite, useIsFavorite } from "@/lib/favorites";
@@ -66,9 +67,7 @@ export default function StationScreen() {
   const depthChange = deltas.depth[0];
   const storm = useMemo(() => (hourly ? lastStorm(hourly) : null), [hourly]);
 
-  const subtitle = station
-    ? [STATE_NAMES[station.state] ?? station.state, formatElevation(station.elevation), current?.lastUpdated && formatReadingEndOfDay(current.lastUpdated)]
-    : undefined;
+  const subtitle = station ? [STATE_NAMES[station.state] ?? station.state, formatElevation(station.elevation)] : undefined;
 
   const header = (
     <DetailHeader title={station?.name ?? "Station"} subtitle={subtitle}>
@@ -119,7 +118,6 @@ export default function StationScreen() {
             ) : (
               <Hero value={formatSwe(current.swe)} label="snow water equivalent" />
             )}
-            {storm && <Row label="Last storm" value={`+${formatSnowDepth(storm.newSnow)}`} detail={stormDetail(storm)} />}
             <View style={styles.changeHeader}>
               <Text style={[styles.changeLabel, styles.changeFirst]} />
               {DELTA_DAYS.map((d) => (
@@ -130,13 +128,15 @@ export default function StationScreen() {
             <ChangeRow label="Snow depth" values={deltas.depth} format={formatDepthChange} color={getDepthChangeColor} last />
           </Section>
 
+          {storm && <StormCard storm={storm} />}
+
           {hourly && hourly.length > 0 && (
             <Section title="Last 7 Days">
               <RecentChart data={hourly} />
             </Section>
           )}
 
-          <Section title="Snowpack">
+          <Section title="Snowpack" footer={current.lastUpdated && `Daily readings as of ${formatReadingEndOfDay(current.lastUpdated)}`}>
             <Row label="Snow water equivalent" value={formatSwe(current.swe)} detail={stats ? `median ${formatSwe(stats.medianAtDay)}` : undefined} />
             <Row label="% of median" value={formatPctOfNormal(pct)} detail={pctCaption} valueColor={pctColor} />
             <Row label="Percentile" value={stats?.percentile != null ? String(stats.percentile) : "—"} detail="vs. all years today" />

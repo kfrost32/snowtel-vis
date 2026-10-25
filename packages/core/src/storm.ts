@@ -1,5 +1,6 @@
 import type { HourlyObservation } from "./types";
 import { formatHourlyTime } from "./formatting";
+import { snowColors } from "./theme";
 
 const MIN_NEW_SNOW = 2;
 const STORM_START_RISE = 1;
@@ -110,18 +111,13 @@ export function lastStorm(observations: HourlyObservation[]): StormSummary | nul
   return null;
 }
 
-const QUALITY_LABELS: Record<SnowQuality, string> = {
-  light: "Light & dry",
-  average: "Average density",
-  heavy: "Heavy & wet",
+export const SNOW_QUALITY: Record<SnowQuality, { label: string; color: string }> = {
+  light: { label: "Light & dry", color: snowColors.lightSnow },
+  average: { label: "Average density", color: snowColors.averageSnow },
+  heavy: { label: "Heavy & wet", color: snowColors.heavySnow },
 };
 
-export function stormDetail(storm: StormSummary): string {
-  return [
-    storm.quality && QUALITY_LABELS[storm.quality],
-    storm.ratio !== null && `${Math.round(storm.ratio)}:1`,
-    storm.inProgress ? "in progress" : `ended ${formatHourlyTime(storm.end)}`,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+export function stormTiming(storm: StormSummary): string {
+  const start = formatHourlyTime(storm.start);
+  return storm.inProgress ? `Started ${start} · still building` : `${start} – ${formatHourlyTime(storm.end)}`;
 }
