@@ -44,7 +44,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
       {depth?.value != null && (
         <div className="flex items-center gap-2 font-mono text-[11px]">
           <span style={{ color: theme.gray }}>Snow Depth</span>
-          <span className="ml-auto font-medium" style={{ color: snowColors.snowDepth }}>{depth.value}"</span>
+          <span className="ml-auto font-medium" style={{ color: snowColors.snowDepth }}>{depth.value}&quot;</span>
         </div>
       )}
       {temp?.value != null && (

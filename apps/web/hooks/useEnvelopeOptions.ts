@@ -1,24 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { compareYearColors } from "@snotel/core/theme";
 import type { YearsFile } from "@snotel/core/envelope-files";
 import { getCurrentWaterYear, rowsToWaterYear } from "@snotel/core/water-year";
 import type { CompareYear } from "@/components/EnvelopeChart";
+import { storedValue, useStoredValue } from "@/lib/stored-value";
 
 export const MAX_COMPARE_YEARS = compareYearColors.length;
 
 const PERCENTILES_KEY = "snotel_show_percentiles";
+const percentilesStore = storedValue(PERCENTILES_KEY, true, (raw) => raw !== "false");
 
 export function useEnvelopeOptions(yearsUrl: string) {
-  const [showPercentiles, setShowPercentiles] = useState(true);
-
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(PERCENTILES_KEY) === "false") setShowPercentiles(false);
-    } catch {}
-  }, []);
+  const showPercentiles = useStoredValue(percentilesStore);
   const [selectedYears, setSelectedYears] = useState<{ year: number; color: string }[]>([]);
   const { data: file } = useSWR<YearsFile>(yearsUrl);
 
@@ -31,13 +27,7 @@ export function useEnvelopeOptions(yearsUrl: string) {
 
   return {
     showPercentiles,
-    togglePercentiles: () => {
-      const next = !showPercentiles;
-      setShowPercentiles(next);
-      try {
-        localStorage.setItem(PERCENTILES_KEY, String(next));
-      } catch {}
-    },
+    togglePercentiles: () => percentilesStore.set((show) => !show),
     selectedYears,
     addYear: (year: number) =>
       setSelectedYears((ys) => {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { theme, snowColors } from "@snotel/core/theme";
 import { timeAgo } from "@snotel/core/formatting";
@@ -63,13 +64,13 @@ export default function StatusPage() {
     <div className="min-h-screen" style={{ background: theme.offWhite }}>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
         <div className="mb-10">
-          <a
+          <Link
             href="/"
             className="font-mono text-xs uppercase tracking-wider"
             style={{ color: theme.mediumGray }}
           >
             SNOTEL Explorer
-          </a>
+          </Link>
           <h1
             className="font-sans font-bold text-2xl sm:text-3xl mt-2"
             style={{ color: theme.black }}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { SWRConfig, useSWRConfig } from "swr";
+import { storedValue, useStoredValue } from "@/lib/stored-value";
 
 const STORAGE_KEY = "snotel:swr-cache";
 const PERSISTED_PREFIX = "/api/";
@@ -20,6 +21,8 @@ function readPersisted(): Record<string, unknown> {
     return {};
   }
 }
+
+const persistedStore = storedValue<Record<string, unknown>>(STORAGE_KEY, {}, JSON.parse);
 
 function PersistCache() {
   const { cache } = useSWRConfig();
@@ -50,8 +53,7 @@ function PersistCache() {
 }
 
 export function SWRProvider({ children }: { children: React.ReactNode }) {
-  const [fallback, setFallback] = useState<Record<string, unknown>>({});
-  useEffect(() => setFallback(readPersisted()), []);
+  const fallback = useStoredValue(persistedStore);
   return (
     <SWRConfig
       value={{

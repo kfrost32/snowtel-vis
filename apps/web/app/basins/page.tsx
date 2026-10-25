@@ -2,9 +2,8 @@
 
 import { Suspense, useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, X } from "lucide-react";
-import { theme, snowColors } from "@snotel/core/theme";
+import { X } from "lucide-react";
+import { theme } from "@snotel/core/theme";
 import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth } from "@snotel/core/formatting";
 import { getConditionColor } from "@snotel/core/colors";
 import { STATE_NAMES } from "@snotel/core/constants";

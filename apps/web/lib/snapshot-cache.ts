@@ -16,7 +16,7 @@ function remember(key: string, snapshot: Snapshot<unknown>): void {
   if (memo.size > MEMO_MAX_ENTRIES) memo.delete(memo.keys().next().value!);
 }
 
-async function read<T>(key: string): Promise<Snapshot<T> | null> {
+export async function peekSnapshot<T>(key: string): Promise<Snapshot<T> | null> {
   const hit = memo.get(key);
   if (hit && Date.now() - hit.readAt < MEMO_MS) return hit.snapshot as Snapshot<T>;
   const stored = await readSnapshot<T>(key);
@@ -51,14 +51,16 @@ export async function getSnapshot<T>({
   maxAge,
   load,
   waitMs,
+  expired,
 }: {
   key: string;
   maxAge: number;
   load: (previous: T | null) => Promise<T>;
   waitMs?: number;
+  expired?: (snapshot: Snapshot<T>) => Promise<boolean>;
 }): Promise<ApiResponse<T>> {
-  const snapshot = await read<T>(key);
-  if (snapshot && Date.now() - snapshot.fetchedAt < maxAge) return { ...snapshot, stale: false };
+  const snapshot = await peekSnapshot<T>(key);
+  if (snapshot && Date.now() - snapshot.fetchedAt < maxAge && !(await expired?.(snapshot))) return { ...snapshot, stale: false };
   if (snapshot && Date.now() - (failedAt.get(key) ?? 0) < RETRY_AFTER_FAILURE_MS) return { ...snapshot, stale: true };
 
   const live = refresh(key, load, snapshot?.data ?? null);

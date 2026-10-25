@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
 import { theme, snowColors } from "@snotel/core/theme";
 import { useStationList } from "@/hooks/useStationList";
@@ -595,7 +596,7 @@ export default function SnowYearStory() {
               Data from the USDA Natural Resources Conservation Service (NRCS) SNOTEL network.
               Snowpack normals are based on the 1991-2020 median. All data is updated daily.
             </p>
-            <a
+            <Link
               href="/"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-sans font-medium text-sm transition-colors duration-150"
               style={{
@@ -604,7 +605,7 @@ export default function SnowYearStory() {
               }}
             >
               Explore the live data
-            </a>
+            </Link>
           </ScrollReveal>
         </div>
       </section>

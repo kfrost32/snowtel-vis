@@ -96,9 +96,12 @@ export default function CommandSearch() {
     return () => document.body.classList.remove("overflow-hidden");
   }, [open]);
 
-  useEffect(() => { setSelectedIndex(0); }, [query]);
   useEffect(() => { selectedRef.current?.scrollIntoView({ block: "nearest" }); }, [selectedIndex]);
-  useEffect(() => { close(); }, [pathname, close]);
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    close();
+  }
 
   const handleDialogKey = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") { e.preventDefault(); close(); }
@@ -147,7 +150,10 @@ export default function CommandSearch() {
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSelectedIndex(0);
+            }}
             placeholder="Search stations..."
             className="flex-1 bg-transparent outline-none font-sans text-sm"
             style={{ color: theme.darkGray }}

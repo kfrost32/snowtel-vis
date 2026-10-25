@@ -3,8 +3,8 @@
 import { useMemo } from "react";
 import { X, Star } from "lucide-react";
 import { theme, glassmorphicButtonStyle } from "@snotel/core/theme";
-import { formatSwe, formatPctOfNormal, formatSnowDepth, formatChange, formatReadingDateShort } from "@snotel/core/formatting";
-import { getConditionColor, getConditionLabel, getChangeColor } from "@snotel/core/colors";
+import { formatSwe, formatPctOfNormal, formatSnowDepth, formatReadingDateShort } from "@snotel/core/formatting";
+import { getConditionColor, getConditionLabel } from "@snotel/core/colors";
 import { getWaterYearDay, getCurrentWaterYear } from "@snotel/core/water-year";
 import { basinSeasonMap, statsAt } from "@snotel/core/station-stats";
 import EnvelopeStatGrid from "@/components/EnvelopeStatGrid";

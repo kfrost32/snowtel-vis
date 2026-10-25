@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
 import { getStation, parseTripletFromUrl } from "@snotel/core/stations";
 import { fetchHourlyData } from "@/lib/snotel-api";
-import { getSnapshot } from "@/lib/snapshot-cache";
-import { snapshotKeys } from "@/lib/snapshot-store";
+import { shiftDate } from "@snotel/core/water-year";
+import { getSnapshot, peekSnapshot } from "@/lib/snapshot-cache";
+import { snapshotKeys, type Snapshot } from "@/lib/snapshot-store";
+import type { RecentConditions } from "@snotel/core/recent";
 import type { HourlyObservation } from "@snotel/core/types";
 
-const CACHE_HEADER = { "Cache-Control": "public, max-age=900, s-maxage=3600, stale-while-revalidate=1800" };
+const CACHE_HEADER = { "Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=1800" };
 const STALE_HEADER = { "Cache-Control": "public, max-age=0, s-maxage=300" };
 const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
 const NRCS_TIMEOUT_MS = 8000;
 const MAX_AGE_MS = 60 * 60 * 1000;
 
 async function fetchHourly(triplet: string): Promise<HourlyObservation[]> {
-  const endDate = new Date().toISOString().split("T")[0];
+  const endDate = shiftDate(new Date().toISOString().split("T")[0], 1);
   const begin = new Date();
   begin.setDate(begin.getDate() - 7);
   const beginDate = begin.toISOString().split("T")[0];
@@ -26,6 +28,14 @@ async function fetchHourly(triplet: string): Promise<HourlyObservation[]> {
     temp: tobsByTime.get(s.datetime) ?? null,
     swe: sweByTime.get(s.datetime) ?? null,
   }));
+}
+
+async function behindRecent(triplet: string, snapshot: Snapshot<HourlyObservation[]>): Promise<boolean> {
+  const recent = await peekSnapshot<RecentConditions>(snapshotKeys.recent);
+  const recentAt = recent?.data.stations[triplet]?.depthAt;
+  if (!recent || !recentAt || snapshot.fetchedAt >= recent.fetchedAt) return false;
+  const ownAt = snapshot.data.findLast((h) => h.snowDepth !== null)?.datetime;
+  return !ownAt || ownAt < recentAt;
 }
 
 export async function GET(
@@ -43,6 +53,7 @@ export async function GET(
       key: snapshotKeys.hourly(triplet),
       maxAge: MAX_AGE_MS,
       load: () => fetchHourly(triplet),
+      expired: (snapshot) => behindRecent(triplet, snapshot),
     });
     return NextResponse.json(result, { headers: result.stale ? STALE_HEADER : CACHE_HEADER });
   } catch (e) {

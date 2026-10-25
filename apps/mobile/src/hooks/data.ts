@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import useSWR from "swr";
 import { endpoints } from "@snotel/core/endpoints";
 import { basinSeasonMap, peakHistory, toBasinEnvelope, toStationEnvelope } from "@snotel/core/station-stats";
-import { RECENT_REFRESH_MS, withRecentDepth, type RecentConditions } from "@snotel/core/recent";
+import { applyRecentDepth, RECENT_REFRESH_MS, stationDepth, type RecentConditions } from "@snotel/core/recent";
 import type { BasinEnvelopeFile, StationEnvelopeFile, YearsFile } from "@snotel/core/envelope-files";
 import type { ApiResponse, HourlyObservation, StationCurrentConditions, StationSeasonData } from "@snotel/core/types";
 
@@ -23,10 +23,11 @@ export function useRecentConditions() {
 export function useStationConditions(triplet: string) {
   const { stations } = useStationList();
   const recent = useRecentConditions();
+  const hourly = useStationHourly(triplet);
   return useMemo(() => {
     const station = stations?.find((s) => s.triplet === triplet);
-    return station ? withRecentDepth([station], recent)[0] : null;
-  }, [stations, recent, triplet]);
+    return station ? applyRecentDepth(station, stationDepth(recent?.stations[triplet], hourly)) : null;
+  }, [stations, recent, hourly, triplet]);
 }
 
 export function useStationDetail(triplet: string) {

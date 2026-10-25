@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { storedValue, useStoredValue } from "@/lib/stored-value";
 
 interface Favorites {
   stations: string[];
@@ -10,30 +10,19 @@ interface Favorites {
 const STORAGE_KEY = "snotel_favorites";
 const EMPTY: Favorites = { stations: [], basins: [] };
 
-function load(): Favorites {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return EMPTY;
-    const parsed = JSON.parse(raw);
-    return {
-      stations: Array.isArray(parsed.stations) ? parsed.stations : [],
-      basins: Array.isArray(parsed.basins) ? parsed.basins : [],
-    };
-  } catch {
-    return EMPTY;
-  }
+function parse(raw: string): Favorites {
+  const parsed = JSON.parse(raw);
+  return {
+    stations: Array.isArray(parsed.stations) ? parsed.stations : [],
+    basins: Array.isArray(parsed.basins) ? parsed.basins : [],
+  };
 }
 
+const store = storedValue<Favorites>(STORAGE_KEY, EMPTY, parse);
+
 export function useFavorites() {
-  const [favorites, setFavorites] = useState<Favorites>(EMPTY);
-
-  useEffect(() => {
-    setFavorites(load());
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites));
-  }, [favorites]);
+  const favorites = useStoredValue(store);
+  const setFavorites = store.set;
 
   const toggleStation = (triplet: string) => {
     setFavorites((prev) => ({

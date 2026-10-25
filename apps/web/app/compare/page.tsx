@@ -14,7 +14,6 @@ import {
   Legend,
 } from "recharts";
 import { theme, yearColors, chartTooltipStyle, chartCursorStyle } from "@snotel/core/theme";
-import { snowColors } from "@snotel/core/theme";
 import { formatSwe, formatSnowDepth, formatPctOfNormal, formatTemp, formatElevation } from "@snotel/core/formatting";
 import { urlTriplet, parseTripletFromUrl } from "@snotel/core/stations";
 import { useStationList } from "@/hooks/useStationList";
@@ -45,7 +44,7 @@ function StationDataLoader({
 function CompareContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { stations: allStations, loading: stationsLoading } = useStationList();
+  const { stations: allStations } = useStationList();
 
   const [search, setSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);

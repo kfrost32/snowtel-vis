@@ -7,7 +7,7 @@ import type { RecentConditions } from "@snotel/core/recent";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const CACHE_HEADER = { "Cache-Control": "public, max-age=600, s-maxage=1800, stale-while-revalidate=3600" };
+const CACHE_HEADER = { "Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=3600" };
 const STALE_HEADER = { "Cache-Control": "public, max-age=0, s-maxage=60" };
 const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
 const MAX_AGE_MS = 60 * 60 * 1000;

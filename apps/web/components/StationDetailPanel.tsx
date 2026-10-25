@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { X, MapPin, Mountain, Star, ChevronDown } from "lucide-react";
 import { theme, glassmorphicButtonStyle } from "@snotel/core/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -18,6 +18,7 @@ import { useSeasonData } from "@/hooks/useSeasonData";
 import { useHistoricalData } from "@/hooks/useHistoricalData";
 import { useHourlyData } from "@/hooks/useHourlyData";
 import { useRecentConditions } from "@/hooks/useRecentConditions";
+import { stationDepth } from "@snotel/core/recent";
 import { useEnvelopeData } from "@/hooks/useEnvelopeData";
 import SweEnvelopeChart from "@/components/SweEnvelopeChart";
 import EnvelopeChart from "@/components/EnvelopeChart";
@@ -57,17 +58,17 @@ function statCellBorders(index: number, count: number): string {
   return `${mobile} ${desktop}`;
 }
 
-export default function StationDetailPanel({ triplet, onClose, onStationClick, isFavorite, onToggleFavorite }: StationDetailPanelProps) {
+export default function StationDetailPanel({ triplet, onClose, isFavorite, onToggleFavorite }: StationDetailPanelProps) {
   const station = getStation(triplet);
   const stationId = triplet.split(/[:-]/)[0];
   const imageUrl = `https://www.wcc.nrcs.usda.gov/siteimages/${stationId}.jpg`;
-  const [imageError, setImageError] = useState(false);
+  const [imageErrorFor, setImageErrorFor] = useState<string | null>(null);
+  const imageError = imageErrorFor === triplet;
   const [showMoreCharts, setShowMoreCharts] = useState(false);
-  useEffect(() => { setImageError(false); }, [triplet]);
   const { data: seasonData, loading: seasonLoading } = useSeasonData(triplet);
   const { data: historicalData, loading: historicalLoading } = useHistoricalData(triplet);
   const { data: hourlyData, loading: hourlyLoading } = useHourlyData(triplet);
-  const recentDepth = useRecentConditions()?.stations[triplet];
+  const recentDepth = stationDepth(useRecentConditions()?.stations[triplet], hourlyData);
   const { data: envelopeData, loading: envelopeLoading } = useEnvelopeData(triplet);
   const envelopeOptions = useEnvelopeOptions(endpoints.stationYears(triplet));
   const yearOptions = useMemo(() => {
@@ -108,7 +109,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
             alt={`${station.name} site photo`}
             className="absolute inset-0 w-full h-full object-cover"
             style={{ display: "block", opacity: 0.72 }}
-            onError={() => setImageError(true)}
+            onError={() => setImageErrorFor(triplet)}
           />
         )}
         {!imageError && (

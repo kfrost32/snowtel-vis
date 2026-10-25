@@ -27,23 +27,25 @@ function formatNumber(n: number, decimals: number): string {
 export default function StatCard({ label, value, size = "default", subtitle, labelAdornment }: StatCardProps) {
   const [displayValue, setDisplayValue] = useState(value);
   const [animate, setAnimate] = useState(false);
+  const animationKey = `${value}|${subtitle?.text ?? ""}`;
+  const [prevAnimationKey, setPrevAnimationKey] = useState(animationKey);
+  if (animationKey !== prevAnimationKey) {
+    setPrevAnimationKey(animationKey);
+    setAnimate(false);
+  }
   const frameRef = useRef<number>(undefined);
   const currentNumberRef = useRef<number | null>(null);
 
   useEffect(() => {
-    setAnimate(false);
     const timer = setTimeout(() => setAnimate(true), 10);
     return () => clearTimeout(timer);
-  }, [value, subtitle?.text]);
+  }, [animationKey]);
 
   useEffect(() => {
     if (frameRef.current) cancelAnimationFrame(frameRef.current);
 
     const parsed = parseValue(value);
-    if (!parsed || value === "—") {
-      setDisplayValue(value);
-      return;
-    }
+    if (!parsed || value === "—") return;
 
     const { prefix, number: target, suffix } = parsed;
     const decimals = (target.toString().split(".")[1] ?? "").length;
@@ -89,7 +91,7 @@ export default function StatCard({ label, value, size = "default", subtitle, lab
           transition: "opacity 0.4s ease-out, transform 0.4s ease-out",
         }}
       >
-        {displayValue}
+        {parseValue(value) && value !== "—" ? displayValue : value}
       </div>
       {subtitle && (
         <div

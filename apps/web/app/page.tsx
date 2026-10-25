@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useRecentConditions } from "@/hooks/useRecentConditions";
 import { dataAsOfLabel, withRecentDepth } from "@snotel/core/recent";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -118,7 +119,7 @@ const StationMap = dynamic(() => import("@/components/StationMap"), {
 });
 
 function HomePageInner() {
-  const { stations: liveStations, loading, error, stale } = useStationList();
+  const { stations: liveStations, loading, stale } = useStationList();
   const recent = useRecentConditions();
   const stations = useMemo(
     () => (loading ? getPlaceholderConditions() : withRecentDepth(liveStations, recent)),
@@ -126,20 +127,10 @@ function HomePageInner() {
   );
   const { favorites, toggleStation, toggleBasin, isStationFav, isBasinFav } = useFavorites();
   const searchParams = useSearchParams();
-  const [isMobile, setIsMobile] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    const mql = window.matchMedia("(max-width: 767px)");
-    setIsMobile(mql.matches);
-    setSidebarOpen(!mql.matches);
-    const handler = (e: MediaQueryListEvent) => {
-      setIsMobile(e.matches);
-      if (e.matches) setSidebarOpen(false);
-    };
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, []);
+  const isMobile = useMediaQuery("(max-width: 767px)");
+  const [sidebarChoice, setSidebarChoice] = useState<{ open: boolean; mobile: boolean } | null>(null);
+  const sidebarOpen = sidebarChoice && sidebarChoice.mobile === isMobile ? sidebarChoice.open : !isMobile;
+  const setSidebarOpen = (open: boolean) => setSidebarChoice({ open, mobile: isMobile });
   const [selectedStates, setSelectedStates] = useState<Set<string>>(new Set());
   const [elevMin, setElevMin] = useState("");
   const [elevMax, setElevMax] = useState("");
@@ -156,14 +147,13 @@ function HomePageInner() {
     return param ? parseTripletFromUrl(param) : null;
   });
   const [selectedBasinHuc, setSelectedBasinHuc] = useState<string | null>(() => searchParams.get("basin"));
-
-  useEffect(() => {
+  const [prevSearchParams, setPrevSearchParams] = useState(searchParams);
+  if (searchParams !== prevSearchParams) {
+    setPrevSearchParams(searchParams);
     const stationParam = searchParams.get("station");
-    const triplet = stationParam ? parseTripletFromUrl(stationParam) : null;
-    const basin = searchParams.get("basin") ?? null;
-    setSelectedTriplet((prev) => prev === triplet ? prev : triplet);
-    setSelectedBasinHuc((prev) => prev === basin ? prev : basin);
-  }, [searchParams]);
+    setSelectedTriplet(stationParam ? parseTripletFromUrl(stationParam) : null);
+    setSelectedBasinHuc(searchParams.get("basin") ?? null);
+  }
 
   const filteredStations = useMemo(
     () => filterStations(
@@ -233,11 +223,8 @@ function HomePageInner() {
   }, [closeDetailPanel]);
 
   useEffect(() => {
-    if (selectedTriplet || selectedBasinHuc) {
-      requestAnimationFrame(() => setOverlayVisible(true));
-    } else {
-      setOverlayVisible(false);
-    }
+    const frame = requestAnimationFrame(() => setOverlayVisible(Boolean(selectedTriplet || selectedBasinHuc)));
+    return () => cancelAnimationFrame(frame);
   }, [selectedTriplet, selectedBasinHuc]);
 
   const openSearch = () => window.dispatchEvent(new CustomEvent("open-command-search"));

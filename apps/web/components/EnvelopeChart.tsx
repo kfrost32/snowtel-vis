@@ -74,9 +74,7 @@ const MOBILE_TOOLTIP_STYLE = {
 };
 
 interface TooltipPayloadEntry {
-  value: number | null;
-  name: string;
-  payload: ChartPoint;
+  payload?: ChartPoint;
 }
 
 function MedianPeakMark({ cx, cy }: { cx?: number; cy?: number }) {
@@ -133,7 +131,7 @@ export default function EnvelopeChart({
   const hasMedian = chartData.some((d) => d.median !== null);
   const hasPercentiles = showPercentiles && chartData.some((d) => d.b2 !== null);
 
-  function CustomTooltip({ active, payload }: { active?: boolean; payload?: TooltipPayloadEntry[] }) {
+  function renderTooltip({ active, payload }: { active?: boolean; payload?: readonly TooltipPayloadEntry[] }) {
     if (!active || !payload?.length) return null;
     const point = payload[0]?.payload;
     if (!point) return null;
@@ -212,7 +210,7 @@ export default function EnvelopeChart({
               tickFormatter={(v: number) => `${v}"`}
             />
             <CartesianGrid stroke={theme.borderGray} strokeDasharray="0" vertical={true} horizontalValues={undefined} verticalValues={[1, 32, 62, 93, 124, 152, 183, 213, 244, 274, 305, 336]} />
-            <Tooltip content={<CustomTooltip />} cursor={chartCursorStyle} />
+            <Tooltip content={renderTooltip} cursor={chartCursorStyle} />
 
             {currentWyDay !== null && (
               <ReferenceLine

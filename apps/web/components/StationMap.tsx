@@ -4,7 +4,6 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@snotel/core/types";
-import { urlTriplet } from "@snotel/core/stations";
 import { prefetchStation } from "@/lib/prefetch";
 import { theme } from "@snotel/core/theme";
 import { SPOT_COLORS, SPOT_KIND_LABELS, SPOT_TEXT_SIZE, spotElevationLabel, spotPlacement, type Spot, type SpotKind } from "@snotel/core/spots";
@@ -364,8 +363,8 @@ function StationMapInner({
     });
 
     return () => { map.remove(); mapRef.current = null; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   // Map init runs once on mount; all mutable values accessed via refs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const metricRef = useRef(metric);
@@ -413,7 +412,7 @@ function StationMapInner({
     const map = mapRef.current;
     if (!map || !flyTo) return;
     map.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: 11, duration: 1500 });
-  }, [flyTo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [flyTo]);
 
   const updateRegions = useCallback((level: RegionLevel, markers: RegionMarker[] | undefined, boundaries: GeoJSON.FeatureCollection) => {
     const map = mapRef.current;
