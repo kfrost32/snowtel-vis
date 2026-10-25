@@ -1,5 +1,8 @@
+import { shiftDate } from "@snotel/core/water-year";
+
 export const REST_URL = "https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1";
 const MAX_STATION_ELEMENTS = 1000;
+const REST_DAILY_OFFSET_DAYS = 1;
 
 interface RestValue {
   date: string;
@@ -54,25 +57,20 @@ async function restRequest(params: Record<string, string>, timeout = 30000): Pro
 
 export function generateDates(beginDate: string, endDate: string): string[] {
   const dates: string[] = [];
-  const start = new Date(beginDate.split(" ")[0] + "T12:00:00Z");
-  const end = new Date(endDate.split(" ")[0] + "T12:00:00Z");
-  const d = new Date(start);
-  while (d <= end) {
-    dates.push(d.toISOString().split("T")[0]);
-    d.setUTCDate(d.getUTCDate() + 1);
-  }
+  const end = endDate.slice(0, 10);
+  for (let d = beginDate.slice(0, 10); d <= end; d = shiftDate(d, 1)) dates.push(d);
   return dates;
 }
 
 function toDailySeries(beginDate: string, values: RestValue[]): DailySeries | null {
   const last = values.findLast((v) => v.value != null);
   if (!last) return null;
-  const byDate = new Map(values.map((v) => [v.date.split(" ")[0], v]));
-  const dates = generateDates(beginDate, last.date);
+  const byDate = new Map(values.map((v) => [v.date.slice(0, 10), v]));
+  const restDates = generateDates(shiftDate(beginDate, -REST_DAILY_OFFSET_DAYS), last.date);
   return {
-    dates,
-    values: dates.map((d) => byDate.get(d)?.value ?? null),
-    medians: dates.map((d) => byDate.get(d)?.median ?? null),
+    dates: generateDates(beginDate, shiftDate(last.date, REST_DAILY_OFFSET_DAYS)),
+    values: restDates.map((d) => byDate.get(d)?.value ?? null),
+    medians: restDates.map((d) => byDate.get(d)?.median ?? null),
   };
 }
 
@@ -134,8 +132,8 @@ export function fetchDailyData(
         stationTriplets: batch.join(","),
         elements: elements.join(","),
         duration: "DAILY",
-        beginDate,
-        endDate,
+        beginDate: shiftDate(beginDate, -REST_DAILY_OFFSET_DAYS),
+        endDate: shiftDate(endDate, -REST_DAILY_OFFSET_DAYS),
         ...(median && { centralTendencyType: "MEDIAN" }),
       },
       options.timeout

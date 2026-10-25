@@ -6,7 +6,7 @@ import { theme, glassmorphicButtonStyle } from "@snotel/core/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
 import { getStation } from "@snotel/core/stations";
-import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatDepthChange } from "@snotel/core/formatting";
+import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatDepthChange, formatHourlyTime, formatReadingDateShort, formatReadingEndOfDay } from "@snotel/core/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor, getDepthChangeColor } from "@snotel/core/colors";
 import InfoTooltip from "@/components/InfoTooltip";
 import { metricDescriptions } from "@snotel/core/metric-descriptions";
@@ -17,6 +17,7 @@ import { buildSeasonMap } from "@snotel/core/season";
 import { useSeasonData } from "@/hooks/useSeasonData";
 import { useHistoricalData } from "@/hooks/useHistoricalData";
 import { useHourlyData } from "@/hooks/useHourlyData";
+import { useRecentConditions } from "@/hooks/useRecentConditions";
 import { useEnvelopeData } from "@/hooks/useEnvelopeData";
 import SweEnvelopeChart from "@/components/SweEnvelopeChart";
 import EnvelopeChart from "@/components/EnvelopeChart";
@@ -66,6 +67,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
   const { data: seasonData, loading: seasonLoading } = useSeasonData(triplet);
   const { data: historicalData, loading: historicalLoading } = useHistoricalData(triplet);
   const { data: hourlyData, loading: hourlyLoading } = useHourlyData(triplet);
+  const recentDepth = useRecentConditions()?.stations[triplet];
   const { data: envelopeData, loading: envelopeLoading } = useEnvelopeData(triplet);
   const envelopeOptions = useEnvelopeOptions(endpoints.stationYears(triplet));
   const yearOptions = useMemo(() => {
@@ -147,7 +149,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
             <span className="flex items-center gap-1"><MapPin size={11} /> {station.state}</span>
             <span className="flex items-center gap-1"><Mountain size={11} /> {formatElevation(station.elevation)}</span>
             {current?.lastUpdated && (
-              <span>Updated {new Date(current.lastUpdated + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+              <span>{formatReadingEndOfDay(current.lastUpdated)}</span>
             )}
           </div>
         </div>
@@ -169,7 +171,14 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
               const stats = [
                 { label: "SWE", tip: metricDescriptions.swe, value: formatSwe(current.swe), sub: current.sweNormal !== null ? `nml ${formatSwe(current.sweNormal)}` : null, subColor: theme.mediumGray, custom: null },
                 { label: "% Median", tip: metricDescriptions.pctOfNormal, value: formatPctOfNormal(current.pctOfNormal), sub: getConditionLabel(current.pctOfNormal), subColor: getConditionColor(current.pctOfNormal), custom: null },
-                { label: "Depth", tip: metricDescriptions.snowDepth, value: formatSnowDepth(current.snowDepth), sub: (depthChange1d !== null || depthChange3d !== null) ? `${formatDepthChange(depthChange1d)} / ${formatDepthChange(depthChange3d)} (1/3d)` : null, subColor: getDepthChangeColor(depthChange1d), custom: null },
+                {
+                  label: "Depth",
+                  tip: metricDescriptions.snowDepth,
+                  value: formatSnowDepth(recentDepth?.depth ?? current.snowDepth),
+                  sub: recentDepth ? formatHourlyTime(recentDepth.depthAt) : (depthChange1d !== null || depthChange3d !== null) ? `${formatDepthChange(depthChange1d)} / ${formatDepthChange(depthChange3d)} (1/3d)` : null,
+                  subColor: recentDepth ? theme.mediumGray : getDepthChangeColor(depthChange1d),
+                  custom: null,
+                },
                 { label: "YTD Precip", tip: metricDescriptions.precip, value: current.precipAccum !== null ? `${current.precipAccum.toFixed(1)}"` : "—", sub: null, subColor: null, custom: null },
                 { label: "Snow ∆ (1/3/7d)", tip: "Snow depth change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "depthDeltas" },
                 { label: "SWE ∆ (1/3/7d)", tip: "SWE change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "sweDeltas" },
@@ -228,7 +237,7 @@ export default function StationDetailPanel({ triplet, onClose, onStationClick, i
                   { label: "% of Median", value: formatPctOfNormal(envelopeStats.pctOfNormal), color: getConditionColor(envelopeStats.pctOfNormal), hideOnMobile: true },
                   { label: "Percentile", value: envelopeStats.percentile !== null ? String(envelopeStats.percentile) : "—" },
                   { label: "% Median Peak", value: formatPctOfNormal(envelopeStats.pctOfMedianPeak) },
-                  { label: `Median ${new Date(envelopeStats.asOf + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray, hideOnMobile: true },
+                  { label: `Median ${formatReadingDateShort(envelopeStats.asOf)}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray, hideOnMobile: true },
                   { label: envelopeStats.daysUntilPeak >= 0 ? "To Median Peak" : "Past Median Peak", value: `${Math.abs(envelopeStats.daysUntilPeak)}d`, color: theme.darkGray },
                 ]}
               />

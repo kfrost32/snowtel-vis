@@ -60,3 +60,9 @@ export function calendarRowToWyDay(row: number, wy: number): number {
 export function rowsToWaterYear<T>(rows: T[], wy: number): T[] {
   return isLeapWaterYear(wy) ? rows : rows.filter((_, i) => i !== FEB_29_ROW - 1);
 }
+
+export function shiftDate(dateStr: string, days: number): string {
+  const d = new Date(dateStr.slice(0, 10) + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}

@@ -1,7 +1,8 @@
 import { getAllStations } from "@snotel/core/stations";
 import type { RecentConditions, RecentDepth } from "@snotel/core/recent";
+import { shiftDate } from "@snotel/core/water-year";
 import { fetchHourlyData, type HourlyValue } from "./snotel-api";
-import { shiftDate, todayInDataTimezone } from "./station-conditions";
+import { todayInDataTimezone } from "./station-conditions";
 
 const BULK_TIMEOUT_MS = 60000;
 const BATCH_SIZE = 100;

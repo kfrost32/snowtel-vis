@@ -12,7 +12,7 @@ export function useHourlyData(triplet: string) {
   );
   return {
     data: data?.data ?? [],
-    loading: isLoading,
+    loading: isLoading && !data,
     fetchedAt: data?.fetchedAt ?? null,
     stale: data?.stale ?? false,
   };

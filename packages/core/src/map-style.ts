@@ -11,6 +11,7 @@ import { computeBasinCentroid, computePolygonCentroid } from "./basins";
 import { formatDepthChange, formatReadingEndOfDay } from "./formatting";
 import { hasFreshSnow } from "./recent";
 import { snowColors, theme } from "./theme";
+import { shiftDate } from "./water-year";
 
 export const BASEMAP_STYLE_URL = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 export const INITIAL_CENTER: [number, number] = [-110, 44];
@@ -70,10 +71,7 @@ function isInactive(metric: string, s: StationCurrentConditions): boolean {
 
 function reportingCutoff(stations: StationCurrentConditions[]): string {
   const latest = stations.reduce((max, s) => (s.swe !== null && s.lastUpdated > max ? s.lastUpdated : max), "");
-  if (!latest) return "";
-  const date = new Date(latest + "T12:00:00Z");
-  date.setUTCDate(date.getUTCDate() - 1);
-  return date.toISOString().split("T")[0];
+  return latest ? shiftDate(latest, -1) : "";
 }
 
 export function stationFeatures(stations: StationCurrentConditions[], metric: string): GeoJSON.FeatureCollection<GeoJSON.Point> {

@@ -1,4 +1,5 @@
 import { getAllStations } from "@snotel/core/stations";
+import { shiftDate } from "@snotel/core/water-year";
 import { fetchDailyData } from "./snotel-api";
 import type { StationCurrentConditions } from "@snotel/core/types";
 
@@ -10,12 +11,6 @@ const CARRY_OVER_DAYS = 14;
 
 export function todayInDataTimezone(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: DATA_TIMEZONE }).format(new Date());
-}
-
-export function shiftDate(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T12:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().split("T")[0];
 }
 
 function change(values: (number | null)[], days: number, digits = 1): number | null {
