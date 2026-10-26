@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { ActivityIndicator, ScrollView, Share, StyleSheet, Text, View, type ColorValue } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Text, View, type ColorValue } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { STATE_NAMES } from "@snotel/core/constants";
 import * as Haptics from "expo-haptics";
-import { getStation, parseTripletFromUrl, urlTriplet } from "@snotel/core/stations";
+import { getStation, nrcsSiteUrl, parseTripletFromUrl, urlTriplet } from "@snotel/core/stations";
+import * as WebBrowser from "expo-web-browser";
 import { DELTA_DAYS, envelopeStats, seasonDeltas, statsAt } from "@snotel/core/station-stats";
 import { buildSeasonMap } from "@snotel/core/season";
 import { getWaterYearDay } from "@snotel/core/water-year";
@@ -182,9 +183,11 @@ export default function StationScreen() {
             </Section>
           )}
 
-          <Text style={styles.footer}>
-            {station.triplet} · Data from USDA NRCS SNOTEL
-          </Text>
+          <Pressable onPress={() => WebBrowser.openBrowserAsync(nrcsSiteUrl(station.triplet))} hitSlop={8}>
+            <Text style={styles.footer}>
+              {station.triplet} · Data from USDA NRCS SNOTEL · <Text style={styles.footerLink}>View on NRCS</Text>
+            </Text>
+          </Pressable>
         </>
       )}
     </ScrollView>
@@ -225,4 +228,5 @@ const styles = StyleSheet.create({
   changeLabel: { flex: 1, fontSize: 12, fontWeight: "600", color: colors.secondaryLabel, textAlign: "right" },
   changeValue: { flex: 1, fontSize: 16, fontWeight: "600", textAlign: "right" },
   footer: { fontSize: 12, color: colors.tertiaryLabel, textAlign: "center" },
+  footerLink: { color: colors.tint },
 });

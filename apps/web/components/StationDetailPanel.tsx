@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { X, MapPin, Mountain, Star, ChevronDown } from "lucide-react";
+import { X, MapPin, Mountain, Star, ChevronDown, ArrowUpRight } from "lucide-react";
 import { theme, glassmorphicButtonStyle } from "@snotel/core/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
-import { getStation } from "@snotel/core/stations";
+import { getStation, nrcsSiteUrl } from "@snotel/core/stations";
 import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatDepthChange, formatHourlyTime, formatReadingDateShort } from "@snotel/core/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor, getDepthChangeColor } from "@snotel/core/colors";
 import InfoTooltip from "@/components/InfoTooltip";
@@ -149,6 +149,15 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[11px] mt-0.5" style={{ color: imageError ? theme.gray : "rgba(255,255,255,0.7)" }}>
             <span className="flex items-center gap-1"><MapPin size={11} /> {station.state}</span>
             <span className="flex items-center gap-1"><Mountain size={11} /> {formatElevation(station.elevation)}</span>
+            <a
+              href={nrcsSiteUrl(station.triplet)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-0.5 underline-offset-2 hover:underline"
+              title="Official NRCS site page"
+            >
+              NRCS <ArrowUpRight size={11} />
+            </a>
           </div>
         </div>
       </div>
