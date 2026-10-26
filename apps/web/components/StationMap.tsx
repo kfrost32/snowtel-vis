@@ -73,7 +73,13 @@ interface StationMapProps {
 }
 
 const NO_STATES: string[] = [];
-const SELECTED_LAYERS = ["station-selected-glow", "station-selected", "station-selected-value"];
+const SELECTED_LAYERS: (maplibregl.CircleLayerSpecification | maplibregl.SymbolLayerSpecification)[] = [
+  { id: "station-selected-glow", type: "circle", source: "stations", paint: selectedStationGlowPaint },
+  { id: "station-selected", type: "circle", source: "stations", paint: selectedStationPaint },
+  { id: "station-selected-value", type: "symbol", source: "stations", minzoom: STATION_LABEL_MINZOOM, layout: selectedStationValueLayout, paint: selectedStationValuePaint },
+];
+
+let lastView: { center: maplibregl.LngLatLike; zoom: number } | null = null;
 
 const basemapStyles = new Map<string, Promise<StyleSpecification>>();
 
@@ -154,9 +160,9 @@ function StationMapInner({
       const map = new maplibregl.Map({
         container,
         style,
-        center: INITIAL_CENTER,
-        zoom: INITIAL_ZOOM,
-        ...(initialBounds && { bounds: initialBounds, fitBoundsOptions: { padding: fitPadding ?? 48, maxZoom: 8 } }),
+        center: lastView?.center ?? INITIAL_CENTER,
+        zoom: lastView?.zoom ?? INITIAL_ZOOM,
+        ...(!lastView && initialBounds && { bounds: initialBounds, fitBoundsOptions: { padding: fitPadding ?? 48, maxZoom: 8 } }),
         attributionControl: false,
       });
 
@@ -257,9 +263,7 @@ function StationMapInner({
           paint: stationLabelPaint,
         });
 
-        map.addLayer({ id: "station-selected-glow", type: "circle", source: "stations", filter: selectedStationFilter(null), paint: selectedStationGlowPaint }, "station-circles");
-        map.addLayer({ id: "station-selected", type: "circle", source: "stations", filter: selectedStationFilter(null), paint: selectedStationPaint });
-        map.addLayer({ id: "station-selected-value", type: "symbol", source: "stations", filter: selectedStationFilter(null), minzoom: STATION_LABEL_MINZOOM, layout: selectedStationValueLayout, paint: selectedStationValuePaint });
+        SELECTED_LAYERS.forEach((layer, i) => map.addLayer({ ...layer, filter: selectedStationFilter(null) }, i === 0 ? "station-circles" : undefined));
 
       // ── Ski areas & backcountry spots ──────────────────────────────────
         for (const kind of SPOT_KINDS) addSpotIcon(map, kind);
@@ -369,6 +373,9 @@ function StationMapInner({
         map.on("mouseleave", "spot-icons", clearHover);
 
         map.on("moveend", updateVisibleStations);
+        map.on("moveend", () => {
+          lastView = { center: map.getCenter(), zoom: map.getZoom() };
+        });
         map.on("zoomend", updateVisibleStations);
         updateVisibleStations();
         setMapLoaded(true);
@@ -447,8 +454,8 @@ function StationMapInner({
     const vis = (v: boolean) => (v ? "visible" : "none");
     if (map.getLayer("station-circles")) map.setLayoutProperty("station-circles", "visibility", vis(showStations));
     if (map.getLayer("station-labels")) map.setLayoutProperty("station-labels", "visibility", vis(showStations));
-    for (const layer of SELECTED_LAYERS) {
-      if (map.getLayer(layer)) map.setLayoutProperty(layer, "visibility", vis(showStations));
+    for (const { id } of SELECTED_LAYERS) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", vis(showStations));
     }
     if (map.getLayer("huc4-fill")) map.setLayoutProperty("huc4-fill", "visibility", vis(showHuc4));
     if (map.getLayer("huc4-outline")) map.setLayoutProperty("huc4-outline", "visibility", vis(showHuc4));
@@ -462,8 +469,8 @@ function StationMapInner({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
-    for (const layer of SELECTED_LAYERS) {
-      if (map.getLayer(layer)) map.setFilter(layer, selectedStationFilter(selectedTriplet));
+    for (const { id } of SELECTED_LAYERS) {
+      if (map.getLayer(id)) map.setFilter(id, selectedStationFilter(selectedTriplet));
     }
   }, [selectedTriplet, mapLoaded]);
 

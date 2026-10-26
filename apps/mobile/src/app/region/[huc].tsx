@@ -15,10 +15,10 @@ import { Hero, Row } from "@/components/Summary";
 import { useRegionDetail, useStationList } from "@/hooks/data";
 import { colors } from "@/theme";
 import { formatAxisLength } from "@snotel/core/units";
-import { useAppSettings } from "@/lib/app-settings";
+import { useUnitsKey } from "@/lib/app-settings";
 
 export default function RegionScreen() {
-  const { units } = useAppSettings();
+  const units = useUnitsKey();
   const { huc } = useLocalSearchParams<{ huc: string }>();
   const level = huc.length === 2 ? 2 : 4;
   const { stations } = useStationList();

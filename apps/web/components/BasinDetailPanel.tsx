@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { X, Star, Maximize2, Minimize2 } from "lucide-react";
-import { theme, glassmorphicButtonStyle } from "@/lib/theme";
+import { theme } from "@/lib/theme";
 import { formatSwe, formatPctOfNormal, formatSnowDepth, formatReadingDateShort } from "@snotel/core/formatting";
 import { getConditionColor, getConditionLabel } from "@snotel/core/colors";
 import { getWaterYearDay, getCurrentWaterYear } from "@snotel/core/water-year";
@@ -18,6 +17,7 @@ import { useEnvelopeOptions } from "@/hooks/useEnvelopeOptions";
 import EnvelopeCardTitle from "@/components/EnvelopeCardTitle";
 import { endpoints } from "@snotel/core/endpoints";
 import EnvelopeChartActions from "@/components/EnvelopeChartActions";
+import PanelHeaderActions from "@/components/PanelHeaderActions";
 
 const FIRST_COMPARE_YEAR = 1981;
 
@@ -80,35 +80,13 @@ export default function BasinDetailPanel({
           className="absolute inset-0"
           style={{ background: "linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%)" }}
         />
-        <div className="absolute top-3 right-3 flex items-center gap-2">
-          <button
-            onClick={onToggleFavorite}
-            className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
-            style={{ color: isFavorite ? "#FBBF24" : "rgba(255,255,255,0.9)", ...glassmorphicButtonStyle }}
-            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            <Star size={18} fill={isFavorite ? "#FBBF24" : "none"} />
-          </button>
-          {onToggleExpand && (
-            <button
-              onClick={onToggleExpand}
-              className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
-              style={{ color: "rgba(255,255,255,0.9)", ...glassmorphicButtonStyle }}
-              aria-label={expanded ? "Collapse panel" : "Expand panel"}
-              title={expanded ? "Collapse" : "Expand"}
-            >
-              {expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
-            style={{ color: "rgba(255,255,255,0.9)", ...glassmorphicButtonStyle }}
-            aria-label="Close panel"
-          >
-            <X size={20} />
-          </button>
-        </div>
+        <PanelHeaderActions
+          isFavorite={isFavorite}
+          onToggleFavorite={onToggleFavorite}
+          onClose={onClose}
+          expanded={expanded}
+          onToggleExpand={onToggleExpand}
+        />
         <div className="relative">
           <h2 className="text-lg font-semibold tracking-tight font-sans truncate" style={{ color: "#FFFFFF" }}>
             {basin.name}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Check, MoreHorizontal } from "lucide-react";
 import { theme } from "@/lib/theme";
+import { useDismiss } from "@/hooks/useDismiss";
 
 export interface OverflowMenuItem {
   label: string;
@@ -15,19 +16,7 @@ export default function OverflowMenu({ items }: { items: OverflowMenuItem[] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const onPointer = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  useDismiss(ref, open, () => setOpen(false));
 
   return (
     <div ref={ref} className="relative" data-export-btn>

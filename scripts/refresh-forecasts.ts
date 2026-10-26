@@ -1,7 +1,7 @@
 import { getAllStations } from "@snotel/core/stations";
 import { forecastWindowTotals, type ForecastTotals } from "@snotel/core/forecast";
-import { cachedNwsPoint, fetchNwsForecast } from "../apps/web/lib/nws";
-import { snapshotKeys, snapshotStoreConfigured, writeSnapshots, type Snapshot } from "../apps/web/lib/snapshot-store";
+import { fetchNwsForecast, fetchNwsPoint, POINT_MAX_AGE_MS, type NwsPoint } from "../apps/web/lib/nws";
+import { readSnapshots, snapshotKeys, snapshotStoreConfigured, writeSnapshots, type Snapshot } from "../apps/web/lib/snapshot-store";
 
 const CONCURRENCY = 6;
 const ATTEMPTS = 2;
@@ -24,6 +24,13 @@ async function main() {
   const stations = getAllStations().filter((s) => s.network === "SNOTEL");
   const totals: ForecastTotals["stations"] = {};
   const perStation: Record<string, Snapshot<unknown>> = {};
+  const savedPoints = await readSnapshots<NwsPoint>(stations.map((s) => snapshotKeys.nwsPoint(s.triplet)));
+  const points = new Map(
+    stations.flatMap((s, i) => {
+      const saved = savedPoints[i];
+      return saved && Date.now() - saved.fetchedAt < POINT_MAX_AGE_MS ? [[s.triplet, saved.data] as const] : [];
+    })
+  );
   let updated = "";
   let failures = 0;
   let next = 0;
@@ -32,7 +39,13 @@ async function main() {
     while (next < stations.length) {
       const station = stations[next++];
       try {
-        const forecast = await withRetry(async () => fetchNwsForecast(await cachedNwsPoint(station)));
+        let point = points.get(station.triplet);
+        if (!point) {
+          point = await withRetry(() => fetchNwsPoint(station));
+          perStation[snapshotKeys.nwsPoint(station.triplet)] = { data: point, fetchedAt: Date.now() };
+        }
+        const nwsPoint = point;
+        const forecast = await withRetry(() => fetchNwsForecast(nwsPoint));
         totals[station.triplet] = forecastWindowTotals(forecast);
         perStation[snapshotKeys.forecast(station.triplet)] = { data: forecast, fetchedAt: Date.now() };
         if (forecast.updated > updated) updated = forecast.updated;

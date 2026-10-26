@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { theme } from "@/lib/theme";
 import { SNOTEL_STATES } from "@snotel/core/constants";
-import { SidebarSection, SidebarToggle, SidebarRadioItem, SidebarChip } from "@/components/sidebar";
+import { SidebarSection, SidebarToggle, SidebarRadioItem, SidebarChip, SidebarSegmented } from "@/components/sidebar";
 
 const METRIC_GROUPS = [
   {
@@ -97,24 +97,12 @@ export default function MapControls({
   return (
     <div className="flex flex-col">
       <SidebarSection label="Metric">
-        <div className="flex p-0.5 rounded-lg mb-2" style={{ background: "var(--c-hairline)" }}>
-          {METRIC_GROUPS.map((group) => {
-            const selected = group === activeGroup;
-            return (
-              <button
-                key={group.label}
-                onClick={() => !selected && onMetricChange(group.metrics[0].key)}
-                className="flex-1 py-1.5 md:py-1 rounded-md text-[12px] font-sans font-medium transition-all duration-150 cursor-pointer"
-                style={{
-                  background: selected ? theme.white : "transparent",
-                  color: selected ? theme.black : theme.gray,
-                  boxShadow: selected ? "0 1px 2px rgba(15, 23, 42, 0.12), 0 0 0 0.5px rgba(15, 23, 42, 0.06)" : "none",
-                }}
-              >
-                {group.label}
-              </button>
-            );
-          })}
+        <div className="mb-2">
+          <SidebarSegmented
+            options={METRIC_GROUPS.map((group) => ({ value: group.label, label: group.label }))}
+            value={activeGroup.label}
+            onChange={(label) => onMetricChange(METRIC_GROUPS.find((group) => group.label === label)!.metrics[0].key)}
+          />
         </div>
         <div className="flex flex-col">
           {activeGroup.metrics.map((m) => (

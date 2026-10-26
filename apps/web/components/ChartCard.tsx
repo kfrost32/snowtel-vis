@@ -17,8 +17,8 @@ interface ChartCardProps {
   menuItems?: OverflowMenuItem[];
 }
 
-function exportBackground(): string {
-  return getComputedStyle(document.documentElement).getPropertyValue("--c-white").trim() || "#FFFFFF";
+function exportBackground(node: HTMLElement): string {
+  return getComputedStyle(node).backgroundColor || "#FFFFFF";
 }
 
 export default function ChartCard({ title, description, height, actions, footer, children, exportable = true, dense = false, menuItems = [] }: ChartCardProps) {
@@ -48,7 +48,7 @@ export default function ChartCard({ title, description, height, actions, footer,
     setExporting(true);
     try {
       const { toJpeg } = await import("html-to-image");
-      const dataUrl = await capture((node) => toJpeg(node, { quality: 0.95, backgroundColor: exportBackground(), pixelRatio: 2 }));
+      const dataUrl = await capture((node) => toJpeg(node, { quality: 0.95, backgroundColor: exportBackground(node), pixelRatio: 2 }));
       const link = document.createElement("a");
       link.download = `snotel-chart-${Date.now()}.jpg`;
       link.href = dataUrl;
@@ -67,7 +67,7 @@ export default function ChartCard({ title, description, height, actions, footer,
     let blob: Blob | null = null;
     try {
       const { toBlob } = await import("html-to-image");
-      blob = await capture((node) => toBlob(node, { backgroundColor: exportBackground(), pixelRatio: 2 }));
+      blob = await capture((node) => toBlob(node, { backgroundColor: exportBackground(node), pixelRatio: 2 }));
       if (!blob) throw new Error("Empty image");
       const file = new File([blob], filename, { type: "image/png" });
       if (!navigator.canShare?.({ files: [file] })) throw new DOMException("Sharing files unsupported", "NotSupportedError");
@@ -93,7 +93,7 @@ export default function ChartCard({ title, description, height, actions, footer,
     setExporting(true);
     try {
       const blob = import("html-to-image").then(({ toBlob }) =>
-        capture((node) => toBlob(node, { backgroundColor: exportBackground(), pixelRatio: 2 }))
+        capture((node) => toBlob(node, { backgroundColor: exportBackground(node), pixelRatio: 2 }))
       ).then((b) => {
         if (!b) throw new Error("Empty image");
         return b;

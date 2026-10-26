@@ -1,12 +1,12 @@
-import { FORECAST_COLORS } from "@snotel/core/colors";
-import { fahrenheitToCelsius, inchesToCm, isMetric } from "@snotel/core/units";
+import { FORECAST_STOPS, NO_FORECAST_COLOR } from "@snotel/core/colors";
+import { formatAxisTemp, inchesToCm, isMetric } from "@snotel/core/units";
 
 export interface LegendItem {
   label: string;
   color: string;
 }
 
-type Stop = [inches: number, color: string, prefix?: string, suffix?: string];
+type Stop = [value: number, color: string];
 
 function inches(value: number, signed = false): string {
   const sign = signed && value > 0 ? "+" : value < 0 ? "−" : "";
@@ -22,12 +22,13 @@ function feet(value: number): string {
   return cm >= 100 ? `${Math.round(cm / 10) / 10}m` : `${Math.round(cm)}cm`;
 }
 
-function degrees(value: number): string {
-  return `${Math.round(isMetric() ? fahrenheitToCelsius(value) : value)}°`;
-}
-
-function legend(stops: Stop[], format: (value: number) => string): LegendItem[] {
-  return stops.map(([value, color, prefix = "", suffix = ""]) => ({ label: value === 0 ? "0" : `${prefix}${format(value)}${suffix}`, color }));
+function legend(stops: Stop[], format: (value: number) => string, { openLow = false, openHigh = true } = {}): LegendItem[] {
+  return stops.map(([value, color], i) => {
+    const label = value === 0 ? "0" : format(value);
+    const prefix = openLow && i === 0 ? "<" : "";
+    const suffix = openHigh && i === stops.length - 1 ? "+" : "";
+    return { label: `${prefix}${label}${suffix}`, color };
+  });
 }
 
 const PCT_LEGEND: LegendItem[] = [
@@ -61,6 +62,7 @@ const LEGEND_TITLES: Record<string, string> = {
 
 function legendItems(metric: string): LegendItem[] {
   const signed = (value: number) => inches(value, true);
+  const plain = (value: number) => inches(value);
   switch (metric) {
     case "WTEQ":
     case "WTEQ_PCT":
@@ -68,23 +70,30 @@ function legendItems(metric: string): LegendItem[] {
     case "CHANGE_1D":
     case "CHANGE_3D":
     case "CHANGE_7D":
-      return legend([[-2, "#DC2626", "", "+"], [-0.5, "#F59E0B"], [0, "#94A3B8"], [0.5, "#3B82F6"], [2, "#1D4ED8", "", "+"]], signed);
+      return legend([[-2, "#DC2626"], [-0.5, "#F59E0B"], [0, "#94A3B8"], [0.5, "#3B82F6"], [2, "#1D4ED8"]], signed).map((item, i) =>
+        i === 0 ? { ...item, label: `${item.label}+` } : item
+      );
     case "SNWD_CHANGE_1D":
     case "SNWD_CHANGE_3D":
     case "SNWD_CHANGE_7D":
-      return legend([[-6, "#DC2626", "", "+"], [-2, "#F59E0B"], [0, "#94A3B8"], [2, "#3B82F6"], [6, "#1D4ED8", "", "+"]], signed);
-    case "SNWD":
-      return legend([[0, "#CBD5E1"], [1, "#C7D6EE"], [3, "#A3BDE6"], [6, "#7AA0DD"], [10, "#2F5A9E", "", "+"]], feet);
-    case "PREC":
-      return legend([[0, "#CBD5E1"], [10, "#A5F3FC"], [20, "#67E8F9"], [35, "#22D3EE"], [50, "#0891B2", "", "+"]], (v) => inches(v));
-    case "FORECAST_3D":
-    case "FORECAST_7D":
-      return legend(
-        [[0, "#CBD5E1"], [1, FORECAST_COLORS[0], "<"], [1, FORECAST_COLORS[1]], [3, FORECAST_COLORS[2]], [6, FORECAST_COLORS[3]], [12, FORECAST_COLORS[4], "", "+"]],
-        (v) => inches(v)
+      return legend([[-6, "#DC2626"], [-2, "#F59E0B"], [0, "#94A3B8"], [2, "#3B82F6"], [6, "#1D4ED8"]], signed).map((item, i) =>
+        i === 0 ? { ...item, label: `${item.label}+` } : item
       );
+    case "SNWD":
+      return legend([[0, "#CBD5E1"], [1, "#C7D6EE"], [3, "#A3BDE6"], [6, "#7AA0DD"], [10, "#2F5A9E"]], feet);
+    case "PREC":
+      return legend([[0, "#CBD5E1"], [10, "#A5F3FC"], [20, "#67E8F9"], [35, "#22D3EE"], [50, "#0891B2"]], plain);
+    case "FORECAST_3D":
+    case "FORECAST_7D": {
+      const [first, ...rest] = FORECAST_STOPS;
+      return [
+        { label: "0", color: NO_FORECAST_COLOR },
+        ...legend([[rest[0].from, first.color]], plain, { openLow: true, openHigh: false }),
+        ...legend(rest.map((stop): Stop => [stop.from, stop.color]), plain),
+      ];
+    }
     default:
-      return legend([[10, "#1D4ED8", "<"], [25, "#3B82F6"], [32, "#93C5FD"], [40, "#FDE68A"], [55, "#EF4444", "", "+"]], degrees);
+      return legend([[10, "#1D4ED8"], [25, "#3B82F6"], [32, "#93C5FD"], [40, "#FDE68A"], [55, "#EF4444"]], formatAxisTemp, { openLow: true });
   }
 }
 

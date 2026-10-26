@@ -40,6 +40,23 @@ export function storedValue<T>(key: string, fallback: T, parse: (raw: string) =>
   };
 }
 
+export function memoryValue<T>(fallback: T): StoredValue<T> {
+  let value = fallback;
+  const listeners = new Set<() => void>();
+  return {
+    fallback,
+    read: () => value,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    set: (update) => {
+      value = typeof update === "function" ? (update as (prev: T) => T)(value) : update;
+      listeners.forEach((listener) => listener());
+    },
+  };
+}
+
 export function useStoredValue<T>(store: StoredValue<T>): T {
   return useSyncExternalStore(store.subscribe, store.read, () => store.fallback);
 }

@@ -6,12 +6,12 @@ import { getAllStations } from "@snotel/core/stations";
 import StationRow from "@/components/StationRow";
 import { useStationList } from "@/hooks/data";
 import { colors } from "@/theme";
-import { useAppSettings } from "@/lib/app-settings";
+import { useUnitsKey } from "@/lib/app-settings";
 
 const MAX_RESULTS = 50;
 
 export default function SearchScreen() {
-  const { units } = useAppSettings();
+  const units = useUnitsKey();
   const [query, setQuery] = useState("");
   const { stations } = useStationList();
   const byTriplet = useMemo(() => new Map(stations?.map((s) => [s.triplet, s])), [stations]);

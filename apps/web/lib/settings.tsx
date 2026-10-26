@@ -1,23 +1,16 @@
 "use client";
 
 import { Fragment, useEffect, type ReactNode } from "react";
-import { setUnits, type Units } from "@snotel/core/units";
+import { setUnits } from "@snotel/core/units";
+import { DEFAULT_SETTINGS, parseSettings, type AppSettings } from "@snotel/core/settings";
 import { storedValue, useStoredValue } from "@/lib/stored-value";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
-export type Appearance = "system" | "light" | "dark";
-
-export interface AppSettings {
-  units: Units;
-  appearance: Appearance;
-  homeState: string | null;
-}
+export type { Appearance, AppSettings } from "@snotel/core/settings";
 
 export const SETTINGS_KEY = "snotel:settings";
 
-const DEFAULTS: AppSettings = { units: "imperial", appearance: "system", homeState: null };
-
-export const settingsStore = storedValue<AppSettings>(SETTINGS_KEY, DEFAULTS, (raw) => ({ ...DEFAULTS, ...JSON.parse(raw) }));
+export const settingsStore = storedValue<AppSettings>(SETTINGS_KEY, DEFAULT_SETTINGS, parseSettings);
 
 export function useSettings(): AppSettings {
   return useStoredValue(settingsStore);

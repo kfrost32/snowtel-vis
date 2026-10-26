@@ -7,7 +7,7 @@ import { readSnapshot, snapshotKeys, writeSnapshots } from "./snapshot-store";
 const NWS_URL = "https://api.weather.gov";
 const USER_AGENT = "SNOTEL Explorer (https://snotel.hereandthere.club)";
 const TIMEOUT_MS = 10000;
-const POINT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+export const POINT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const FORECAST_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
 export interface NwsPoint {

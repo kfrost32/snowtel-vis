@@ -116,15 +116,19 @@ export function getChangeColor(v: number | null): string {
   return "#DC2626";
 }
 
-export const FORECAST_COLORS = ["#E2DCF7", "#C4B5FD", "#A78BFA", "#8B5CF6", "#6D28D9"];
+export const NO_FORECAST_COLOR = "#CBD5E1";
+
+export const FORECAST_STOPS: { from: number; color: string }[] = [
+  { from: 0, color: "#E2DCF7" },
+  { from: 1, color: "#C4B5FD" },
+  { from: 3, color: "#A78BFA" },
+  { from: 6, color: "#8B5CF6" },
+  { from: 12, color: "#6D28D9" },
+];
 
 export function getForecastColor(inches: number | null): string {
-  if (!inches) return "#CBD5E1";
-  if (inches < 1) return FORECAST_COLORS[0];
-  if (inches < 3) return FORECAST_COLORS[1];
-  if (inches < 6) return FORECAST_COLORS[2];
-  if (inches < 12) return FORECAST_COLORS[3];
-  return FORECAST_COLORS[4];
+  if (!inches) return NO_FORECAST_COLOR;
+  return FORECAST_STOPS.findLast((stop) => inches >= stop.from)!.color;
 }
 
 export function getMetricMapColor(metric: string, station: StationCurrentConditions): string {

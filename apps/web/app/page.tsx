@@ -45,10 +45,11 @@ function HomePageInner() {
   const { stations: liveStations, loading, stale } = useStationList();
   const recent = useRecentConditions();
   const forecasts = useForecastTotals();
-  const stations = useMemo(
-    () => (loading ? getPlaceholderConditions() : withForecasts(withRecentDepth(liveStations, recent), forecasts)),
-    [loading, liveStations, recent, forecasts]
+  const baseStations = useMemo(
+    () => (loading ? getPlaceholderConditions() : withRecentDepth(liveStations, recent)),
+    [loading, liveStations, recent]
   );
+  const stations = useMemo(() => withForecasts(baseStations, forecasts), [baseStations, forecasts]);
   const { toggleStation, toggleBasin, isStationFav, isBasinFav } = useFavorites();
   const { filters, controls } = useMapFilters();
   const { metric, selectedStates } = controls;
@@ -67,8 +68,8 @@ function HomePageInner() {
   const { homeState } = useSettings();
   const homeBounds = useMemo(() => (homeState && !selectedStates.size ? stateBounds([homeState]) : null), [homeState, selectedStates]);
   const regionStations = useMemo(
-    () => (selectedStates.size ? stations.filter((s) => selectedStates.has(s.state)) : stations),
-    [stations, selectedStates]
+    () => (selectedStates.size ? baseStations.filter((s) => selectedStates.has(s.state)) : baseStations),
+    [baseStations, selectedStates]
   );
   const huc2Basins = useMemo(() => (!regionStations.length ? [] : computeBasinSummaries(regionStations, 2)), [regionStations]);
   const huc4Basins = useMemo(() => (!regionStations.length ? [] : computeBasinSummaries(regionStations, 4)), [regionStations]);

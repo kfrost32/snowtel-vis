@@ -2,53 +2,24 @@
 
 :root {
   color-scheme: light dark;
-  --c-white: #FFFFFF;
-  --c-off-white: #F8FAFB;
-  --c-light-gray: #F0F4F5;
-  --c-border-gray: #DDE3E6;
-  --c-medium-gray: #8A9BA3;
-  --c-gray: #5A6B73;
-  --c-dark-gray: #2A3238;
-  --c-black: #1A2026;
-  --c-hover: rgba(15, 23, 42, 0.05);
-  --c-glass: rgba(255, 255, 255, 0.86);
-  --c-sheet: rgba(255, 255, 255, 0.96);
-  --c-hairline: rgba(15, 23, 42, 0.06);
+  --c-white: light-dark(#FFFFFF, #161B1F);
+  --c-off-white: light-dark(#F8FAFB, #0F1316);
+  --c-light-gray: light-dark(#F0F4F5, #1E252A);
+  --c-border-gray: light-dark(#DDE3E6, #2C353B);
+  --c-medium-gray: light-dark(#8A9BA3, #7D8D95);
+  --c-gray: light-dark(#5A6B73, #A2B0B7);
+  --c-dark-gray: light-dark(#2A3238, #D3DCE0);
+  --c-black: light-dark(#1A2026, #EEF2F4);
+  --c-hover: light-dark(rgba(15, 23, 42, 0.05), rgba(255, 255, 255, 0.07));
+  --c-glass: light-dark(rgba(255, 255, 255, 0.86), rgba(22, 27, 31, 0.82));
+  --c-sheet: light-dark(rgba(255, 255, 255, 0.96), rgba(22, 27, 31, 0.96));
+  --c-hairline: light-dark(rgba(15, 23, 42, 0.06), rgba(255, 255, 255, 0.08));
   --background: var(--c-off-white);
   --foreground: var(--c-black);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --c-white: #161B1F;
-    --c-off-white: #0F1316;
-    --c-light-gray: #1E252A;
-    --c-border-gray: #2C353B;
-    --c-medium-gray: #7D8D95;
-    --c-gray: #A2B0B7;
-    --c-dark-gray: #D3DCE0;
-    --c-black: #EEF2F4;
-    --c-hover: rgba(255, 255, 255, 0.07);
-    --c-glass: rgba(22, 27, 31, 0.82);
-    --c-sheet: rgba(22, 27, 31, 0.96);
-    --c-hairline: rgba(255, 255, 255, 0.08);
-  }
-}
-
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --c-white: #161B1F;
-  --c-off-white: #0F1316;
-  --c-light-gray: #1E252A;
-  --c-border-gray: #2C353B;
-  --c-medium-gray: #7D8D95;
-  --c-gray: #A2B0B7;
-  --c-dark-gray: #D3DCE0;
-  --c-black: #EEF2F4;
-  --c-hover: rgba(255, 255, 255, 0.07);
-  --c-glass: rgba(22, 27, 31, 0.82);
-  --c-sheet: rgba(22, 27, 31, 0.96);
-  --c-hairline: rgba(255, 255, 255, 0.08);
 }
 
 :root[data-theme="light"] {

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { X, MapPin, Mountain, Star, ChevronDown, ArrowUpRight, Maximize2, Minimize2 } from "lucide-react";
-import { theme, glassmorphicButtonStyle } from "@/lib/theme";
+import { MapPin, Mountain, ChevronDown, ArrowUpRight } from "lucide-react";
+import { theme } from "@/lib/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
 import { getStation, nrcsSiteUrl } from "@snotel/core/stations";
@@ -31,6 +31,7 @@ import EnvelopeChartActions from "@/components/EnvelopeChartActions";
 import { useEnvelopeOptions } from "@/hooks/useEnvelopeOptions";
 import { getCurrentWaterYear } from "@snotel/core/water-year";
 import DepthTempChart from "@/components/DepthTempChart";
+import PanelHeaderActions from "@/components/PanelHeaderActions";
 
 interface StationDetailPanelProps {
   triplet: string;
@@ -117,44 +118,14 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
             style={{ background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 55%, transparent 100%)" }}
           />
         )}
-        <div className="absolute top-3 right-3 flex items-center gap-2">
-          <button
-            onClick={onToggleFavorite}
-            className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
-            style={{
-              color: isFavorite ? "#FBBF24" : imageError ? theme.darkGray : "rgba(255,255,255,0.9)",
-              ...(imageError ? { background: "rgba(0,0,0,0.06)", border: `1px solid ${theme.borderGray}` } : glassmorphicButtonStyle),
-            }}
-            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            <Star size={18} fill={isFavorite ? "#FBBF24" : "none"} />
-          </button>
-          {onToggleExpand && (
-            <button
-              onClick={onToggleExpand}
-              className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
-              style={{
-                color: imageError ? theme.darkGray : "rgba(255,255,255,0.9)",
-                ...(imageError ? { background: "rgba(0,0,0,0.06)", border: `1px solid ${theme.borderGray}` } : glassmorphicButtonStyle),
-              }}
-              aria-label={expanded ? "Collapse panel" : "Expand panel"}
-              title={expanded ? "Collapse" : "Expand"}
-            >
-              {expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
-            style={{
-              color: imageError ? theme.darkGray : "rgba(255,255,255,0.9)",
-              ...(imageError ? { background: "rgba(0,0,0,0.06)", border: `1px solid ${theme.borderGray}` } : glassmorphicButtonStyle),
-            }}
-            aria-label="Close panel"
-          >
-            <X size={20} />
-          </button>
-        </div>
+        <PanelHeaderActions
+          isFavorite={isFavorite}
+          onToggleFavorite={onToggleFavorite}
+          onClose={onClose}
+          expanded={expanded}
+          onToggleExpand={onToggleExpand}
+          plain={imageError}
+        />
         <div className="relative px-4 pt-10 pb-3">
           <h2 className="text-lg font-semibold tracking-tight font-sans truncate" style={{ color: imageError ? theme.black : "#FFFFFF" }}>
             {station.name}

@@ -1,39 +1,27 @@
 import { useSyncExternalStore } from "react";
 import { Appearance } from "react-native";
 import Storage from "expo-sqlite/kv-store";
-import { setUnits, type Units } from "@snotel/core/units";
+import { setUnits } from "@snotel/core/units";
+import { parseSettings, type AppSettings } from "@snotel/core/settings";
 
-export type AppearanceSetting = "system" | "light" | "dark";
-
-export interface AppSettings {
-  units: Units;
-  appearance: AppearanceSetting;
-  homeState: string | null;
-}
+export type { AppSettings, Appearance as AppearanceSetting } from "@snotel/core/settings";
 
 const KEY = "app:settings";
-const DEFAULTS: AppSettings = { units: "imperial", appearance: "system", homeState: null };
 const listeners = new Set<() => void>();
 
-function read(): AppSettings {
-  try {
-    return { ...DEFAULTS, ...JSON.parse(Storage.getItemSync(KEY) ?? "{}") };
-  } catch {
-    return DEFAULTS;
-  }
+function applyAppearance(appearance: AppSettings["appearance"]) {
+  Appearance.setColorScheme(appearance === "system" ? "unspecified" : appearance);
 }
 
-function apply(settings: AppSettings) {
-  setUnits(settings.units);
-  Appearance.setColorScheme(settings.appearance === "system" ? "unspecified" : settings.appearance);
-}
-
-let snapshot = read();
-apply(snapshot);
+let snapshot = parseSettings(Storage.getItemSync(KEY));
+setUnits(snapshot.units);
+applyAppearance(snapshot.appearance);
 
 export function updateAppSettings(patch: Partial<AppSettings>) {
+  const previous = snapshot;
   snapshot = { ...snapshot, ...patch };
-  apply(snapshot);
+  setUnits(snapshot.units);
+  if (snapshot.appearance !== previous.appearance) applyAppearance(snapshot.appearance);
   Storage.setItemSync(KEY, JSON.stringify(snapshot));
   listeners.forEach((l) => l());
 }
@@ -46,4 +34,8 @@ export function useAppSettings(): AppSettings {
     },
     () => snapshot
   );
+}
+
+export function useUnitsKey(): string {
+  return useAppSettings().units;
 }

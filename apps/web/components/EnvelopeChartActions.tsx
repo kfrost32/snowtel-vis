@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { theme } from "@/lib/theme";
 import { MAX_COMPARE_YEARS, type useEnvelopeOptions } from "@/hooks/useEnvelopeOptions";
+import { useDismiss } from "@/hooks/useDismiss";
 
 interface EnvelopeChartActionsProps {
   options: ReturnType<typeof useEnvelopeOptions>;
@@ -18,19 +19,7 @@ export default function EnvelopeChartActions({ options, yearOptions }: EnvelopeC
   const menuRef = useRef<HTMLDivElement>(null);
   const full = selectedYears.length >= MAX_COMPARE_YEARS;
 
-  useEffect(() => {
-    if (!open) return;
-    const onPointer = (e: PointerEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  useDismiss(menuRef, open, () => setOpen(false));
 
   return (
     <div className="hidden md:flex items-center gap-1">

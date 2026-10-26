@@ -9,7 +9,7 @@ import type { BasinSummary, StationCurrentConditions } from "./types";
 import { getMapMarkerColor, getMetricMapColor } from "./colors";
 import { computeBasinCentroid, computePolygonCentroid } from "./basins";
 import { formatChange, formatDepthChange, formatElevation, formatReadingEndOfDay, formatSnowDepth, formatSwe } from "./formatting";
-import { formatAxisTemp, inchesToCm, isMetric } from "./units";
+import { formatAxisTemp } from "./units";
 
 const compact = (label: string) => label.replace(" cm", "cm");
 
@@ -53,7 +53,7 @@ export function metricDotLabel(metric: string, s: StationCurrentConditions): str
     case "SNWD_CHANGE_3D": return compact(formatDepthChange(s.depthChange3d ?? null));
     case "SNWD_CHANGE_7D": return compact(formatDepthChange(s.depthChange7d ?? null));
     case "SNWD": return s.snowDepth !== null ? compact(formatSnowDepth(s.snowDepth)) : "—";
-    case "PREC": return s.precipAccum !== null ? compact(isMetric() ? `${Math.round(inchesToCm(s.precipAccum))} cm` : `${Math.round(s.precipAccum)}″`) : "";
+    case "PREC": return s.precipAccum !== null ? compact(formatSnowDepth(s.precipAccum)) : "";
     case "TAVG": return s.temp !== null ? formatAxisTemp(s.temp) : "";
     case "FORECAST_3D": return forecastLabel(s.forecast3d);
     case "FORECAST_7D": return forecastLabel(s.forecast7d);
@@ -199,19 +199,7 @@ export const selectedStationPaint: CircleLayerSpecification["paint"] = {
   "circle-stroke-color": theme.white,
 };
 
-export const selectedStationValueLayout: SymbolLayerSpecification["layout"] = {
-  "text-field": ["get", "label"],
-  "text-size": ["interpolate", ["linear"], ["zoom"], 5, 8, 6, 9, 10, 12],
-  "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-  "text-allow-overlap": true,
-  "text-ignore-placement": true,
-};
 
-export const selectedStationValuePaint: SymbolLayerSpecification["paint"] = {
-  "text-color": theme.white,
-  "text-halo-color": "rgba(0,0,0,0.5)",
-  "text-halo-width": 1,
-};
 
 export function selectedStationFilter(triplet: string | null): ["==", ["get", "triplet"], string] {
   return ["==", ["get", "triplet"], triplet ?? ""];
@@ -232,6 +220,14 @@ export const stationLabelPaint: SymbolLayerSpecification["paint"] = {
   "text-color": theme.white,
   "text-halo-color": "rgba(0,0,0,0.5)",
   "text-halo-width": 1,
+};
+
+export const selectedStationValuePaint = stationLabelPaint;
+
+export const selectedStationValueLayout: SymbolLayerSpecification["layout"] = {
+  ...stationLabelLayout,
+  "text-allow-overlap": true,
+  "text-ignore-placement": true,
 };
 
 export const BASEMAP_STYLE_URL_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";

@@ -34,6 +34,11 @@ export async function readSnapshot<T>(key: string): Promise<Snapshot<T> | null> 
   }
 }
 
+export async function readSnapshots<T>(keys: string[]): Promise<(Snapshot<T> | null)[]> {
+  if (!redis || !keys.length) return keys.map(() => null);
+  return redis.mget<(Snapshot<T> | null)[]>(...keys.map((key) => PREFIX + key));
+}
+
 export async function writeSnapshots(entries: Record<string, Snapshot<unknown>>): Promise<void> {
   if (!redis) return;
   await redis.mset(Object.fromEntries(Object.entries(entries).map(([key, value]) => [PREFIX + key, value])));

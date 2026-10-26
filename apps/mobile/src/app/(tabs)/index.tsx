@@ -39,7 +39,8 @@ export default function MapScreen() {
   const { stations: daily, loading, stale } = useStationList();
   const recent = useRecentConditions();
   const forecasts = useForecastTotals();
-  const stations = useMemo(() => (daily ? withForecasts(withRecentDepth(daily, recent), forecasts) : null), [daily, recent, forecasts]);
+  const baseStations = useMemo(() => (daily ? withRecentDepth(daily, recent) : null), [daily, recent]);
+  const stations = useMemo(() => (baseStations ? withForecasts(baseStations, forecasts) : null), [baseStations, forecasts]);
   const metric = settings.metric;
   const caption = useMemo(() => (daily ? dataAsOfLabel(metric, daily, recent, forecasts?.updated) : null), [metric, daily, recent, forecasts]);
   const filterCount = activeFilterCount(settings);
@@ -51,10 +52,10 @@ export default function MapScreen() {
   );
   const regions = useMemo(
     () => ({
-      2: stations ? regionMarkers(computeBasinSummaries(stations, 2)) : [],
-      4: stations ? regionMarkers(computeBasinSummaries(stations, 4)) : [],
+      2: baseStations ? regionMarkers(computeBasinSummaries(baseStations, 2)) : [],
+      4: baseStations ? regionMarkers(computeBasinSummaries(baseStations, 4)) : [],
     }),
-    [stations]
+    [baseStations]
   );
 
   return (

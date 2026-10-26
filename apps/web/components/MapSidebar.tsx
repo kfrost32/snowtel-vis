@@ -1,33 +1,16 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { ChevronLeft, Search, Settings, X } from "lucide-react";
 import { theme } from "@/lib/theme";
 import { getStation } from "@snotel/core/stations";
 import type { BasinSummary } from "@snotel/core/types";
 import MapControls, { type MapControlsProps } from "@/components/MapControls";
 import SettingsPanel from "@/components/SettingsPanel";
+import { memoryValue, useStoredValue } from "@/lib/stored-value";
 import { SidebarFavoriteItem, SidebarSection } from "@/components/sidebar";
 import { useFavorites } from "@/hooks/useFavorites";
 
-let settingsOpen = false;
-const settingsListeners = new Set<() => void>();
-
-function setSettingsOpen(open: boolean) {
-  settingsOpen = open;
-  settingsListeners.forEach((listener) => listener());
-}
-
-function useSettingsOpen(): boolean {
-  return useSyncExternalStore(
-    (listener) => {
-      settingsListeners.add(listener);
-      return () => settingsListeners.delete(listener);
-    },
-    () => settingsOpen,
-    () => false
-  );
-}
+const settingsOpen = memoryValue(false);
 
 interface MapSidebarProps {
   stationCount: number;
@@ -42,7 +25,7 @@ interface MapSidebarProps {
 
 export default function MapSidebar({ stationCount, isMobile, basins, controls, onClose, onSearch, onSelectStation, onSelectBasin }: MapSidebarProps) {
   const { favorites, toggleStation, toggleBasin } = useFavorites();
-  const showSettings = useSettingsOpen();
+  const showSettings = useStoredValue(settingsOpen);
   const hasFavorites = favorites.stations.length > 0 || favorites.basins.length > 0;
 
   return (
@@ -61,7 +44,7 @@ export default function MapSidebar({ stationCount, isMobile, basins, controls, o
             <Search size={14} style={{ color: theme.gray }} />
           </button>
           <button
-            onClick={() => setSettingsOpen(!showSettings)}
+            onClick={() => settingsOpen.set((open) => !open)}
             className="p-1.5 rounded-md hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
             style={{ background: showSettings ? "var(--c-hover)" : undefined }}
             aria-label="Settings"

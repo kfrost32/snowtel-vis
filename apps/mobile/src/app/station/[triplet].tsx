@@ -35,10 +35,10 @@ import { toggleFavorite, useIsFavorite } from "@/lib/favorites";
 import { webUrl } from "@/lib/api";
 import { colors, numeric } from "@/theme";
 import { formatAxisLength } from "@snotel/core/units";
-import { useAppSettings } from "@/lib/app-settings";
+import { useUnitsKey } from "@/lib/app-settings";
 
 export default function StationScreen() {
-  const { units } = useAppSettings();
+  const units = useUnitsKey();
   const params = useLocalSearchParams<{ triplet: string }>();
   const triplet = parseTripletFromUrl(params.triplet);
   const station = getStation(triplet);

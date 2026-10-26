@@ -1,13 +1,17 @@
 import { fahrenheitToCelsius, feetToMeters, inchesToCm, isMetric, milesToKm } from "./units";
 
+function length(inches: number, digits: number, sign = ""): string {
+  return isMetric() ? `${sign}${inchesToCm(inches).toFixed(digits)} cm` : `${sign}${inches.toFixed(digits)}″`;
+}
+
 export const formatSwe = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
-  return isMetric() ? `${inchesToCm(value).toFixed(1)} cm` : `${value.toFixed(1)}″`;
+  return length(value, 1);
 };
 
 export const formatSnowDepth = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
-  return isMetric() ? `${Math.round(inchesToCm(value))} cm` : `${Math.round(value)}″`;
+  return length(value, 0);
 };
 
 export const formatTemp = (value: number | null): string => {
@@ -31,19 +35,17 @@ export const formatPctOfNormal = (value: number | null): string => {
 
 export const formatPrecip = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
-  return isMetric() ? `${inchesToCm(value).toFixed(1)} cm` : `${value.toFixed(1)}″`;
+  return length(value, 1);
 };
 
 export const formatChange = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
-  const sign = value >= 0 ? "+" : "";
-  return isMetric() ? `${sign}${inchesToCm(value).toFixed(1)} cm` : `${sign}${value.toFixed(1)}″`;
+  return length(value, 1, value >= 0 ? "+" : "");
 };
 
 export const formatDepthChange = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
-  const sign = value >= 0 ? "+" : "";
-  return isMetric() ? `${sign}${Math.round(inchesToCm(value))} cm` : `${sign}${value}″`;
+  return length(value, 0, value >= 0 ? "+" : "");
 };
 
 export const formatNumber = (value: number): string => {
