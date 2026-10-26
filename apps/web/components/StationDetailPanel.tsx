@@ -17,6 +17,8 @@ import { buildSeasonMap } from "@snotel/core/season";
 import { useSeasonData } from "@/hooks/useSeasonData";
 import { useHistoricalData } from "@/hooks/useHistoricalData";
 import { useHourlyData } from "@/hooks/useHourlyData";
+import { useForecast } from "@/hooks/useForecast";
+import ForecastBars from "@/components/ForecastBars";
 import { useRecentConditions } from "@/hooks/useRecentConditions";
 import { stationDepth } from "@snotel/core/recent";
 import { useEnvelopeData } from "@/hooks/useEnvelopeData";
@@ -68,6 +70,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
   const { data: seasonData, loading: seasonLoading } = useSeasonData(triplet);
   const { data: historicalData, loading: historicalLoading } = useHistoricalData(triplet);
   const { data: hourlyData, loading: hourlyLoading } = useHourlyData(triplet);
+  const { forecast } = useForecast(triplet);
   const recentDepth = stationDepth(useRecentConditions()?.stations[triplet], hourlyData);
   const { data: envelopeData, loading: envelopeLoading } = useEnvelopeData(triplet);
   const envelopeOptions = useEnvelopeOptions(endpoints.stationYears(triplet));
@@ -287,6 +290,14 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
                   lastUpdated={current?.lastUpdated ?? null}
                 />
               ) : null}
+            </ChartCard>
+          </div>
+        )}
+
+        {forecast && forecast.days.length > 0 && (
+          <div className="px-4 pt-3">
+            <ChartCard title={<ChartTitle name={station.name} label="Snow Forecast" />} exportable={false}>
+              <ForecastBars forecast={forecast} station={station} />
             </ChartCard>
           </div>
         )}

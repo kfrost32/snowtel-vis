@@ -27,8 +27,9 @@ import RecentChart from "@/components/charts/RecentChart";
 import DetailHeader, { HeaderButton } from "@/components/DetailHeader";
 import Section from "@/components/Section";
 import StormCard from "@/components/StormCard";
+import ForecastCard from "@/components/ForecastCard";
 import { Hero, Row, summaryStyles } from "@/components/Summary";
-import { useStationConditions, useStationDetail, useStationHourly } from "@/hooks/data";
+import { useStationConditions, useStationDetail, useStationForecast, useStationHourly } from "@/hooks/data";
 import { toggleFavorite, useIsFavorite } from "@/lib/favorites";
 import { webUrl } from "@/lib/api";
 import { colors, numeric } from "@/theme";
@@ -40,6 +41,7 @@ export default function StationScreen() {
   const favorite = useIsFavorite(triplet);
   const conditions = useStationConditions(triplet);
   const hourly = useStationHourly(triplet);
+  const { forecast } = useStationForecast(triplet);
   const { season, envelope, years, peaks, loading } = useStationDetail(triplet);
 
   const sweMap = useMemo(() => buildSeasonMap(season?.season ?? []), [season]);
@@ -130,6 +132,8 @@ export default function StationScreen() {
           </Section>
 
           {storm && <StormCard storm={storm} />}
+
+          {forecast && forecast.days.length > 0 && <ForecastCard forecast={forecast} station={station} />}
 
           {hourly && hourly.length > 0 && (
             <Section title="Last 7 Days">
