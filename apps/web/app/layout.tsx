@@ -19,6 +19,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://snotel.hereandthere.club"),
   title: "SNOTEL Explorer",
   description: "Interactive map of SNOTEL snowpack conditions across the western United States. Current SWE, snow depth, and percent of normal for 900+ mountain stations.",
   openGraph: {
