@@ -1,18 +1,20 @@
 import { useMemo } from "react";
 import useSWR from "swr";
 import { endpoints } from "@snotel/core/endpoints";
+import { unpackReadings, type StationReadings } from "@snotel/core/readings";
 import { basinSeasonMap, peakHistory, toBasinEnvelope, toStationEnvelope } from "@snotel/core/station-stats";
 import { applyRecentDepth, RECENT_REFRESH_MS, stationDepth, type RecentConditions } from "@snotel/core/recent";
 import type { BasinEnvelopeFile, StationEnvelopeFile, YearsFile } from "@snotel/core/envelope-files";
-import type { ApiResponse, HourlyObservation, StationCurrentConditions, StationSeasonData } from "@snotel/core/types";
+import type { ApiResponse, HourlyObservation, StationSeasonData } from "@snotel/core/types";
 
 const STALE_RETRY_MS = 15000;
 
 export function useStationList() {
-  const { data, isLoading } = useSWR<ApiResponse<StationCurrentConditions[]>>(endpoints.stations(), {
+  const { data, isLoading } = useSWR<ApiResponse<StationReadings>>(endpoints.stationReadings(), {
     refreshInterval: (latest) => (latest?.stale ? STALE_RETRY_MS : RECENT_REFRESH_MS),
   });
-  return { stations: data?.data ?? null, loading: isLoading, stale: data?.stale ?? false };
+  const stations = useMemo(() => (data ? unpackReadings(data.data) : null), [data]);
+  return { stations, loading: isLoading, stale: data?.stale ?? false };
 }
 
 export function useRecentConditions() {
