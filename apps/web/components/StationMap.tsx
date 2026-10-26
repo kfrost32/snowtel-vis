@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
-import maplibregl from "maplibre-gl";
+import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@snotel/core/types";
 import { prefetchStation } from "@/lib/prefetch";
@@ -61,6 +61,16 @@ interface StationMapProps {
 }
 
 const NO_STATES: string[] = [];
+
+let basemapStyle: Promise<StyleSpecification> | null = null;
+
+function loadBasemapStyle(): Promise<StyleSpecification> {
+  basemapStyle ??= fetch(BASEMAP_STYLE_URL).then((res) => {
+    if (!res.ok) throw new Error(`Basemap style failed: ${res.status}`);
+    return res.json();
+  });
+  return basemapStyle;
+}
 const EMPTY_COLLECTION: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 function addSpotIcon(map: maplibregl.Map, kind: SpotKind) {
@@ -117,227 +127,243 @@ function StationMapInner({
   }, [onVisibleStationsChange]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: BASEMAP_STYLE_URL,
-      center: INITIAL_CENTER,
-      zoom: INITIAL_ZOOM,
-      attributionControl: false,
-    });
-
-    map.addControl(new maplibregl.NavigationControl(), "top-right");
-    map.addControl(
-      new maplibregl.AttributionControl({ compact: true, customAttribution: '<a href="https://openskimap.org" target="_blank" rel="noopener">OpenSkiMap</a>' }),
-      "bottom-right"
-    );
-    mapRef.current = map;
-
-    map.on("load", () => {
-      // ── Terrain hillshade ──────────────────────────────────────────────
-      map.addSource("terrain-dem", {
-        type: "raster-dem",
-        tiles: TERRAIN_TILES,
-        encoding: "terrarium",
-        tileSize: 256,
-        maxzoom: TERRAIN_MAXZOOM,
-      });
-      map.addLayer({
-        id: "hillshade",
-        type: "hillshade",
-        source: "terrain-dem",
-        paint: hillshadePaint,
+    const init = (style: StyleSpecification | string) => {
+      const map = new maplibregl.Map({
+        container,
+        style,
+        center: INITIAL_CENTER,
+        zoom: INITIAL_ZOOM,
+        attributionControl: false,
       });
 
-      // ── HUC-4: colored fill + thin outline ────────────────────────────
-      map.addSource("huc4-polygons", {
-        type: "geojson",
-        data: { type: "FeatureCollection" as const, features: [] },
+      map.addControl(new maplibregl.NavigationControl(), "top-right");
+      map.addControl(
+        new maplibregl.AttributionControl({ compact: true, customAttribution: '<a href="https://openskimap.org" target="_blank" rel="noopener">OpenSkiMap</a>' }),
+        "bottom-right"
+      );
+      mapRef.current = map;
+
+      map.on("load", () => {
+        // ── Terrain hillshade ──────────────────────────────────────────────
+        map.addSource("terrain-dem", {
+          type: "raster-dem",
+          tiles: TERRAIN_TILES,
+          encoding: "terrarium",
+          tileSize: 256,
+          maxzoom: TERRAIN_MAXZOOM,
+        });
+        map.addLayer({
+          id: "hillshade",
+          type: "hillshade",
+          source: "terrain-dem",
+          paint: hillshadePaint,
+        });
+
+        // ── HUC-4: colored fill + thin outline ────────────────────────────
+        map.addSource("huc4-polygons", {
+          type: "geojson",
+          data: { type: "FeatureCollection" as const, features: [] },
+        });
+        map.addLayer({
+          id: "huc4-fill",
+          type: "fill",
+          source: "huc4-polygons",
+          paint: regionFillPaint,
+          layout: { visibility: "none" },
+        });
+        map.addLayer({
+          id: "huc4-outline",
+          type: "line",
+          source: "huc4-polygons",
+          paint: regionOutlinePaint[4],
+          layout: { visibility: "none" },
+        });
+        map.addSource("huc4-labels", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+
+        // ── HUC-2: bold outline only + large bold labels ───────────────────
+        map.addSource("huc2-polygons", {
+          type: "geojson",
+          data: { type: "FeatureCollection" as const, features: [] },
+        });
+        map.addLayer({
+          id: "huc2-fill",
+          type: "fill",
+          source: "huc2-polygons",
+          paint: regionFillPaint,
+          layout: { visibility: "none" },
+        });
+        map.addLayer({
+          id: "huc2-outline",
+          type: "line",
+          source: "huc2-polygons",
+          paint: regionOutlinePaint[2],
+          layout: { visibility: "none" },
+        });
+        map.addSource("huc2-labels", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+
+        map.addSource("state-mask", { type: "geojson", data: EMPTY_COLLECTION });
+        map.addLayer({ id: "state-mask", type: "fill", source: "state-mask", paint: stateMaskPaint });
+        map.addSource("state-outlines", { type: "geojson", data: EMPTY_COLLECTION });
+        map.addLayer({ id: "state-outlines", type: "line", source: "state-outlines", paint: stateOutlinePaint });
+
+        // ── Stations: always on top ────────────────────────────────────────
+        map.addSource("stations", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+        map.addLayer({
+          id: "station-circles",
+          type: "circle",
+          source: "stations",
+          layout: stationCircleLayout,
+          paint: stationCirclePaint,
+        });
+        map.addLayer({
+          id: "station-labels",
+          type: "symbol",
+          source: "stations",
+          minzoom: STATION_LABEL_MINZOOM,
+          layout: stationLabelLayout,
+          paint: stationLabelPaint,
+        });
+
+        // ── Ski areas & backcountry spots ──────────────────────────────────
+        for (const kind of SPOT_KINDS) addSpotIcon(map, kind);
+        map.addSource("spots", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+        map.addLayer({
+          id: "spot-icons",
+          type: "symbol",
+          source: "spots",
+          minzoom: SPOT_MINZOOM,
+          layout: spotLayout,
+          paint: spotPaint,
+        });
+
+        // Basin labels — added last so they render above station dots
+        map.addLayer({
+          id: "huc4-label-text",
+          type: "symbol",
+          source: "huc4-labels",
+          layout: { ...regionLabelLayout[4], visibility: "none" },
+          paint: regionLabelPaint[4],
+        });
+        map.addLayer({
+          id: "huc2-label-text",
+          type: "symbol",
+          source: "huc2-labels",
+          layout: { ...regionLabelLayout[2], visibility: "none" },
+          paint: regionLabelPaint[2],
+        });
+
+        // ── Interactions ───────────────────────────────────────────────────
+        const clearHover = () => {
+          hoveredTripletRef.current = null;
+          hoverPopupRef.current?.remove();
+        };
+        const showHoverLabel = (key: string, feature: maplibregl.MapGeoJSONFeature) => {
+          if (hoverPopupRef.current?.isOpen() && hoveredTripletRef.current === key) return;
+          hoveredTripletRef.current = key;
+          const props = feature.properties!;
+          const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
+          const html = `<div style="white-space: nowrap; line-height: 1.3;">
+            <div style="font-family: var(--font-dm-sans), sans-serif; font-size: 11px; font-weight: 600; color: ${theme.black};">${escapeHtml(props.name as string)}</div>
+            <div style="font-family: var(--font-ibm-plex-mono), monospace; font-size: 10px; color: ${theme.gray};">${escapeHtml(props.hoverDetail as string)}</div>
+          </div>`;
+          if (!hoverPopupRef.current) {
+            hoverPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 4, className: "station-hover-popup" });
+          }
+          hoverPopupRef.current.setLngLat([lng, lat]).setHTML(html).addTo(map);
+        };
+        map.on("click", (e) => {
+          if (!map.queryRenderedFeatures(e.point, { layers: ["spot-icons"] }).length) clearHover();
+        });
+
+        const basinClickHandler = (layerId: string) => (e: maplibregl.MapMouseEvent) => {
+          const features = map.queryRenderedFeatures(e.point, { layers: [layerId] });
+          if (!features.length) return;
+          const props = features[0].properties!;
+          if (onBasinSelectRef.current && props.hucId) {
+            onBasinSelectRef.current(props.hucId as string);
+          }
+        };
+
+        map.on("click", "huc4-fill", basinClickHandler("huc4-fill"));
+        map.on("click", "huc2-fill", basinClickHandler("huc2-fill"));
+        map.on("mouseenter", "huc4-fill", () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", "huc4-fill", () => {
+          map.getCanvas().style.cursor = "";
+        });
+        map.on("mouseenter", "huc2-fill", () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", "huc2-fill", () => {
+          map.getCanvas().style.cursor = "";
+        });
+
+        map.on("click", "station-circles", (e) => {
+          const features = map.queryRenderedFeatures(e.point, { layers: ["station-circles"] });
+          if (!features.length) return;
+          const props = features[0].properties!;
+          if (onStationSelectRef.current && props.triplet) {
+            onStationSelectRef.current(props.triplet as string);
+          }
+        });
+        map.on("mouseenter", "station-circles", (e) => {
+          map.getCanvas().style.cursor = "pointer";
+          const features = map.queryRenderedFeatures(e.point, { layers: ["station-circles"] });
+          if (features.length && features[0].properties?.triplet) {
+            prefetchStation(features[0].properties.triplet as string);
+          }
+        });
+        map.on("mousemove", "station-circles", (e) => {
+          const feature = e.features?.[0];
+          if (feature) showHoverLabel(feature.properties!.triplet as string, feature);
+          else clearHover();
+        });
+        map.on("mouseleave", "station-circles", () => {
+          map.getCanvas().style.cursor = "";
+          clearHover();
+        });
+
+        const showSpotLabel = (e: maplibregl.MapLayerMouseEvent) => {
+          const feature = e.features?.[0];
+          if (feature) showHoverLabel(`spot:${feature.properties!.id}`, feature);
+        };
+        map.on("mousemove", "spot-icons", showSpotLabel);
+        map.on("click", "spot-icons", showSpotLabel);
+        map.on("mouseleave", "spot-icons", clearHover);
+
+        map.on("moveend", updateVisibleStations);
+        map.on("zoomend", updateVisibleStations);
+        updateVisibleStations();
+        setMapLoaded(true);
       });
-      map.addLayer({
-        id: "huc4-fill",
-        type: "fill",
-        source: "huc4-polygons",
-        paint: regionFillPaint,
-        layout: { visibility: "none" },
-      });
-      map.addLayer({
-        id: "huc4-outline",
-        type: "line",
-        source: "huc4-polygons",
-        paint: regionOutlinePaint[4],
-        layout: { visibility: "none" },
-      });
-      map.addSource("huc4-labels", {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
+      return map;
+    };
+
+    let map: maplibregl.Map | null = null;
+    let cancelled = false;
+    loadBasemapStyle()
+      .catch(() => BASEMAP_STYLE_URL)
+      .then((style) => {
+        if (!cancelled) map = init(style);
       });
 
-      // ── HUC-2: bold outline only + large bold labels ───────────────────
-      map.addSource("huc2-polygons", {
-        type: "geojson",
-        data: { type: "FeatureCollection" as const, features: [] },
-      });
-      map.addLayer({
-        id: "huc2-fill",
-        type: "fill",
-        source: "huc2-polygons",
-        paint: regionFillPaint,
-        layout: { visibility: "none" },
-      });
-      map.addLayer({
-        id: "huc2-outline",
-        type: "line",
-        source: "huc2-polygons",
-        paint: regionOutlinePaint[2],
-        layout: { visibility: "none" },
-      });
-      map.addSource("huc2-labels", {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-
-      map.addSource("state-mask", { type: "geojson", data: EMPTY_COLLECTION });
-      map.addLayer({ id: "state-mask", type: "fill", source: "state-mask", paint: stateMaskPaint });
-      map.addSource("state-outlines", { type: "geojson", data: EMPTY_COLLECTION });
-      map.addLayer({ id: "state-outlines", type: "line", source: "state-outlines", paint: stateOutlinePaint });
-
-      // ── Stations: always on top ────────────────────────────────────────
-      map.addSource("stations", {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-      map.addLayer({
-        id: "station-circles",
-        type: "circle",
-        source: "stations",
-        layout: stationCircleLayout,
-        paint: stationCirclePaint,
-      });
-      map.addLayer({
-        id: "station-labels",
-        type: "symbol",
-        source: "stations",
-        minzoom: STATION_LABEL_MINZOOM,
-        layout: stationLabelLayout,
-        paint: stationLabelPaint,
-      });
-
-      // ── Ski areas & backcountry spots ──────────────────────────────────
-      for (const kind of SPOT_KINDS) addSpotIcon(map, kind);
-      map.addSource("spots", {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-      map.addLayer({
-        id: "spot-icons",
-        type: "symbol",
-        source: "spots",
-        minzoom: SPOT_MINZOOM,
-        layout: spotLayout,
-        paint: spotPaint,
-      });
-
-      // Basin labels — added last so they render above station dots
-      map.addLayer({
-        id: "huc4-label-text",
-        type: "symbol",
-        source: "huc4-labels",
-        layout: { ...regionLabelLayout[4], visibility: "none" },
-        paint: regionLabelPaint[4],
-      });
-      map.addLayer({
-        id: "huc2-label-text",
-        type: "symbol",
-        source: "huc2-labels",
-        layout: { ...regionLabelLayout[2], visibility: "none" },
-        paint: regionLabelPaint[2],
-      });
-
-      // ── Interactions ───────────────────────────────────────────────────
-      const clearHover = () => {
-        hoveredTripletRef.current = null;
-        hoverPopupRef.current?.remove();
-      };
-      const showHoverLabel = (key: string, feature: maplibregl.MapGeoJSONFeature) => {
-        if (hoverPopupRef.current?.isOpen() && hoveredTripletRef.current === key) return;
-        hoveredTripletRef.current = key;
-        const props = feature.properties!;
-        const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
-        const html = `<div style="white-space: nowrap; line-height: 1.3;">
-          <div style="font-family: var(--font-dm-sans), sans-serif; font-size: 11px; font-weight: 600; color: ${theme.black};">${escapeHtml(props.name as string)}</div>
-          <div style="font-family: var(--font-ibm-plex-mono), monospace; font-size: 10px; color: ${theme.gray};">${escapeHtml(props.hoverDetail as string)}</div>
-        </div>`;
-        if (!hoverPopupRef.current) {
-          hoverPopupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 4, className: "station-hover-popup" });
-        }
-        hoverPopupRef.current.setLngLat([lng, lat]).setHTML(html).addTo(map);
-      };
-      map.on("click", (e) => {
-        if (!map.queryRenderedFeatures(e.point, { layers: ["spot-icons"] }).length) clearHover();
-      });
-
-      const basinClickHandler = (layerId: string) => (e: maplibregl.MapMouseEvent) => {
-        const features = map.queryRenderedFeatures(e.point, { layers: [layerId] });
-        if (!features.length) return;
-        const props = features[0].properties!;
-        if (onBasinSelectRef.current && props.hucId) {
-          onBasinSelectRef.current(props.hucId as string);
-        }
-      };
-
-      map.on("click", "huc4-fill", basinClickHandler("huc4-fill"));
-      map.on("click", "huc2-fill", basinClickHandler("huc2-fill"));
-      map.on("mouseenter", "huc4-fill", () => { map.getCanvas().style.cursor = "pointer"; });
-      map.on("mouseleave", "huc4-fill", () => {
-        map.getCanvas().style.cursor = "";
-      });
-      map.on("mouseenter", "huc2-fill", () => { map.getCanvas().style.cursor = "pointer"; });
-      map.on("mouseleave", "huc2-fill", () => {
-        map.getCanvas().style.cursor = "";
-      });
-
-      map.on("click", "station-circles", (e) => {
-        const features = map.queryRenderedFeatures(e.point, { layers: ["station-circles"] });
-        if (!features.length) return;
-        const props = features[0].properties!;
-        if (onStationSelectRef.current && props.triplet) {
-          onStationSelectRef.current(props.triplet as string);
-        }
-      });
-      map.on("mouseenter", "station-circles", (e) => {
-        map.getCanvas().style.cursor = "pointer";
-        const features = map.queryRenderedFeatures(e.point, { layers: ["station-circles"] });
-        if (features.length && features[0].properties?.triplet) {
-          prefetchStation(features[0].properties.triplet as string);
-        }
-      });
-      map.on("mousemove", "station-circles", (e) => {
-        const feature = e.features?.[0];
-        if (feature) showHoverLabel(feature.properties!.triplet as string, feature);
-        else clearHover();
-      });
-      map.on("mouseleave", "station-circles", () => {
-        map.getCanvas().style.cursor = "";
-        clearHover();
-      });
-
-      const showSpotLabel = (e: maplibregl.MapLayerMouseEvent) => {
-        const feature = e.features?.[0];
-        if (feature) showHoverLabel(`spot:${feature.properties!.id}`, feature);
-      };
-      map.on("mousemove", "spot-icons", showSpotLabel);
-      map.on("click", "spot-icons", showSpotLabel);
-      map.on("mouseleave", "spot-icons", clearHover);
-
-      map.on("moveend", updateVisibleStations);
-      map.on("zoomend", updateVisibleStations);
-      updateVisibleStations();
-      setMapLoaded(true);
-    });
-
-    return () => { map.remove(); mapRef.current = null; };
+    return () => {
+      cancelled = true;
+      map?.remove();
+      mapRef.current = null;
+    };
   // Map init runs once on mount; all mutable values accessed via refs
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

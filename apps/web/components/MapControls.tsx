@@ -34,7 +34,7 @@ const METRIC_GROUPS = [
   },
 ] as const;
 
-interface MapControlsProps {
+export interface MapControlsProps {
   metric: string;
   onMetricChange: (metric: string) => void;
   showStations: boolean;
