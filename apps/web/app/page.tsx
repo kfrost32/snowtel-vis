@@ -5,16 +5,19 @@ import dynamic from "next/dynamic";
 import { ChevronRight, Loader2, Search, SlidersHorizontal } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useIsDark, useSettings } from "@/lib/settings";
 import { useRecentConditions } from "@/hooks/useRecentConditions";
+import { useForecastTotals } from "@/hooks/useForecastTotals";
+import { withForecasts } from "@snotel/core/forecast";
 import { useMapFilters } from "@/hooks/useMapFilters";
 import { useMapSelection } from "@/hooks/useMapSelection";
 import { dataAsOfLabel, withRecentDepth } from "@snotel/core/recent";
 import { useFavorites } from "@/hooks/useFavorites";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 import { computeBasinSummaries } from "@snotel/core/basins";
-import { regionMarkers } from "@snotel/core/map-style";
+import { regionMarkers, stateBounds } from "@snotel/core/map-style";
 import { filterStations } from "@snotel/core/filters";
 import { getStation, getPlaceholderConditions } from "@snotel/core/stations";
 import { getAllSpots } from "@snotel/core/spots";
@@ -23,7 +26,8 @@ import StationDetailPanel from "@/components/StationDetailPanel";
 import BasinDetailPanel from "@/components/BasinDetailPanel";
 import MapLegend from "@/components/MapLegend";
 import MapSidebar from "@/components/MapSidebar";
-import { GLASS_STYLE, SIDEBAR_INSET, SIDEBAR_WIDTH } from "@/lib/map-layout";
+import { DETAIL_WIDTH, EXPANDED_DETAIL_MAX, GLASS_STYLE, SIDEBAR_INSET, SIDEBAR_WIDTH } from "@/lib/map-layout";
+import { storedValue, useStoredValue } from "@/lib/stored-value";
 
 const StationMap = dynamic(() => import("@/components/StationMap"), {
   ssr: false,
@@ -35,28 +39,33 @@ const StationMap = dynamic(() => import("@/components/StationMap"), {
 });
 
 const openSearch = () => window.dispatchEvent(new CustomEvent("open-command-search"));
+const expandedStore = storedValue("snotel:detail-expanded", false, (raw) => raw === "true");
 
 function HomePageInner() {
   const { stations: liveStations, loading, stale } = useStationList();
   const recent = useRecentConditions();
+  const forecasts = useForecastTotals();
   const stations = useMemo(
-    () => (loading ? getPlaceholderConditions() : withRecentDepth(liveStations, recent)),
-    [loading, liveStations, recent]
+    () => (loading ? getPlaceholderConditions() : withForecasts(withRecentDepth(liveStations, recent), forecasts)),
+    [loading, liveStations, recent, forecasts]
   );
   const { toggleStation, toggleBasin, isStationFav, isBasinFav } = useFavorites();
   const { filters, controls } = useMapFilters();
   const { metric, selectedStates } = controls;
   const selection = useMapSelection();
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const dark = useIsDark();
   const [sidebarChoice, setSidebarChoice] = useState<{ open: boolean; mobile: boolean } | null>(null);
   const sidebarOpen = sidebarChoice && sidebarChoice.mobile === isMobile ? sidebarChoice.open : !isMobile;
   const setSidebarOpen = (open: boolean) => setSidebarChoice({ open, mobile: isMobile });
   const [overlayVisible, setOverlayVisible] = useState(false);
 
   const filteredStations = useMemo(() => filterStations(stations, filters, !loading), [stations, filters, loading]);
-  const dataDate = useMemo(() => dataAsOfLabel(metric, stations, recent), [stations, metric, recent]);
+  const dataDate = useMemo(() => dataAsOfLabel(metric, stations, recent, forecasts?.updated), [stations, metric, recent, forecasts]);
 
   const selectedStateList = useMemo(() => [...selectedStates], [selectedStates]);
+  const { homeState } = useSettings();
+  const homeBounds = useMemo(() => (homeState && !selectedStates.size ? stateBounds([homeState]) : null), [homeState, selectedStates]);
   const regionStations = useMemo(
     () => (selectedStates.size ? stations.filter((s) => selectedStates.has(s.state)) : stations),
     [stations, selectedStates]
@@ -97,6 +106,9 @@ function HomePageInner() {
 
   const hasDetailPanel = selectedTriplet !== null || selectedBasin !== null;
   const sidebarOffset = !isMobile && sidebarOpen ? SIDEBAR_WIDTH + SIDEBAR_INSET * 2 : 0;
+  const expanded = useStoredValue(expandedStore);
+  const toggleExpand = isMobile ? undefined : () => expandedStore.set((v) => !v);
+  const detailWidth = expanded ? `min(${EXPANDED_DETAIL_MAX}px, calc(100vw - ${(sidebarOffset || SIDEBAR_INSET) + SIDEBAR_INSET}px))` : DETAIL_WIDTH;
 
   const detailContent = selectedTriplet ? (
     <StationDetailPanel
@@ -105,6 +117,8 @@ function HomePageInner() {
       onStationClick={handleStationClick}
       isFavorite={isStationFav(selectedTriplet)}
       onToggleFavorite={() => toggleStation(selectedTriplet)}
+      expanded={expanded}
+      onToggleExpand={toggleExpand}
     />
   ) : selectedBasin ? (
     <BasinDetailPanel
@@ -113,6 +127,8 @@ function HomePageInner() {
       onStationClick={handleStationClick}
       isFavorite={isBasinFav(selectedBasin.huc)}
       onToggleFavorite={() => toggleBasin(selectedBasin.huc)}
+      expanded={expanded}
+      onToggleExpand={toggleExpand}
     />
   ) : null;
 
@@ -132,7 +148,7 @@ function HomePageInner() {
   return (
     <div className="h-dvh flex w-full relative">
       {sidebarOpen && (isMobile ? (
-        <BottomSheet baseHeight="72dvh" onDismiss={() => setSidebarOpen(false)} zIndex={30} background="rgba(255, 255, 255, 0.96)">
+        <BottomSheet baseHeight="72dvh" onDismiss={() => setSidebarOpen(false)} zIndex={30} background="var(--c-sheet)">
           {sidebarContent}
         </BottomSheet>
       ) : (
@@ -148,7 +164,7 @@ function HomePageInner() {
         <div className="absolute z-20 flex items-center gap-0.5 p-0.5 rounded-xl" style={{ ...GLASS_STYLE, top: SIDEBAR_INSET, left: SIDEBAR_INSET }}>
           <button
             onClick={() => setSidebarOpen(true)}
-            className="flex items-center justify-center gap-2 h-10 md:h-8 pl-3 pr-3.5 md:p-0 md:w-8 rounded-lg hover:bg-black/[0.05] transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-2 h-10 md:h-8 pl-3 pr-3.5 md:p-0 md:w-8 rounded-lg hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
             aria-label="Open sidebar"
           >
             <SlidersHorizontal size={16} className="md:hidden" style={{ color: theme.darkGray }} />
@@ -157,7 +173,7 @@ function HomePageInner() {
           </button>
           <button
             onClick={openSearch}
-            className="flex items-center justify-center w-10 h-10 md:w-8 md:h-8 rounded-lg hover:bg-black/[0.05] transition-colors cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 md:w-8 md:h-8 rounded-lg hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
             aria-label="Search"
           >
             <Search size={15} style={{ color: theme.gray }} />
@@ -165,8 +181,13 @@ function HomePageInner() {
         </div>
       )}
 
-      <div className="flex-1 relative min-w-0">
+      <div
+        className="flex-1 relative min-w-0"
+        style={{ "--map-right-inset": !isMobile && hasDetailPanel ? `calc(${detailWidth} + ${SIDEBAR_INSET}px)` : "0px" } as React.CSSProperties}
+      >
         <StationMap
+          key={dark ? "dark" : "light"}
+          dark={dark}
           stations={filteredStations}
           huc2Markers={huc2Markers}
           huc4Markers={huc4Markers}
@@ -179,6 +200,8 @@ function HomePageInner() {
           spots={spots}
           showSpots={controls.showSpots}
           selectedStates={selectedStateList}
+          selectedTriplet={selectedTriplet}
+          initialBounds={homeBounds}
           fitPadding={{ top: 48, right: 48, bottom: 48, left: sidebarOffset + 48 }}
         />
 
@@ -188,7 +211,7 @@ function HomePageInner() {
             style={GLASS_STYLE}
           >
             <Loader2 className="animate-spin" size={13} style={{ color: theme.gray }} />
-            <span className="text-[11px] font-sans font-medium" style={{ color: theme.darkGray }}>Updating conditions…</span>
+            <span className="text-xs font-sans font-medium" style={{ color: theme.darkGray }}>Updating conditions…</span>
           </div>
         )}
 
@@ -200,20 +223,20 @@ function HomePageInner() {
           {detailContent}
         </BottomSheet>
       ) : (
-        <div className="absolute inset-0 z-20 pointer-events-none" style={{ left: sidebarOpen ? SIDEBAR_WIDTH + SIDEBAR_INSET : 0 }}>
-          <div
-            className="absolute inset-4 rounded-xl mx-auto pointer-events-auto shadow-2xl overflow-hidden transition-all duration-200"
-            style={{
-              background: theme.white,
-              border: `1px solid ${theme.borderGray}`,
-              opacity: overlayVisible ? 1 : 0,
-              transform: overlayVisible ? "scale(1)" : "scale(0.97)",
-              transformOrigin: "center center",
-              maxWidth: 1200,
-            }}
-          >
-            {detailContent}
-          </div>
+        <div
+          className="absolute z-30 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200"
+          style={{
+            top: SIDEBAR_INSET,
+            right: SIDEBAR_INSET,
+            bottom: SIDEBAR_INSET,
+            width: detailWidth,
+            background: theme.white,
+            border: `1px solid ${theme.borderGray}`,
+            opacity: overlayVisible ? 1 : 0,
+            transform: overlayVisible ? "translateX(0)" : "translateX(24px)",
+          }}
+        >
+          {detailContent}
         </div>
       ))}
     </div>

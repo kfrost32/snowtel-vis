@@ -1,6 +1,6 @@
 "use client";
 
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 import PercentOfNormalGauge from "@/components/PercentOfNormalGauge";
 import ConditionBadge from "@/components/ConditionBadge";
 
@@ -22,7 +22,7 @@ export default function RegionCard({ name, pctOfNormal, stationCount, belowNorma
       </h4>
       <PercentOfNormalGauge value={pctOfNormal} size={90} />
       <ConditionBadge pctOfNormal={pctOfNormal} size="small" />
-      <div className="font-mono text-[11px] text-center" style={{ color: theme.gray }}>
+      <div className="font-mono text-xs text-center" style={{ color: theme.gray }}>
         {belowNormalCount} of {stationCount} stations below normal
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 
 interface EnvelopeStat {
   label: string;
@@ -21,7 +21,7 @@ export default function EnvelopeStatGrid({ stats }: { stats: EnvelopeStat[] }) {
             data-export-reveal={hideOnMobile ? "block" : undefined}
             style={{ background: theme.offWhite }}
           >
-            <div className="font-mono text-[10px] uppercase tracking-wider whitespace-nowrap" style={{ color: theme.mediumGray }}>{label}</div>
+            <div className="font-mono text-xs whitespace-nowrap" style={{ color: theme.mediumGray }}>{label}</div>
             <div className="font-mono text-base font-semibold mt-0.5" style={{ color: color ?? theme.black }}>{value}</div>
           </div>
         ))}

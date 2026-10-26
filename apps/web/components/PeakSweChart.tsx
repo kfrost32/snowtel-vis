@@ -12,10 +12,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import LegendItem from "@/components/LegendItem";
-import { theme, snowColors, chartTooltipStyle, chartCursorStyle } from "@snotel/core/theme";
+import { theme, snowColors, chartTooltipStyle, chartCursorStyle } from "@/lib/theme";
 import { formatSwe, formatDateFull } from "@snotel/core/formatting";
 import { getCurrentWaterYear } from "@snotel/core/water-year";
 import type { WaterYearSummary } from "@snotel/core/types";
+import { formatAxisLength } from "@snotel/core/units";
 
 interface PeakSweChartProps {
   data: WaterYearSummary[];
@@ -44,17 +45,17 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 
   return (
     <div style={chartTooltipStyle}>
-      <div className="font-mono text-[11px] mb-1.5 font-medium" style={{ color: theme.darkGray }}>
+      <div className="font-mono text-xs mb-1.5 font-medium" style={{ color: theme.darkGray }}>
         WY {bar.waterYear}
       </div>
-      <div className="flex items-center gap-2 font-mono text-[11px]">
+      <div className="flex items-center gap-2 font-mono text-xs">
         <span style={{ color: theme.gray }}>Peak SWE</span>
         <span className="ml-auto font-medium" style={{ color: theme.darkGray }}>
           {formatSwe(bar.peakSwe)}
         </span>
       </div>
       {bar.peakSweDate && (
-        <div className="flex items-center gap-2 font-mono text-[11px]">
+        <div className="flex items-center gap-2 font-mono text-xs">
           <span style={{ color: theme.gray }}>Date</span>
           <span className="ml-auto font-medium" style={{ color: theme.darkGray }}>
             {formatDateFull(bar.peakSweDate)}
@@ -101,16 +102,16 @@ export default function PeakSweChart({ data }: PeakSweChartProps) {
             <XAxis
               dataKey="waterYear"
               minTickGap={14}
-              tick={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
+              tick={{ fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
               axisLine={{ stroke: theme.borderGray }}
               tickLine={false}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
+              tick={{ fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v: number) => `${v}"`}
+              tickFormatter={formatAxisLength}
             />
             <Tooltip content={<CustomTooltip />} cursor={chartCursorStyle} />
             <ReferenceLine

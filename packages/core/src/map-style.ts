@@ -8,8 +8,17 @@ import type {
 import type { BasinSummary, StationCurrentConditions } from "./types";
 import { getMapMarkerColor, getMetricMapColor } from "./colors";
 import { computeBasinCentroid, computePolygonCentroid } from "./basins";
-import { formatDepthChange, formatReadingEndOfDay } from "./formatting";
+import { formatChange, formatDepthChange, formatElevation, formatReadingEndOfDay, formatSnowDepth, formatSwe } from "./formatting";
+import { formatAxisTemp, inchesToCm, isMetric } from "./units";
+
+const compact = (label: string) => label.replace(" cm", "cm");
+
+function forecastLabel(inches: number | null | undefined): string {
+  if (inches == null) return "";
+  return compact(inches > 0 ? `+${formatSnowfall(inches)}` : formatSnowfall(0));
+}
 import { hasFreshSnow } from "./recent";
+import { formatSnowfall } from "./forecast";
 import { theme } from "./theme";
 import { shiftDate } from "./water-year";
 import { getAllStations } from "./stations";
@@ -33,29 +42,31 @@ export function noComparisonReason(s: StationCurrentConditions): string | null {
 }
 
 export function metricDotLabel(metric: string, s: StationCurrentConditions): string {
-  const fmtChange = (v: number | null) => v === null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1)}"`;
+  const fmtChange = (v: number | null) => (v === null ? "—" : compact(formatChange(v)));
   switch (metric) {
-    case "WTEQ": return s.swe !== null ? `${s.swe.toFixed(1)}"` : "";
+    case "WTEQ": return s.swe !== null ? compact(formatSwe(s.swe)) : "";
     case "WTEQ_PCT": return s.pctOfNormal !== null ? `${Math.round(s.pctOfNormal)}%` : "";
     case "CHANGE_1D": return fmtChange(s.sweChange1d);
     case "CHANGE_3D": return fmtChange(s.sweChange3d ?? null);
     case "CHANGE_7D": return fmtChange(s.sweChange7d);
-    case "SNWD_CHANGE_1D": return formatDepthChange(s.depthChange1d ?? null);
-    case "SNWD_CHANGE_3D": return formatDepthChange(s.depthChange3d ?? null);
-    case "SNWD_CHANGE_7D": return formatDepthChange(s.depthChange7d ?? null);
-    case "SNWD": return s.snowDepth !== null ? `${Math.round(s.snowDepth)}"` : "—";
-    case "PREC": return s.precipAccum !== null ? `${Math.round(s.precipAccum)}"` : "";
-    case "TAVG": return s.temp !== null ? `${Math.round(s.temp)}°` : "";
+    case "SNWD_CHANGE_1D": return compact(formatDepthChange(s.depthChange1d ?? null));
+    case "SNWD_CHANGE_3D": return compact(formatDepthChange(s.depthChange3d ?? null));
+    case "SNWD_CHANGE_7D": return compact(formatDepthChange(s.depthChange7d ?? null));
+    case "SNWD": return s.snowDepth !== null ? compact(formatSnowDepth(s.snowDepth)) : "—";
+    case "PREC": return s.precipAccum !== null ? compact(isMetric() ? `${Math.round(inchesToCm(s.precipAccum))} cm` : `${Math.round(s.precipAccum)}″`) : "";
+    case "TAVG": return s.temp !== null ? formatAxisTemp(s.temp) : "";
+    case "FORECAST_3D": return forecastLabel(s.forecast3d);
+    case "FORECAST_7D": return forecastLabel(s.forecast7d);
     default: return "";
   }
 }
 
 export function stationDetail(metric: string, s: StationCurrentConditions): string {
-  const elevation = `${s.elevation.toLocaleString()} ft`;
+  const elevation = formatElevation(s.elevation);
   if (!isSweMetric(metric)) return `${metricDotLabel(metric, s) || "—"} · ${elevation}`;
   const reason = noComparisonReason(s);
   if (reason) return `${reason} · ${elevation}`;
-  return `${Math.round(s.pctOfNormal!)}% · ${s.swe!.toFixed(1)}" SWE · ${elevation}`;
+  return `${Math.round(s.pctOfNormal!)}% · ${formatSwe(s.swe)} SWE · ${elevation}`;
 }
 
 function isHollow(metric: string, s: StationCurrentConditions): boolean {
@@ -68,6 +79,8 @@ function isInactive(metric: string, s: StationCurrentConditions): boolean {
     case "WTEQ_PCT": return s.swe === null;
     case "SNWD": return !s.snowDepth;
     case "SNWD_CHANGE_1D": return !s.depthChange1d;
+    case "FORECAST_3D": return s.forecast3d == null;
+    case "FORECAST_7D": return s.forecast7d == null;
     default: return false;
   }
 }
@@ -172,6 +185,38 @@ export const spotPaint: SymbolLayerSpecification["paint"] = {
   "text-halo-width": 1.5,
 };
 
+export const selectedStationGlowPaint: CircleLayerSpecification["paint"] = {
+  "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 16, 5, 22, 7, 34, 10, 46],
+  "circle-color": theme.white,
+  "circle-opacity": 0.9,
+  "circle-blur": 1,
+};
+
+export const selectedStationPaint: CircleLayerSpecification["paint"] = {
+  "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 6, 5, 9.5, 7, 16, 10, 23],
+  "circle-color": ["get", "color"],
+  "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 3, 1.5, 7, 3],
+  "circle-stroke-color": theme.white,
+};
+
+export const selectedStationValueLayout: SymbolLayerSpecification["layout"] = {
+  "text-field": ["get", "label"],
+  "text-size": ["interpolate", ["linear"], ["zoom"], 5, 8, 6, 9, 10, 12],
+  "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+  "text-allow-overlap": true,
+  "text-ignore-placement": true,
+};
+
+export const selectedStationValuePaint: SymbolLayerSpecification["paint"] = {
+  "text-color": theme.white,
+  "text-halo-color": "rgba(0,0,0,0.5)",
+  "text-halo-width": 1,
+};
+
+export function selectedStationFilter(triplet: string | null): ["==", ["get", "triplet"], string] {
+  return ["==", ["get", "triplet"], triplet ?? ""];
+}
+
 export const STATION_LABEL_MINZOOM = 6;
 
 export const stationLabelLayout: SymbolLayerSpecification["layout"] = {
@@ -199,6 +244,13 @@ export const hillshadePaint: HillshadeLayerSpecification["paint"] = {
   "hillshade-shadow-color": "#5a5a5a",
   "hillshade-highlight-color": "#ffffff",
   "hillshade-accent-color": "#4a4a4a",
+};
+
+export const hillshadePaintDark: HillshadeLayerSpecification["paint"] = {
+  "hillshade-exaggeration": 0.35,
+  "hillshade-shadow-color": "#000000",
+  "hillshade-highlight-color": "rgba(255, 255, 255, 0.12)",
+  "hillshade-accent-color": "#000000",
 };
 
 export const WESTERN_US_BOUNDS: [number, number, number, number] = [-124.5, 32, -104, 49];
@@ -280,6 +332,11 @@ export const regionFillPaint: FillLayerSpecification["paint"] = {
   "fill-opacity": 0.35,
 };
 
+export const regionFillPaintDark: FillLayerSpecification["paint"] = {
+  "fill-color": ["coalesce", ["get", "fillColor"], theme.mediumGray],
+  "fill-opacity": 0.16,
+};
+
 export const regionOutlinePaint: Record<RegionLevel, LineLayerSpecification["paint"]> = {
   2: { "line-color": ["coalesce", ["get", "fillColor"], theme.mediumGray], "line-width": 2.5, "line-opacity": 0.75 },
   4: { "line-color": ["coalesce", ["get", "fillColor"], theme.mediumGray], "line-width": 1, "line-opacity": 0.5 },
@@ -341,6 +398,11 @@ export function stateBounds(states: Iterable<string>): [number, number, number, 
 export const stateMaskPaint: FillLayerSpecification["paint"] = {
   "fill-color": theme.white,
   "fill-opacity": 0.7,
+};
+
+export const stateMaskPaintDark: FillLayerSpecification["paint"] = {
+  "fill-color": "#0B0F12",
+  "fill-opacity": 0.65,
 };
 
 export const stateOutlinePaint: LineLayerSpecification["paint"] = {

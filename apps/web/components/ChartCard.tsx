@@ -2,9 +2,11 @@
 
 import { ReactNode, useRef, useState, useCallback } from "react";
 import { Check, Copy, Download, Share } from "lucide-react";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
+import OverflowMenu, { type OverflowMenuItem } from "@/components/OverflowMenu";
 
 interface ChartCardProps {
+  dense?: boolean;
   title?: ReactNode;
   description?: string;
   height?: number;
@@ -12,9 +14,14 @@ interface ChartCardProps {
   footer?: ReactNode;
   children: ReactNode;
   exportable?: boolean;
+  menuItems?: OverflowMenuItem[];
 }
 
-export default function ChartCard({ title, description, height, actions, footer, children, exportable = true }: ChartCardProps) {
+function exportBackground(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue("--c-white").trim() || "#FFFFFF";
+}
+
+export default function ChartCard({ title, description, height, actions, footer, children, exportable = true, dense = false, menuItems = [] }: ChartCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -41,7 +48,7 @@ export default function ChartCard({ title, description, height, actions, footer,
     setExporting(true);
     try {
       const { toJpeg } = await import("html-to-image");
-      const dataUrl = await capture((node) => toJpeg(node, { quality: 0.95, backgroundColor: "#FFFFFF", pixelRatio: 2 }));
+      const dataUrl = await capture((node) => toJpeg(node, { quality: 0.95, backgroundColor: exportBackground(), pixelRatio: 2 }));
       const link = document.createElement("a");
       link.download = `snotel-chart-${Date.now()}.jpg`;
       link.href = dataUrl;
@@ -60,7 +67,7 @@ export default function ChartCard({ title, description, height, actions, footer,
     let blob: Blob | null = null;
     try {
       const { toBlob } = await import("html-to-image");
-      blob = await capture((node) => toBlob(node, { backgroundColor: "#FFFFFF", pixelRatio: 2 }));
+      blob = await capture((node) => toBlob(node, { backgroundColor: exportBackground(), pixelRatio: 2 }));
       if (!blob) throw new Error("Empty image");
       const file = new File([blob], filename, { type: "image/png" });
       if (!navigator.canShare?.({ files: [file] })) throw new DOMException("Sharing files unsupported", "NotSupportedError");
@@ -86,7 +93,7 @@ export default function ChartCard({ title, description, height, actions, footer,
     setExporting(true);
     try {
       const blob = import("html-to-image").then(({ toBlob }) =>
-        capture((node) => toBlob(node, { backgroundColor: "#FFFFFF", pixelRatio: 2 }))
+        capture((node) => toBlob(node, { backgroundColor: exportBackground(), pixelRatio: 2 }))
       ).then((b) => {
         if (!b) throw new Error("Empty image");
         return b;
@@ -104,10 +111,38 @@ export default function ChartCard({ title, description, height, actions, footer,
   return (
     <div
       ref={cardRef}
-      className="p-3 sm:p-6 rounded-lg border relative"
+      className={`${dense ? "p-4" : "p-3 sm:p-6"} rounded-lg border relative`}
       style={{ background: theme.white, borderColor: theme.borderGray }}
     >
-      {(title || exportable) && (
+      {dense && (
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h3 className="min-w-0 flex items-baseline gap-x-2 flex-wrap text-[15px] font-medium" style={{ color: theme.black }}>
+            {title}
+            {description && (
+              <span className="font-mono text-xs font-normal" style={{ color: theme.mediumGray }}>
+                {description}
+              </span>
+            )}
+          </h3>
+          <div className="flex items-center gap-1 shrink-0">
+            {actions && <div data-controls className="flex items-center">{actions}</div>}
+            {(exportable || menuItems.length > 0) && (
+              <OverflowMenu
+                items={[
+                  ...menuItems,
+                  ...(exportable
+                    ? [
+                        { label: copied ? "Copied" : "Copy image", onSelect: handleCopy, disabled: exporting },
+                        { label: "Download image", onSelect: handleExport, disabled: exporting },
+                      ]
+                    : []),
+                ]}
+              />
+            )}
+          </div>
+        </div>
+      )}
+      {!dense && (title || exportable) && (
         <div className="flex items-start justify-between gap-x-4 gap-y-2 flex-wrap">
           {title && (
             <h3
@@ -130,7 +165,7 @@ export default function ChartCard({ title, description, height, actions, footer,
                   data-export-btn
                   onClick={handleShare}
                   disabled={exporting}
-                  className="md:hidden shrink-0 p-2.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer"
+                  className="md:hidden shrink-0 p-2.5 rounded-md transition-colors duration-150 hover:bg-[var(--c-hover)] cursor-pointer"
                   style={{ color: theme.gray }}
                   aria-label="Share chart as image"
                 >
@@ -142,7 +177,7 @@ export default function ChartCard({ title, description, height, actions, footer,
                   data-export-btn
                   onClick={handleCopy}
                   disabled={exporting}
-                  className="hidden md:block shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer"
+                  className="hidden md:block shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-[var(--c-hover)] cursor-pointer"
                   style={{ color: copied ? theme.darkGray : theme.gray }}
                   aria-label={copied ? "Copied" : "Copy chart as image"}
                   title={copied ? "Copied" : "Copy as image"}
@@ -155,7 +190,7 @@ export default function ChartCard({ title, description, height, actions, footer,
                   data-export-btn
                   onClick={handleExport}
                   disabled={exporting}
-                  className="hidden md:block shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-black/[0.05] cursor-pointer"
+                  className="hidden md:block shrink-0 p-1.5 rounded-md transition-colors duration-150 hover:bg-[var(--c-hover)] cursor-pointer"
                   style={{ color: theme.gray }}
                   aria-label="Export chart as image"
                   title="Export as image"
@@ -167,7 +202,7 @@ export default function ChartCard({ title, description, height, actions, footer,
           )}
         </div>
       )}
-      {description && (
+      {!dense && description && (
         <p
           className="text-xs mb-4 max-w-2xl font-mono"
           style={{ color: theme.gray, lineHeight: 1.6 }}

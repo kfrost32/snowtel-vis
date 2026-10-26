@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 import SectionHeader from "./SectionHeader";
 
 interface SectionProps {

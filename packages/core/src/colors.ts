@@ -54,11 +54,11 @@ export function getMetricColor(metric: string, value: number | null): string {
 
   if (metric === "SNWD") {
     if (value <= 0) return "#CBD5E1";
-    if (value < 12) return "#C4B5FD";
-    if (value < 36) return "#A78BFA";
-    if (value < 72) return "#8B5CF6";
-    if (value < 120) return "#7C3AED";
-    return "#6D28D9";
+    if (value < 12) return "#C7D6EE";
+    if (value < 36) return "#A3BDE6";
+    if (value < 72) return "#7AA0DD";
+    if (value < 120) return "#4F7BC4";
+    return "#2F5A9E";
   }
 
   if (metric === "PREC") {
@@ -116,7 +116,20 @@ export function getChangeColor(v: number | null): string {
   return "#DC2626";
 }
 
+export const FORECAST_COLORS = ["#E2DCF7", "#C4B5FD", "#A78BFA", "#8B5CF6", "#6D28D9"];
+
+export function getForecastColor(inches: number | null): string {
+  if (!inches) return "#CBD5E1";
+  if (inches < 1) return FORECAST_COLORS[0];
+  if (inches < 3) return FORECAST_COLORS[1];
+  if (inches < 6) return FORECAST_COLORS[2];
+  if (inches < 12) return FORECAST_COLORS[3];
+  return FORECAST_COLORS[4];
+}
+
 export function getMetricMapColor(metric: string, station: StationCurrentConditions): string {
+  if (metric === "FORECAST_3D") return getForecastColor(station.forecast3d ?? null);
+  if (metric === "FORECAST_7D") return getForecastColor(station.forecast7d ?? null);
   if (metric === "WTEQ" || metric === "WTEQ_PCT") return getMapMarkerColor(station.pctOfNormal);
   if (metric === "CHANGE_1D") return getChangeColor(station.sweChange1d ?? null);
   if (metric === "CHANGE_3D") return getChangeColor(station.sweChange3d ?? null);

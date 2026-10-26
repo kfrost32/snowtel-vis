@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { X, Star } from "lucide-react";
-import { theme, glassmorphicButtonStyle } from "@snotel/core/theme";
+import { X, Star, Maximize2, Minimize2 } from "lucide-react";
+import { theme, glassmorphicButtonStyle } from "@/lib/theme";
 import { formatSwe, formatPctOfNormal, formatSnowDepth, formatReadingDateShort } from "@snotel/core/formatting";
 import { getConditionColor, getConditionLabel } from "@snotel/core/colors";
 import { getWaterYearDay, getCurrentWaterYear } from "@snotel/core/water-year";
@@ -27,6 +27,8 @@ interface BasinDetailPanelProps {
   onStationClick: (triplet: string) => void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 export default function BasinDetailPanel({
@@ -35,6 +37,8 @@ export default function BasinDetailPanel({
   onStationClick,
   isFavorite,
   onToggleFavorite,
+  expanded = false,
+  onToggleExpand,
 }: BasinDetailPanelProps) {
   const { data: envelopeData, loading: envelopeLoading } = useBasinEnvelopeData(basin.huc);
   const envelopeOptions = useEnvelopeOptions(endpoints.basinYears(basin.huc));
@@ -85,6 +89,17 @@ export default function BasinDetailPanel({
           >
             <Star size={18} fill={isFavorite ? "#FBBF24" : "none"} />
           </button>
+          {onToggleExpand && (
+            <button
+              onClick={onToggleExpand}
+              className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
+              style={{ color: "rgba(255,255,255,0.9)", ...glassmorphicButtonStyle }}
+              aria-label={expanded ? "Collapse panel" : "Expand panel"}
+              title={expanded ? "Collapse" : "Expand"}
+            >
+              {expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+            </button>
+          )}
           <button
             onClick={onClose}
             className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
@@ -98,7 +113,7 @@ export default function BasinDetailPanel({
           <h2 className="text-lg font-semibold tracking-tight font-sans truncate" style={{ color: "#FFFFFF" }}>
             {basin.name}
           </h2>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.7)" }}>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.7)" }}>
             {basin.region && <span>{basin.region}</span>}
             <span>{basin.indexStationCount} of {basin.stationCount} stations in index</span>
             {asOfLabel && <span>As of {asOfLabel}</span>}
@@ -117,7 +132,7 @@ export default function BasinDetailPanel({
             { label: "Stations", value: String(basin.stationCount), color: theme.black },
           ].map((stat, i) => (
             <div key={stat.label} className="flex-1 min-w-[72px] flex flex-col px-3 py-2.5" style={{ borderLeft: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}>
-              <span className="font-mono text-[10px] whitespace-nowrap" style={{ color: theme.mediumGray }}>{stat.label}</span>
+              <span className="font-mono text-xs whitespace-nowrap" style={{ color: theme.mediumGray }}>{stat.label}</span>
               <span className="font-mono text-[13px] font-semibold mt-0.5 whitespace-nowrap" style={{ color: stat.color }}>{stat.value}</span>
             </div>
           ))}
@@ -126,8 +141,8 @@ export default function BasinDetailPanel({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-4 pt-3">
-          <ChartCard
+        <div className="px-3 pt-3">
+          <ChartCard dense
             title={
               <EnvelopeCardTitle
                 name={basin.name}
@@ -136,6 +151,7 @@ export default function BasinDetailPanel({
               />
             }
             actions={<EnvelopeChartActions options={envelopeOptions} yearOptions={yearOptions} />}
+            menuItems={[{ label: "Percentiles", checked: envelopeOptions.showPercentiles, onSelect: envelopeOptions.togglePercentiles }]}
             description={envelopeData ? `Chart averages ${envelopeData.stationCount} stations` : undefined}
             height={240}
             footer={envelopeStats && (
@@ -168,7 +184,7 @@ export default function BasinDetailPanel({
           className="px-4 py-2 mt-3 border-t border-b"
           style={{ borderColor: theme.borderGray, background: theme.offWhite }}
         >
-          <span className="font-mono text-[11px] uppercase tracking-wider" style={{ color: theme.gray }}>
+          <span className="font-mono text-xs uppercase tracking-wider" style={{ color: theme.gray }}>
             Stations
           </span>
         </div>
@@ -177,14 +193,14 @@ export default function BasinDetailPanel({
           <button
             key={station.triplet}
             onClick={() => onStationClick(station.triplet)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-3 border-b transition-colors hover:bg-black/[0.02] cursor-pointer text-left"
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 border-b transition-colors hover:bg-[var(--c-hover)] cursor-pointer text-left"
             style={{ borderColor: theme.borderGray }}
           >
             <div className="min-w-0">
               <div className="font-sans text-sm font-medium truncate" style={{ color: theme.darkGray }}>
                 {station.name}
               </div>
-              <div className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>
+              <div className="font-mono text-xs" style={{ color: theme.mediumGray }}>
                 {station.state}
               </div>
             </div>
@@ -192,7 +208,7 @@ export default function BasinDetailPanel({
               <ConditionBadge pctOfNormal={station.pctOfNormal} size="small" />
               <div className="text-right min-w-[3.5rem]">
                 <div className="font-mono text-sm" style={{ color: theme.darkGray }}>{formatSwe(station.swe)}</div>
-                <div className="font-mono text-[11px]" style={{ color: getConditionColor(station.pctOfNormal) }}>{formatPctOfNormal(station.pctOfNormal)}</div>
+                <div className="font-mono text-xs" style={{ color: getConditionColor(station.pctOfNormal) }}>{formatPctOfNormal(station.pctOfNormal)}</div>
               </div>
             </div>
           </button>

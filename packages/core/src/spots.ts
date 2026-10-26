@@ -1,3 +1,4 @@
+import { formatElevation } from "./formatting";
 import skiAreas from "../data/ski-areas.json";
 import backcountryAreas from "../data/backcountry-areas.json";
 
@@ -49,9 +50,9 @@ export const SPOT_KIND_LABELS: Record<SpotKind, string> = {
 
 export function spotElevationLabel(spot: Spot): string | null {
   if (spot.baseElevation !== null && spot.summitElevation !== null) {
-    return `${spot.baseElevation.toLocaleString()}–${spot.summitElevation.toLocaleString()}′`;
+    return `${formatElevation(spot.baseElevation)}–${formatElevation(spot.summitElevation)}`;
   }
-  return spot.elevation !== null ? `${spot.elevation.toLocaleString()}′` : null;
+  return spot.elevation !== null ? formatElevation(spot.elevation) : null;
 }
 
 const NUDGE_RADIUS_DEG = 0.03;

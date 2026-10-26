@@ -1,6 +1,6 @@
 "use client";
 
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 
 interface SidebarToggleProps {
   label: string;
@@ -15,7 +15,7 @@ export default function SidebarToggle({ label, description, checked, onChange }:
       <div>
         <div className="font-sans text-[13px] font-medium" style={{ color: theme.darkGray }}>{label}</div>
         {description && (
-          <div className="font-sans text-[11px]" style={{ color: theme.gray }}>{description}</div>
+          <div className="font-sans text-xs" style={{ color: theme.gray }}>{description}</div>
         )}
       </div>
       <button

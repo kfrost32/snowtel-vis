@@ -17,7 +17,7 @@ export const snowColors = {
   wellAbove: "#1D4ED8",
 
   swe: "#3B82F6",
-  snowDepth: "#8B5CF6",
+  snowDepth: "#7AA0DD",
   precip: "#06B6D4",
   temp: "#EF4444",
   median: "#8796A8",

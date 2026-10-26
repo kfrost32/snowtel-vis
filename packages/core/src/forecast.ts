@@ -1,3 +1,6 @@
+import type { StationCurrentConditions } from "./types";
+import { formatAxisTemp, inchesToCm, isMetric } from "./units";
+
 const HOUR_MS = 3600_000;
 const MM_PER_INCH = 25.4;
 const FEET_PER_METER = 3.28084;
@@ -107,6 +110,10 @@ export function forecastTotal(forecast: StationForecast): number {
 
 
 export function formatSnowfall(inches: number): string {
+  if (isMetric()) {
+    const cm = inchesToCm(inches);
+    return cm <= 0 ? "0 cm" : `${cm < 2.5 ? cm.toFixed(1) : Math.round(cm)} cm`;
+  }
   if (inches <= 0) return "0″";
   return `${inches < 1 ? inches.toFixed(1) : Math.round(inches)}″`;
 }
@@ -125,7 +132,8 @@ export function forecastSky(day: ForecastDay): ForecastSky {
 }
 
 export function formatTempRange(day: ForecastDay): { high: string; low: string } {
-  return { high: day.high == null ? "–" : `${day.high}°`, low: day.low == null ? "–" : `${day.low}°` };
+  const temp = (f: number | null) => (f == null ? "–" : formatAxisTemp(f));
+  return { high: temp(day.high), low: temp(day.low) };
 }
 
 export function forecastSourceLine(forecast: StationForecast): string {
@@ -135,4 +143,28 @@ export function forecastSourceLine(forecast: StationForecast): string {
 
 export function nwsForecastUrl(latitude: number, longitude: number): string {
   return `https://forecast.weather.gov/MapClick.php?lat=${latitude.toFixed(4)}&lon=${longitude.toFixed(4)}`;
+}
+
+export interface ForecastTotals {
+  updated: string;
+  stations: Record<string, [number, number]>;
+}
+
+export const FORECAST_METRICS = ["FORECAST_3D", "FORECAST_7D"] as const;
+
+export function isForecastMetric(metric: string): boolean {
+  return (FORECAST_METRICS as readonly string[]).includes(metric);
+}
+
+export function forecastWindowTotals(forecast: StationForecast): [number, number] {
+  const sum = (days: number) => Math.round(forecast.days.slice(0, days).reduce((total, d) => total + d.snow, 0) * 10) / 10;
+  return [sum(3), sum(FORECAST_DAYS)];
+}
+
+export function withForecasts(stations: StationCurrentConditions[], totals: ForecastTotals | null): StationCurrentConditions[] {
+  if (!totals) return stations;
+  return stations.map((s) => {
+    const t = totals.stations[s.triplet];
+    return t ? { ...s, forecast3d: t[0], forecast7d: t[1] } : s;
+  });
 }

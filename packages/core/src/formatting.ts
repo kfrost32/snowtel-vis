@@ -1,24 +1,28 @@
+import { fahrenheitToCelsius, feetToMeters, inchesToCm, isMetric, milesToKm } from "./units";
+
 export const formatSwe = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
-  return `${value.toFixed(1)}″`;
+  return isMetric() ? `${inchesToCm(value).toFixed(1)} cm` : `${value.toFixed(1)}″`;
 };
 
 export const formatSnowDepth = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
-  return `${Math.round(value)}″`;
+  return isMetric() ? `${Math.round(inchesToCm(value))} cm` : `${Math.round(value)}″`;
 };
 
 export const formatTemp = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
-  return `${Math.round(value)}°F`;
+  return isMetric() ? `${Math.round(fahrenheitToCelsius(value))}°C` : `${Math.round(value)}°F`;
 };
 
 export const formatElevation = (value: number): string => {
-  return `${value.toLocaleString()}′`;
+  return isMetric() ? `${Math.round(feetToMeters(value)).toLocaleString()} m` : `${value.toLocaleString()}′`;
 };
 
-export const formatDistance = (miles: number): string =>
-  `${miles < 10 ? miles.toFixed(1) : Math.round(miles).toLocaleString()} mi`;
+export const formatDistance = (miles: number): string => {
+  const value = isMetric() ? milesToKm(miles) : miles;
+  return `${value < 10 ? value.toFixed(1) : Math.round(value).toLocaleString()} ${isMetric() ? "km" : "mi"}`;
+};
 
 export const formatPctOfNormal = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
@@ -27,19 +31,19 @@ export const formatPctOfNormal = (value: number | null): string => {
 
 export const formatPrecip = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
-  return `${value.toFixed(1)}″`;
+  return isMetric() ? `${inchesToCm(value).toFixed(1)} cm` : `${value.toFixed(1)}″`;
 };
 
 export const formatChange = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
   const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(1)}″`;
+  return isMetric() ? `${sign}${inchesToCm(value).toFixed(1)} cm` : `${sign}${value.toFixed(1)}″`;
 };
 
 export const formatDepthChange = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
   const sign = value >= 0 ? "+" : "";
-  return `${sign}${value}″`;
+  return isMetric() ? `${sign}${Math.round(inchesToCm(value))} cm` : `${sign}${value}″`;
 };
 
 export const formatNumber = (value: number): string => {

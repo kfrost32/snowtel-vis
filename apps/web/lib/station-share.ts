@@ -41,7 +41,7 @@ export function stationShareDescription({ station, conditions, storm }: StationS
     change ? `${formatDepthChange(change)} in 24h` : null,
     conditions.swe !== null && `${formatSwe(conditions.swe)} SWE`,
     conditions.pctOfNormal !== null && `${formatPctOfNormal(conditions.pctOfNormal)} of median`,
-    storm && `last storm +${formatSnowDepth(storm.newSnow)}${storm.quality ? ` (${SNOW_QUALITY[storm.quality].label.toLowerCase()})` : ""}`,
+    storm && `storm total +${formatSnowDepth(storm.newSnow)}${storm.quality ? ` (${SNOW_QUALITY[storm.quality].label.toLowerCase()})` : ""}`,
     conditions.lastUpdated && formatReadingEndOfDay(conditions.lastUpdated),
   ]
     .filter(Boolean)

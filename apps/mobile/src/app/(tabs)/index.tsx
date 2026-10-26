@@ -14,15 +14,19 @@ import { regionMarkers } from "@snotel/core/map-style";
 import { getAllSpots } from "@snotel/core/spots";
 import { dataAsOfLabel, withRecentDepth } from "@snotel/core/recent";
 import StationMap from "@/components/StationMap";
-import { useRecentConditions, useStationList } from "@/hooks/data";
+import { useForecastTotals, useRecentConditions, useStationList } from "@/hooks/data";
+import { withForecasts } from "@snotel/core/forecast";
 import { activeFilterCount, updateMapSettings, useMapSettings } from "@/lib/map-settings";
 import { colors } from "@/theme";
+import { useAppSettings } from "@/lib/app-settings";
+import { stateBounds } from "@snotel/core/map-style";
 
 const METRICS = [
   { key: "WTEQ_PCT", label: "% Median" },
   { key: "WTEQ", label: "SWE" },
   { key: "SNWD", label: "Depth" },
   { key: "SNWD_CHANGE_1D", label: "24h" },
+  { key: "FORECAST_7D", label: "Forecast" },
 ];
 
 const SPOTS = getAllSpots();
@@ -30,11 +34,14 @@ const SPOTS = getAllSpots();
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const settings = useMapSettings();
+  const { units, homeState } = useAppSettings();
+  const homeBounds = useMemo(() => (homeState && !settings.states.length ? stateBounds([homeState]) : null), [homeState, settings.states]);
   const { stations: daily, loading, stale } = useStationList();
   const recent = useRecentConditions();
-  const stations = useMemo(() => (daily ? withRecentDepth(daily, recent) : null), [daily, recent]);
+  const forecasts = useForecastTotals();
+  const stations = useMemo(() => (daily ? withForecasts(withRecentDepth(daily, recent), forecasts) : null), [daily, recent, forecasts]);
   const metric = settings.metric;
-  const caption = useMemo(() => (daily ? dataAsOfLabel(metric, daily, recent) : null), [metric, daily, recent]);
+  const caption = useMemo(() => (daily ? dataAsOfLabel(metric, daily, recent, forecasts?.updated) : null), [metric, daily, recent, forecasts]);
   const filterCount = activeFilterCount(settings);
   const scrim = useColorScheme() === "dark" ? "#000000" : "#FFFFFF";
 
@@ -51,8 +58,9 @@ export default function MapScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View key={units} style={styles.container}>
       <StationMap
+        initialBounds={homeBounds}
         stations={visible}
         metric={metric}
         regions={regions}

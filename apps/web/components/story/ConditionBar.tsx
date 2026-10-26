@@ -1,6 +1,6 @@
 "use client";
 
-import { snowColors } from "@snotel/core/theme";
+import { snowColors } from "@/lib/theme";
 import type { ConditionLevel } from "@snotel/core/types";
 
 interface ConditionBarProps {
@@ -39,7 +39,7 @@ export default function ConditionBar({ counts, total }: ConditionBarProps) {
           const count = counts[key];
           if (!count) return null;
           return (
-            <div key={key} className="flex items-center gap-1.5 font-mono text-[11px]" style={{ color: "#5A6B73" }}>
+            <div key={key} className="flex items-center gap-1.5 font-mono text-xs" style={{ color: "#5A6B73" }}>
               <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: color }} />
               {label}: {count}
             </div>

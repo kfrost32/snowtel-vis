@@ -1,6 +1,6 @@
 "use client";
 
-import { theme, snowColors } from "@snotel/core/theme";
+import { theme, snowColors } from "@/lib/theme";
 
 interface CalloutProps {
   value: string;

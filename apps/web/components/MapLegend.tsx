@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 import { isSweMetric } from "@snotel/core/map-style";
 import { legendFor } from "@/lib/map-legend";
 import { GLASS_STYLE } from "@/lib/map-layout";
@@ -32,7 +32,7 @@ export default function MapLegend({ metric, dataDate, activeOnly, isMobile, left
             <span key={label} className="flex-1" style={{ background: color }} />
           ))}
         </span>
-        <span className="text-[11px] font-sans font-semibold" style={{ color: theme.darkGray }}>
+        <span className="text-xs font-sans font-semibold" style={{ color: theme.darkGray }}>
           {title}
         </span>
       </button>
@@ -46,11 +46,11 @@ export default function MapLegend({ metric, dataDate, activeOnly, isMobile, left
       style={{ ...GLASS_STYLE, left: isMobile ? undefined : left }}
     >
       <div className="flex items-baseline justify-center md:justify-start gap-1.5 mb-1.5">
-        <span className="text-[11px] font-sans font-semibold" style={{ color: theme.darkGray }}>
+        <span className="text-xs font-sans font-semibold" style={{ color: theme.darkGray }}>
           {title}
         </span>
         {dataDate && (
-          <span className="text-[10px] font-mono" style={{ color: theme.mediumGray }}>
+          <span className="text-xs font-mono" style={{ color: theme.mediumGray }}>
             {dataDate}
           </span>
         )}
@@ -59,7 +59,7 @@ export default function MapLegend({ metric, dataDate, activeOnly, isMobile, left
         {items.map(({ label, color }) => (
           <div key={label} className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
-            <span className="text-[10px] font-mono" style={{ color: theme.gray }}>
+            <span className="text-xs font-mono" style={{ color: theme.gray }}>
               {label}
             </span>
           </div>
@@ -67,13 +67,13 @@ export default function MapLegend({ metric, dataDate, activeOnly, isMobile, left
         {swe && (
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full border" style={{ borderColor: theme.mediumGray }} />
-            <span className="text-[10px] font-mono" style={{ color: theme.gray }}>No median</span>
+            <span className="text-xs font-mono" style={{ color: theme.gray }}>No median</span>
           </div>
         )}
         {swe && !activeOnly && (
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full" style={{ background: theme.mediumGray, opacity: 0.35 }} />
-            <span className="text-[10px] font-mono" style={{ color: theme.gray }}>Not reporting</span>
+            <span className="text-xs font-mono" style={{ color: theme.gray }}>Not reporting</span>
           </div>
         )}
       </div>

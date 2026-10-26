@@ -11,7 +11,7 @@ import {
   Cell,
   CartesianGrid,
 } from "recharts";
-import { theme, chartTooltipStyle, chartCursorStyle } from "@snotel/core/theme";
+import { theme, chartTooltipStyle, chartCursorStyle } from "@/lib/theme";
 import { getConditionColor } from "@snotel/core/colors";
 
 interface HistogramBin {
@@ -29,10 +29,10 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { payl
   const d = payload[0].payload;
   return (
     <div style={chartTooltipStyle}>
-      <div className="font-mono text-[11px] font-medium" style={{ color: theme.darkGray }}>
+      <div className="font-mono text-xs font-medium" style={{ color: theme.darkGray }}>
         {d.bin}% of median
       </div>
-      <div className="font-mono text-[11px]" style={{ color: theme.gray }}>
+      <div className="font-mono text-xs" style={{ color: theme.gray }}>
         {d.count} station{d.count !== 1 ? "s" : ""}
       </div>
     </div>
@@ -45,14 +45,14 @@ export default function PctHistogram({ bins }: PctHistogramProps) {
       <BarChart data={bins} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
         <XAxis
           dataKey="bin"
-          tick={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
+          tick={{ fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={{ stroke: theme.borderGray }}
           tickLine={false}
           interval={1}
           tickFormatter={(v: string) => `${v}%`}
         />
         <YAxis
-          tick={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
+          tick={{ fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={false}
           tickLine={false}
         />

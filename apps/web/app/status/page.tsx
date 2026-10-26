@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
-import { theme, snowColors } from "@snotel/core/theme";
+import { theme, snowColors } from "@/lib/theme";
 import { timeAgo } from "@snotel/core/formatting";
 
 interface ServiceStatus {
@@ -101,7 +101,7 @@ export default function StatusPage() {
             </span>
           </div>
           {lastChecked && (
-            <div className="mt-2 font-mono text-[11px]" style={{ color: theme.mediumGray }}>
+            <div className="mt-2 font-mono text-xs" style={{ color: theme.mediumGray }}>
               Checked {timeAgo(lastChecked)}
             </div>
           )}
@@ -127,16 +127,16 @@ export default function StatusPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   {svc.ok ? (
-                    <span className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>
+                    <span className="font-mono text-xs" style={{ color: theme.mediumGray }}>
                       {svc.latency}ms
                     </span>
                   ) : (
-                    <span className="font-mono text-[11px]" style={{ color: snowColors.wellBelow }}>
+                    <span className="font-mono text-xs" style={{ color: snowColors.wellBelow }}>
                       {svc.error || `HTTP ${svc.status}`}
                     </span>
                   )}
                   <span
-                    className="font-mono text-[10px] px-2 py-0.5 rounded-full"
+                    className="font-mono text-xs px-2 py-0.5 rounded-full"
                     style={{
                       background: svc.ok ? `${snowColors.nearNormal}18` : `${snowColors.wellBelow}18`,
                       color: svc.ok ? snowColors.nearNormal : snowColors.wellBelow,
@@ -151,7 +151,7 @@ export default function StatusPage() {
         )}
 
         <div className="mt-8 text-center">
-          <p className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>
+          <p className="font-mono text-xs" style={{ color: theme.mediumGray }}>
             SNOTEL Explorer depends on the USDA NRCS web services for snowpack data.
             When these services are unavailable, cached data is served automatically.
           </p>

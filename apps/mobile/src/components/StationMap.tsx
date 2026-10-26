@@ -46,6 +46,7 @@ interface StationMapProps {
   spots: Spot[];
   show: { stations: boolean; regions: boolean; subregions: boolean; spots: boolean };
   onSelect: (selection: MapSelection) => void;
+  initialBounds?: [number, number, number, number] | null;
 }
 
 const BOUNDARIES: Record<RegionLevel, GeoJSON.FeatureCollection> = {
@@ -70,7 +71,7 @@ const SPOT_PAINT = nativePaint(spotPaint);
 const TAP_SLOP = 12;
 const visibility = (on: boolean) => ({ visibility: on ? ("visible" as const) : ("none" as const) });
 
-export default function StationMap({ stations, metric, regions, spots, show, onSelect }: StationMapProps) {
+export default function StationMap({ stations, metric, regions, spots, show, onSelect, initialBounds }: StationMapProps) {
   const dark = useColorScheme() === "dark";
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapRef>(null);
@@ -120,7 +121,7 @@ export default function StationMap({ stations, metric, regions, spots, show, onS
     >
       <Camera
         initialViewState={{
-          bounds: WESTERN_US_BOUNDS,
+          bounds: initialBounds ?? WESTERN_US_BOUNDS,
           padding: { top: insets.top + 48, bottom: insets.bottom + 48, left: 8, right: 8 },
         }}
       />

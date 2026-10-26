@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { theme, snowColors } from "@snotel/core/theme";
+import { theme, snowColors } from "@/lib/theme";
 import { useStationList } from "@/hooks/useStationList";
 import { useBasinEnvelopeData } from "@/hooks/useBasinEnvelopeData";
 import { getConditionLevel, getConditionColor } from "@snotel/core/colors";

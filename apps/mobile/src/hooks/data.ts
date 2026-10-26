@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import useSWR from "swr";
 import { endpoints } from "@snotel/core/endpoints";
 import { unpackReadings, type StationReadings } from "@snotel/core/readings";
-import type { StationForecast } from "@snotel/core/forecast";
+import type { ForecastTotals, StationForecast } from "@snotel/core/forecast";
 import { basinSeasonMap, peakHistory, toBasinEnvelope, toStationEnvelope } from "@snotel/core/station-stats";
 import { applyRecentDepth, RECENT_REFRESH_MS, stationDepth, type RecentConditions } from "@snotel/core/recent";
 import type { BasinEnvelopeFile, StationEnvelopeFile, YearsFile } from "@snotel/core/envelope-files";
@@ -50,6 +50,11 @@ export function useStationDetail(triplet: string) {
     loading: season.isLoading || envelopeFile.isLoading,
     refresh: () => Promise.all([season.mutate(), envelopeFile.mutate()]),
   };
+}
+
+export function useForecastTotals() {
+  const { data } = useSWR<ApiResponse<ForecastTotals>>(endpoints.stationsForecasts(), { refreshInterval: RECENT_REFRESH_MS });
+  return data?.data ?? null;
 }
 
 export function useStationForecast(triplet: string) {

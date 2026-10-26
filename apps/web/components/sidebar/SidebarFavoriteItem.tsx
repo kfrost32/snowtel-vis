@@ -1,7 +1,7 @@
 "use client";
 
 import { Star, X as XIcon } from "lucide-react";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 
 interface SidebarFavoriteItemProps {
   name: string;
@@ -14,11 +14,11 @@ export default function SidebarFavoriteItem({ name, detail, onClick, onRemove }:
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-2 px-4 py-1.5 cursor-pointer hover:bg-black/[0.02] transition-colors group"
+      className="w-full flex items-center gap-2 px-4 py-1.5 cursor-pointer hover:bg-[var(--c-hover)] transition-colors group"
     >
       <Star size={10} fill="#FBBF24" stroke="#FBBF24" className="shrink-0" />
       <span className="text-xs font-sans font-medium truncate" style={{ color: theme.darkGray }}>{name}</span>
-      {detail && <span className="text-[10px] font-mono" style={{ color: theme.mediumGray }}>{detail}</span>}
+      {detail && <span className="text-xs font-mono" style={{ color: theme.mediumGray }}>{detail}</span>}
       <span
         role="button"
         aria-label="Remove from favorites"

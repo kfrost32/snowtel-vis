@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Linking, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { getAllStations, getStation } from "@snotel/core/stations";
 import { STATE_NAMES } from "@snotel/core/constants";
@@ -12,6 +12,8 @@ import StationRow from "@/components/StationRow";
 import { useStationList } from "@/hooks/data";
 import { useFavorites } from "@/lib/favorites";
 import { useUserLocation, type LocationStatus } from "@/lib/location";
+import { useAppSettings } from "@/lib/app-settings";
+import { stateBounds } from "@snotel/core/map-style";
 import { colors } from "@/theme";
 
 const NEARBY_COUNT = 50;
@@ -41,7 +43,14 @@ interface Section {
 export default function StationsScreen() {
   const favorites = useFavorites();
   const { stations } = useStationList();
-  const { status, coords, request } = useUserLocation();
+  const { status, coords: located, request } = useUserLocation();
+  const { units, homeState } = useAppSettings();
+  const homeCenter = useMemo(() => {
+    const bounds = homeState ? stateBounds([homeState]) : null;
+    return bounds ? { latitude: (bounds[1] + bounds[3]) / 2, longitude: (bounds[0] + bounds[2]) / 2 } : null;
+  }, [homeState]);
+  const coords = located ?? homeCenter;
+  const nearbyTitle = located || !homeState ? "Nearby" : `Near ${STATE_NAMES[homeState] ?? homeState}`;
   const byTriplet = useMemo(() => new Map(stations?.map((s) => [s.triplet, s])), [stations]);
 
   const sections = useMemo((): Section[] => {
@@ -57,15 +66,19 @@ export default function StationsScreen() {
         .map((station) => ({ station, distance: distanceTo(station)! }))
         .sort((a, b) => a.distance - b.distance)
         .slice(0, NEARBY_COUNT);
-      return [...result, { title: "Nearby", data: nearby }];
+      return [...result, { title: nearbyTitle, data: nearby }];
     }
     return [...result, ...BY_STATE.map(({ title, stations }) => ({ title, data: stations.map((station) => ({ station, distance: null })) }))];
-  }, [coords, favorites]);
+  }, [coords, favorites, nearbyTitle]);
 
   return (
     <>
       <Stack.Title large>Stations</Stack.Title>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button icon="gearshape" accessibilityLabel="Settings" onPress={() => router.push("/settings")} />
+      </Stack.Toolbar>
       <SectionList
+        key={units}
         sections={sections}
         keyExtractor={(row) => row.station.triplet}
         contentInsetAdjustmentBehavior="automatic"
@@ -73,7 +86,7 @@ export default function StationsScreen() {
         contentContainerStyle={styles.content}
         stickySectionHeadersEnabled={false}
         initialNumToRender={20}
-        ListHeaderComponent={coords ? undefined : <LocationPrompt status={status} onRequest={request} />}
+        ListHeaderComponent={located ? undefined : <LocationPrompt status={status} onRequest={request} />}
         renderSectionHeader={({ section }) => <Text style={styles.title}>{section.title}</Text>}
         SectionSeparatorComponent={({ leadingItem, trailingSection }) => (leadingItem && trailingSection ? <View style={styles.sectionGap} /> : null)}
         renderItem={({ item, index, section }) => {

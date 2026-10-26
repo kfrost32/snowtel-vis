@@ -15,6 +15,7 @@ import {
   formatElevation,
   formatHourlyTime,
   formatPctOfNormal,
+  formatPrecip,
   formatReadingEndOfDay,
   formatSnowDepth,
   formatSwe,
@@ -33,8 +34,11 @@ import { useStationConditions, useStationDetail, useStationForecast, useStationH
 import { toggleFavorite, useIsFavorite } from "@/lib/favorites";
 import { webUrl } from "@/lib/api";
 import { colors, numeric } from "@/theme";
+import { formatAxisLength } from "@snotel/core/units";
+import { useAppSettings } from "@/lib/app-settings";
 
 export default function StationScreen() {
+  const { units } = useAppSettings();
   const params = useLocalSearchParams<{ triplet: string }>();
   const triplet = parseTripletFromUrl(params.triplet);
   const station = getStation(triplet);
@@ -101,7 +105,7 @@ export default function StationScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView key={units} contentContainerStyle={styles.content}>
       {header}
 
       {loading && !current ? (
@@ -150,7 +154,7 @@ export default function StationScreen() {
               value={formatPctOfNormal(stats?.pctOfMedianPeak ?? null)}
               detail={stats ? `${Math.abs(stats.daysUntilPeak)}d ${stats.daysUntilPeak >= 0 ? "to go" : "past"}` : undefined}
             />
-            <Row label="Precipitation" value={current.precipAccum !== null ? `${current.precipAccum.toFixed(1)}"` : "—"} detail="water year" last />
+            <Row label="Precipitation" value={formatPrecip(current.precipAccum)} detail="water year" last />
           </Section>
 
           {envelope && (
@@ -162,7 +166,7 @@ export default function StationScreen() {
                 peakDay={envelope.medianPeakDay}
                 peakValue={envelope.medianPeakSwe}
                 format={formatSwe}
-                axisLabel={(v) => `${v}"`}
+                axisLabel={formatAxisLength}
               />
             </Section>
           )}
@@ -176,7 +180,7 @@ export default function StationScreen() {
                 peakDay={envelope.medianPeakDepthDay}
                 peakValue={envelope.medianPeakDepth}
                 format={formatSnowDepth}
-                axisLabel={(v) => `${v}"`}
+                axisLabel={formatAxisLength}
               />
             </Section>
           )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { theme, snowColors } from "@snotel/core/theme";
+import { theme, snowColors } from "@/lib/theme";
 import { timeAgo } from "@snotel/core/formatting";
 
 interface StaleBannerProps {

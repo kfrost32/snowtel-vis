@@ -5,10 +5,11 @@ import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@snotel/core/types";
 import { prefetchStation } from "@/lib/prefetch";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 import { SPOT_ICON_SIZE, SPOT_KINDS, spotIconSvg, type Spot, type SpotKind } from "@snotel/core/spots";
 import {
   BASEMAP_STYLE_URL,
+  BASEMAP_STYLE_URL_DARK,
   INITIAL_CENTER,
   INITIAL_ZOOM,
   SPOT_MINZOOM,
@@ -16,12 +17,14 @@ import {
   TERRAIN_MAXZOOM,
   TERRAIN_TILES,
   hillshadePaint,
+  hillshadePaintDark,
   stationCircleLayout,
   stationCirclePaint,
   stationFeatures,
   stationLabelLayout,
   stationLabelPaint,
   regionFillPaint,
+  regionFillPaintDark,
   regionLabelLayout,
   regionLabelPaint,
   regionLabels,
@@ -34,6 +37,12 @@ import {
   stateBounds,
   stateMask,
   stateMaskPaint,
+  selectedStationFilter,
+  selectedStationGlowPaint,
+  selectedStationPaint,
+  selectedStationValueLayout,
+  selectedStationValuePaint,
+  stateMaskPaintDark,
   stateOutlinePaint,
   stateOutlines,
   type RegionLevel,
@@ -57,19 +66,27 @@ interface StationMapProps {
   spots?: Spot[];
   showSpots?: boolean;
   selectedStates?: string[];
+  selectedTriplet?: string | null;
   fitPadding?: maplibregl.PaddingOptions;
+  initialBounds?: [number, number, number, number] | null;
+  dark?: boolean;
 }
 
 const NO_STATES: string[] = [];
+const SELECTED_LAYERS = ["station-selected-glow", "station-selected", "station-selected-value"];
 
-let basemapStyle: Promise<StyleSpecification> | null = null;
+const basemapStyles = new Map<string, Promise<StyleSpecification>>();
 
-function loadBasemapStyle(): Promise<StyleSpecification> {
-  basemapStyle ??= fetch(BASEMAP_STYLE_URL).then((res) => {
-    if (!res.ok) throw new Error(`Basemap style failed: ${res.status}`);
-    return res.json();
-  });
-  return basemapStyle;
+function loadBasemapStyle(url: string): Promise<StyleSpecification> {
+  let style = basemapStyles.get(url);
+  if (!style) {
+    style = fetch(url).then((res) => {
+      if (!res.ok) throw new Error(`Basemap style failed: ${res.status}`);
+      return res.json();
+    });
+    basemapStyles.set(url, style);
+  }
+  return style;
 }
 const EMPTY_COLLECTION: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
@@ -100,7 +117,10 @@ function StationMapInner({
   spots = [],
   showSpots = true,
   selectedStates = NO_STATES,
+  selectedTriplet = null,
   fitPadding,
+  initialBounds = null,
+  dark = false,
 }: StationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -136,6 +156,7 @@ function StationMapInner({
         style,
         center: INITIAL_CENTER,
         zoom: INITIAL_ZOOM,
+        ...(initialBounds && { bounds: initialBounds, fitBoundsOptions: { padding: fitPadding ?? 48, maxZoom: 8 } }),
         attributionControl: false,
       });
 
@@ -159,7 +180,7 @@ function StationMapInner({
           id: "hillshade",
           type: "hillshade",
           source: "terrain-dem",
-          paint: hillshadePaint,
+          paint: dark ? hillshadePaintDark : hillshadePaint,
         });
 
         // ── HUC-4: colored fill + thin outline ────────────────────────────
@@ -171,7 +192,7 @@ function StationMapInner({
           id: "huc4-fill",
           type: "fill",
           source: "huc4-polygons",
-          paint: regionFillPaint,
+          paint: dark ? regionFillPaintDark : regionFillPaint,
           layout: { visibility: "none" },
         });
         map.addLayer({
@@ -195,7 +216,7 @@ function StationMapInner({
           id: "huc2-fill",
           type: "fill",
           source: "huc2-polygons",
-          paint: regionFillPaint,
+          paint: dark ? regionFillPaintDark : regionFillPaint,
           layout: { visibility: "none" },
         });
         map.addLayer({
@@ -211,7 +232,7 @@ function StationMapInner({
         });
 
         map.addSource("state-mask", { type: "geojson", data: EMPTY_COLLECTION });
-        map.addLayer({ id: "state-mask", type: "fill", source: "state-mask", paint: stateMaskPaint });
+        map.addLayer({ id: "state-mask", type: "fill", source: "state-mask", paint: dark ? stateMaskPaintDark : stateMaskPaint });
         map.addSource("state-outlines", { type: "geojson", data: EMPTY_COLLECTION });
         map.addLayer({ id: "state-outlines", type: "line", source: "state-outlines", paint: stateOutlinePaint });
 
@@ -236,7 +257,11 @@ function StationMapInner({
           paint: stationLabelPaint,
         });
 
-        // ── Ski areas & backcountry spots ──────────────────────────────────
+        map.addLayer({ id: "station-selected-glow", type: "circle", source: "stations", filter: selectedStationFilter(null), paint: selectedStationGlowPaint }, "station-circles");
+        map.addLayer({ id: "station-selected", type: "circle", source: "stations", filter: selectedStationFilter(null), paint: selectedStationPaint });
+        map.addLayer({ id: "station-selected-value", type: "symbol", source: "stations", filter: selectedStationFilter(null), minzoom: STATION_LABEL_MINZOOM, layout: selectedStationValueLayout, paint: selectedStationValuePaint });
+
+      // ── Ski areas & backcountry spots ──────────────────────────────────
         for (const kind of SPOT_KINDS) addSpotIcon(map, kind);
         map.addSource("spots", {
           type: "geojson",
@@ -353,8 +378,9 @@ function StationMapInner({
 
     let map: maplibregl.Map | null = null;
     let cancelled = false;
-    loadBasemapStyle()
-      .catch(() => BASEMAP_STYLE_URL)
+    const basemapUrl = dark ? BASEMAP_STYLE_URL_DARK : BASEMAP_STYLE_URL;
+    loadBasemapStyle(basemapUrl)
+      .catch(() => basemapUrl)
       .then((style) => {
         if (!cancelled) map = init(style);
       });
@@ -421,6 +447,9 @@ function StationMapInner({
     const vis = (v: boolean) => (v ? "visible" : "none");
     if (map.getLayer("station-circles")) map.setLayoutProperty("station-circles", "visibility", vis(showStations));
     if (map.getLayer("station-labels")) map.setLayoutProperty("station-labels", "visibility", vis(showStations));
+    for (const layer of SELECTED_LAYERS) {
+      if (map.getLayer(layer)) map.setLayoutProperty(layer, "visibility", vis(showStations));
+    }
     if (map.getLayer("huc4-fill")) map.setLayoutProperty("huc4-fill", "visibility", vis(showHuc4));
     if (map.getLayer("huc4-outline")) map.setLayoutProperty("huc4-outline", "visibility", vis(showHuc4));
     if (map.getLayer("huc4-label-text")) map.setLayoutProperty("huc4-label-text", "visibility", vis(showHuc4));
@@ -429,6 +458,14 @@ function StationMapInner({
     if (map.getLayer("huc2-label-text")) map.setLayoutProperty("huc2-label-text", "visibility", vis(showHuc2));
     if (map.getLayer("spot-icons")) map.setLayoutProperty("spot-icons", "visibility", vis(showSpots));
   }, [showStations, showHuc2, showHuc4, showSpots, mapLoaded]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    for (const layer of SELECTED_LAYERS) {
+      if (map.getLayer(layer)) map.setFilter(layer, selectedStationFilter(selectedTriplet));
+    }
+  }, [selectedTriplet, mapLoaded]);
 
   const fitPaddingRef = useRef(fitPadding);
   fitPaddingRef.current = fitPadding;

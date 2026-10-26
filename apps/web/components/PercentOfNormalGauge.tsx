@@ -60,7 +60,7 @@ export default function PercentOfNormalGauge({ value, size = 120 }: PercentOfNor
         >
           {displayValue !== null ? `${displayValue}%` : "—"}
         </span>
-        <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "#8A9BA3" }}>
+        <span className="font-mono text-xs uppercase tracking-wider" style={{ color: "#8A9BA3" }}>
           of median
         </span>
       </div>

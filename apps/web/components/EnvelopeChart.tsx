@@ -17,9 +17,10 @@ import {
   ReferenceDot,
 } from "recharts";
 import LegendItem from "@/components/LegendItem";
-import { theme, snowColors, chartTooltipStyle, chartCursorStyle, percentileBands } from "@snotel/core/theme";
+import { theme, snowColors, chartTooltipStyle, chartCursorStyle, percentileBands } from "@/lib/theme";
 import { getWaterYearDay, waterYearDayToLabel, getCurrentWaterYear } from "@snotel/core/water-year";
 import type { EnvelopeDay } from "@snotel/core/types";
+import { formatAxisLength } from "@snotel/core/units";
 
 interface EnvelopeChartProps {
   envelope: EnvelopeDay[];
@@ -64,10 +65,10 @@ function band(low: number | null | undefined, high: number | null | undefined): 
 }
 
 const MOBILE_TOOLTIP_STYLE = {
-  background: "rgba(255, 255, 255, 0.72)",
+  background: "var(--c-glass)",
   backdropFilter: "blur(12px) saturate(140%)",
   WebkitBackdropFilter: "blur(12px) saturate(140%)",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
+  border: "1px solid var(--c-hairline)",
   borderRadius: "8px",
   padding: "5px 8px",
   boxShadow: "0 2px 10px rgba(15, 23, 42, 0.08)",
@@ -159,12 +160,12 @@ export default function EnvelopeChart({
 
     const box = (
       <div style={isMobile ? MOBILE_TOOLTIP_STYLE : chartTooltipStyle}>
-        <div className="font-mono text-[11px] mb-1 font-medium" style={{ color: theme.darkGray }}>
+        <div className="font-mono text-xs mb-1 font-medium" style={{ color: theme.darkGray }}>
           {date}
         </div>
         {rows.map(({ label, value, color }) =>
           value !== null ? (
-            <div key={label} className="flex items-center gap-2 font-mono text-[11px]">
+            <div key={label} className="flex items-center gap-2 font-mono text-xs">
               <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
               <span style={{ color: theme.gray }}>{label}</span>
               <span className="ml-auto font-medium" style={{ color: theme.darkGray }}>
@@ -198,16 +199,16 @@ export default function EnvelopeChart({
               domain={[1, 366]}
               tickFormatter={(day: number) => waterYearDayToLabel(day, wy)}
               ticks={[1, 32, 62, 93, 124, 152, 183, 213, 244, 274, 305, 336]}
-              tick={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
+              tick={{ fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
               axisLine={{ stroke: theme.borderGray }}
               tickLine={false}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
+              tick={{ fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v: number) => `${v}"`}
+              tickFormatter={formatAxisLength}
             />
             <CartesianGrid stroke={theme.borderGray} strokeDasharray="0" vertical={true} horizontalValues={undefined} verticalValues={[1, 32, 62, 93, 124, 152, 183, 213, 244, 274, 305, 336]} />
             <Tooltip content={renderTooltip} cursor={chartCursorStyle} />
@@ -320,7 +321,7 @@ export default function EnvelopeChart({
             key={y.year}
             onClick={() => onRemoveYear?.(y.year)}
             disabled={!onRemoveYear}
-            className="flex items-center gap-1.5 font-mono text-[10px] enabled:cursor-pointer enabled:hover:opacity-70"
+            className="flex items-center gap-1.5 font-mono text-xs enabled:cursor-pointer enabled:hover:opacity-70"
             style={{ color: theme.darkGray }}
             aria-label={`Remove WY ${y.year}`}
           >

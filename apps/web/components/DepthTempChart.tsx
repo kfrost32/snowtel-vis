@@ -11,9 +11,10 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import LegendItem from "@/components/LegendItem";
-import { theme, snowColors, chartTooltipStyle } from "@snotel/core/theme";
-import { formatWeekday } from "@snotel/core/formatting";
+import { theme, snowColors, chartTooltipStyle } from "@/lib/theme";
+import { formatTemp, formatWeekday } from "@snotel/core/formatting";
 import type { HourlyObservation } from "@/hooks/useHourlyData";
+import { formatAxisLength, formatAxisTemp } from "@snotel/core/units";
 
 interface ChartPoint {
   datetime: string;
@@ -40,17 +41,17 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   const temp = payload.find((p) => p.dataKey === "temp");
   return (
     <div style={chartTooltipStyle}>
-      <div className="font-mono text-[11px] mb-1.5 font-medium" style={{ color: theme.darkGray }}>{label}</div>
+      <div className="font-mono text-xs mb-1.5 font-medium" style={{ color: theme.darkGray }}>{label}</div>
       {depth?.value != null && (
-        <div className="flex items-center gap-2 font-mono text-[11px]">
+        <div className="flex items-center gap-2 font-mono text-xs">
           <span style={{ color: theme.gray }}>Snow Depth</span>
           <span className="ml-auto font-medium" style={{ color: snowColors.snowDepth }}>{depth.value}&quot;</span>
         </div>
       )}
       {temp?.value != null && (
-        <div className="flex items-center gap-2 font-mono text-[11px]">
+        <div className="flex items-center gap-2 font-mono text-xs">
           <span style={{ color: theme.gray }}>Temp</span>
-          <span className="ml-auto font-medium" style={{ color: temp.value <= 32 ? snowColors.swe : snowColors.temp }}>{temp.value}°F</span>
+          <span className="ml-auto font-medium" style={{ color: temp.value <= 32 ? snowColors.swe : snowColors.temp }}>{formatTemp(temp.value)}</span>
         </div>
       )}
     </div>
@@ -89,7 +90,7 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
           ticks={dayTicks}
           interval={0}
           tickFormatter={formatWeekday}
-          tick={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
+          tick={{ fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={{ stroke: theme.borderGray }}
           tickLine={false}
         />
@@ -97,10 +98,10 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
           yAxisId="depth"
           domain={[0, depthMax]}
           allowDecimals={false}
-          tick={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
+          tick={{ fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={false}
           tickLine={false}
-          tickFormatter={(v: number) => `${v}"`}
+          tickFormatter={formatAxisLength}
           width={42}
         />
         <YAxis
@@ -108,10 +109,10 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
           orientation="right"
           domain={[tempMin, tempMax]}
           ticks={tempTicks}
-          tick={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
+          tick={{ fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={false}
           tickLine={false}
-          tickFormatter={(v: number) => `${v}°`}
+          tickFormatter={formatAxisTemp}
           width={32}
         />
         <Tooltip content={<CustomTooltip />} />
@@ -155,7 +156,7 @@ export default function DepthTempChart({ data }: DepthTempChartProps) {
         </LegendItem>
         <LegendItem>
           <div className="w-4 border-t border-dashed" style={{ borderColor: snowColors.freezing }} />
-          32°F
+          {formatTemp(32)}
         </LegendItem>
       </div>
     </div>

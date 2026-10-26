@@ -13,7 +13,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { theme, yearColors, chartTooltipStyle, chartCursorStyle } from "@snotel/core/theme";
+import { theme, yearColors, chartTooltipStyle, chartCursorStyle } from "@/lib/theme";
 import { formatSwe, formatSnowDepth, formatPctOfNormal, formatTemp, formatElevation } from "@snotel/core/formatting";
 import { urlTriplet, parseTripletFromUrl } from "@snotel/core/stations";
 import { useStationList } from "@/hooks/useStationList";
@@ -22,6 +22,7 @@ import type { StationSeasonData } from "@snotel/core/types";
 import ChartCard from "@/components/ChartCard";
 import ConditionBadge from "@/components/ConditionBadge";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { formatAxisLength } from "@snotel/core/units";
 
 const MAX_STATIONS = 5;
 
@@ -189,12 +190,12 @@ function CompareContent() {
                   <button
                     key={s.triplet}
                     onClick={() => addStation(s.triplet)}
-                    className="w-full text-left px-4 py-2.5 hover:bg-black/[0.02] transition-colors cursor-pointer"
+                    className="w-full text-left px-4 py-2.5 hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
                   >
                     <div className="font-sans text-sm font-medium" style={{ color: theme.darkGray }}>
                       {s.name}
                     </div>
-                    <div className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>
+                    <div className="font-mono text-xs" style={{ color: theme.mediumGray }}>
                       {s.state} · {formatElevation(s.elevation)}
                     </div>
                   </button>
@@ -219,7 +220,7 @@ function CompareContent() {
                 {s!.name}
                 <button
                   onClick={() => removeStation(s!.triplet)}
-                  className="p-0.5 rounded-full hover:bg-black/[0.05] transition-colors cursor-pointer"
+                  className="p-0.5 rounded-full hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
                 >
                   <X size={12} style={{ color: theme.mediumGray }} />
                 </button>
@@ -358,7 +359,7 @@ function CompareContent() {
                     <CartesianGrid strokeDasharray="3 3" stroke={theme.borderGray} />
                     <XAxis
                       dataKey="date"
-                      tick={{ fontSize: 11, fontFamily: "monospace", fill: theme.mediumGray }}
+                      tick={{ fontSize: 12, fontFamily: "monospace", fill: theme.mediumGray }}
                       tickFormatter={(d: string) => {
                         const date = new Date(d + "T00:00:00");
                         return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -367,8 +368,8 @@ function CompareContent() {
                       minTickGap={40}
                     />
                     <YAxis
-                      tick={{ fontSize: 11, fontFamily: "monospace", fill: theme.mediumGray }}
-                      tickFormatter={(v: number) => `${v}″`}
+                      tick={{ fontSize: 12, fontFamily: "monospace", fill: theme.mediumGray }}
+                      tickFormatter={formatAxisLength}
                       width={45}
                     />
                     <Tooltip
@@ -382,7 +383,7 @@ function CompareContent() {
                           year: "numeric",
                         });
                       }}
-                      formatter={(value) => [`${Number(value)?.toFixed(1)}″`, ""]}
+                      formatter={(value) => [formatSwe(Number(value)), ""]}
                     />
                     <Legend
                       formatter={(value: string) => {

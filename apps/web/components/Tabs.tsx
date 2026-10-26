@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 
 interface Tab {
   key: string;

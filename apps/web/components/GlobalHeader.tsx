@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 
 export default function GlobalHeader() {
   const pathname = usePathname();
@@ -26,20 +26,10 @@ export default function GlobalHeader() {
 
         <button
           onClick={() => window.dispatchEvent(new CustomEvent("open-command-search"))}
-          className="flex items-center gap-1.5 px-2 py-1 rounded transition-colors duration-150 hover:bg-white/10 cursor-pointer"
+          className="flex items-center px-2 py-1 rounded transition-colors duration-150 hover:bg-white/10 cursor-pointer"
           aria-label="Search"
         >
           <Search size={14} style={{ color: "#CCCCCC" }} />
-          <kbd
-            className="hidden sm:inline font-mono text-[10px] px-1 py-0.5 rounded"
-            style={{
-              color: "rgba(255,255,255,0.5)",
-              background: "rgba(255,255,255,0.1)",
-              border: "1px solid rgba(255,255,255,0.15)",
-            }}
-          >
-            ⌘K
-          </kbd>
         </button>
       </div>
     </header>

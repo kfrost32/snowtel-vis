@@ -12,7 +12,7 @@ export default function ConditionBadge({ pctOfNormal, size = "default" }: Condit
 
   return (
     <span
-      className={`inline-flex items-center rounded-full font-mono font-medium ${isSmall ? "text-[10px] px-2 py-0.5" : "text-xs px-2.5 py-1"}`}
+      className={`inline-flex items-center rounded-full font-mono font-medium ${isSmall ? "text-xs px-2 py-0.5" : "text-xs px-2.5 py-1"}`}
       style={{
         color,
         background: `${color}14`,

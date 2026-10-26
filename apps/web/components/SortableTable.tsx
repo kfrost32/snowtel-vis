@@ -3,7 +3,7 @@
 import { useState, useMemo, ReactNode } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 
 type SortDir = "asc" | "desc";
 
@@ -98,7 +98,7 @@ export default function SortableTable<T>({
           {sorted.map((item, index) => (
             <tr
               key={getKey(item)}
-              className="border-b group hover:bg-black/[0.02] transition-colors duration-150 cursor-pointer"
+              className="border-b group hover:bg-[var(--c-hover)] transition-colors duration-150 cursor-pointer"
               style={{ borderColor: theme.borderGray }}
               onClick={() => router.push(getHref(item))}
             >

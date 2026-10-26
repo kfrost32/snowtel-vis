@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 
 interface SidebarSectionProps {
   label: string;
@@ -19,10 +19,10 @@ export default function SidebarSection({ label, defaultOpen = true, trailing, fl
     <div className="border-b" style={{ borderColor: theme.borderGray }}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 md:py-2.5 min-h-[44px] md:min-h-0 cursor-pointer hover:bg-black/[0.02] transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 md:py-2.5 min-h-[44px] md:min-h-0 cursor-pointer hover:bg-[var(--c-hover)] transition-colors"
       >
         <span
-          className="text-[11px] font-semibold uppercase tracking-wider font-sans select-none"
+          className="text-xs font-semibold uppercase tracking-wider font-sans select-none"
           style={{ color: theme.gray }}
         >
           {label}

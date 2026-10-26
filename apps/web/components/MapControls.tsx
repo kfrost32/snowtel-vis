@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 import { SNOTEL_STATES } from "@snotel/core/constants";
 import { SidebarSection, SidebarToggle, SidebarRadioItem, SidebarChip } from "@/components/sidebar";
 
@@ -23,6 +23,13 @@ const METRIC_GROUPS = [
       { key: "SNWD_CHANGE_1D", label: "1-Day Δ" },
       { key: "SNWD_CHANGE_3D", label: "3-Day Δ" },
       { key: "SNWD_CHANGE_7D", label: "7-Day Δ" },
+    ],
+  },
+  {
+    label: "Forecast",
+    metrics: [
+      { key: "FORECAST_3D", label: "Next 3 days" },
+      { key: "FORECAST_7D", label: "Next 7 days" },
     ],
   },
   {
@@ -90,7 +97,7 @@ export default function MapControls({
   return (
     <div className="flex flex-col">
       <SidebarSection label="Metric">
-        <div className="flex p-0.5 rounded-lg mb-2" style={{ background: "rgba(15, 23, 42, 0.06)" }}>
+        <div className="flex p-0.5 rounded-lg mb-2" style={{ background: "var(--c-hairline)" }}>
           {METRIC_GROUPS.map((group) => {
             const selected = group === activeGroup;
             return (
@@ -140,7 +147,7 @@ export default function MapControls({
           selectedStates.size > 0 ? (
             <button
               onClick={() => onStatesChange(new Set())}
-              className="text-[10px] font-sans cursor-pointer transition-colors duration-150"
+              className="text-xs font-sans cursor-pointer transition-colors duration-150"
               style={{ color: clearHovered ? theme.gray : theme.mediumGray }}
               onMouseEnter={() => setClearHovered(true)}
               onMouseLeave={() => setClearHovered(false)}
@@ -170,19 +177,19 @@ export default function MapControls({
             value={elevMin}
             onChange={(e) => onElevMinChange(e.target.value)}
             aria-label="Minimum elevation (feet)"
-            className="flex-1 w-full px-2.5 py-2 md:py-1.5 text-[13px] md:text-[11px] font-mono rounded-lg border outline-none transition-all duration-150"
+            className="flex-1 w-full px-2.5 py-2 md:py-1.5 text-[13px] md:text-xs font-mono rounded-lg border outline-none transition-all duration-150"
             style={{ borderColor: elevMinFocused ? theme.mediumGray : theme.borderGray, color: theme.black, background: theme.white }}
             onFocus={() => setElevMinFocused(true)}
             onBlur={() => setElevMinFocused(false)}
           />
-          <span className="text-[11px] md:text-[10px] font-sans flex-shrink-0" style={{ color: theme.borderGray }}>to</span>
+          <span className="text-xs md:text-xs font-sans flex-shrink-0" style={{ color: theme.borderGray }}>to</span>
           <input
             type="number"
             placeholder="Max"
             value={elevMax}
             onChange={(e) => onElevMaxChange(e.target.value)}
             aria-label="Maximum elevation (feet)"
-            className="flex-1 w-full px-2.5 py-2 md:py-1.5 text-[13px] md:text-[11px] font-mono rounded-lg border outline-none transition-all duration-150"
+            className="flex-1 w-full px-2.5 py-2 md:py-1.5 text-[13px] md:text-xs font-mono rounded-lg border outline-none transition-all duration-150"
             style={{ borderColor: elevMaxFocused ? theme.mediumGray : theme.borderGray, color: theme.black, background: theme.white }}
             onFocus={() => setElevMaxFocused(true)}
             onBlur={() => setElevMaxFocused(false)}

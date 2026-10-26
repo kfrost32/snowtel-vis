@@ -10,10 +10,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { theme, snowColors, chartTooltipStyle, chartCursorStyle } from "@snotel/core/theme";
+import { theme, snowColors, chartTooltipStyle, chartCursorStyle } from "@/lib/theme";
 import { getWaterYearDay, waterYearDayToLabel, getCurrentWaterYear } from "@snotel/core/water-year";
 import { formatSwe } from "@snotel/core/formatting";
 import type { DailyObservation } from "@snotel/core/types";
+import { formatAxisLength } from "@snotel/core/units";
 
 interface SeasonChartProps {
   season: DailyObservation[];
@@ -53,10 +54,10 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 
   return (
     <div style={chartTooltipStyle}>
-      <div className="font-mono text-[11px] mb-1.5 font-medium" style={{ color: theme.darkGray }}>
+      <div className="font-mono text-xs mb-1.5 font-medium" style={{ color: theme.darkGray }}>
         {label}
       </div>
-      <div className="flex items-center gap-2 font-mono text-[11px]">
+      <div className="flex items-center gap-2 font-mono text-xs">
         <span
           className="w-2 h-2 rounded-full shrink-0"
           style={{ background: snowColors.swe }}
@@ -66,7 +67,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
           {formatSwe(point.swe)}
         </span>
       </div>
-      <div className="flex items-center gap-2 font-mono text-[11px]">
+      <div className="flex items-center gap-2 font-mono text-xs">
         <span
           className="w-2 h-2 rounded-full shrink-0"
           style={{ background: snowColors.median }}
@@ -118,16 +119,16 @@ export default function SeasonChart({ season }: SeasonChartProps) {
           domain={[1, 365]}
           tickFormatter={(day: number) => waterYearDayToLabel(day, wy)}
           ticks={[1, 32, 62, 93, 124, 152, 183, 213, 244, 274, 305, 336]}
-          tick={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
+          tick={{ fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={{ stroke: theme.borderGray }}
           tickLine={false}
           interval="preserveStartEnd"
         />
         <YAxis
-          tick={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
+          tick={{ fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
           axisLine={false}
           tickLine={false}
-          tickFormatter={(v: number) => `${v}"`}
+          tickFormatter={formatAxisLength}
         />
         <Tooltip
           content={<CustomTooltip />}

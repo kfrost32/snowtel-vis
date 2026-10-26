@@ -3,8 +3,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 import { getAllStations, urlTriplet } from "@snotel/core/stations";
+import { formatElevation } from "@snotel/core/formatting";
 
 interface SearchItem {
   label: string;
@@ -16,7 +17,7 @@ interface SearchItem {
 
 const stationItems: SearchItem[] = getAllStations().map((s) => ({
   label: s.name,
-  subtitle: `${s.state} · ${s.elevation.toLocaleString()}′`,
+  subtitle: `${s.state} · ${formatElevation(s.elevation)}`,
   href: `/?station=${urlTriplet(s.triplet)}`,
   group: "Stations",
   keywords: `${s.name} ${s.state} ${s.triplet}`.toLowerCase(),
@@ -159,7 +160,7 @@ export default function CommandSearch() {
             style={{ color: theme.darkGray }}
           />
           <kbd
-            className="font-mono text-[10px] px-1.5 py-0.5 rounded shrink-0"
+            className="font-mono text-xs px-1.5 py-0.5 rounded shrink-0"
             style={{ color: theme.mediumGray, background: theme.offWhite, border: `1px solid ${theme.borderGray}` }}
           >
             ESC
@@ -174,7 +175,7 @@ export default function CommandSearch() {
           ) : (
             Array.from(grouped.entries()).map(([group, items]) => (
               <div key={group}>
-                <div className="px-4 pt-3 pb-1 font-mono text-[10px] font-medium uppercase tracking-wider" style={{ color: theme.mediumGray }}>
+                <div className="px-4 pt-3 pb-1 font-mono text-xs font-medium uppercase tracking-wider" style={{ color: theme.mediumGray }}>
                   {group}
                 </div>
                 {items.map((item) => {
@@ -191,7 +192,7 @@ export default function CommandSearch() {
                     >
                       <span className="truncate">{item.label}</span>
                       {item.subtitle && (
-                        <span className="font-mono text-[11px] ml-3 shrink-0" style={{ color: theme.mediumGray }}>
+                        <span className="font-mono text-xs ml-3 shrink-0" style={{ color: theme.mediumGray }}>
                           {item.subtitle}
                         </span>
                       )}

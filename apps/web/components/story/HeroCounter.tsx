@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 
 interface HeroCounterProps {
   value: number;

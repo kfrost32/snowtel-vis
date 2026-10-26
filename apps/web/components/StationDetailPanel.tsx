@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { X, MapPin, Mountain, Star, ChevronDown, ArrowUpRight } from "lucide-react";
-import { theme, glassmorphicButtonStyle } from "@snotel/core/theme";
+import { X, MapPin, Mountain, Star, ChevronDown, ArrowUpRight, Maximize2, Minimize2 } from "lucide-react";
+import { theme, glassmorphicButtonStyle } from "@/lib/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
 import { getStation, nrcsSiteUrl } from "@snotel/core/stations";
-import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatDepthChange, formatHourlyTime, formatReadingDateShort } from "@snotel/core/formatting";
+import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatDepthChange, formatHourlyTime, formatPrecip, formatReadingDateShort } from "@snotel/core/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor, getDepthChangeColor } from "@snotel/core/colors";
 import InfoTooltip from "@/components/InfoTooltip";
 import { metricDescriptions } from "@snotel/core/metric-descriptions";
@@ -38,6 +38,8 @@ interface StationDetailPanelProps {
   onStationClick: (triplet: string) => void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 function DepthEnvelope({ season, envelopeData, lastUpdated }: { season: import("@snotel/core/types").DailyObservation[]; envelopeData: import("@snotel/core/types").StationEnvelope; lastUpdated: string | null }) {
@@ -54,13 +56,7 @@ function DepthEnvelope({ season, envelopeData, lastUpdated }: { season: import("
   );
 }
 
-function statCellBorders(index: number, count: number): string {
-  const mobile = `${index % 2 === 0 ? "border-r" : ""} ${index >= 2 ? "border-t" : ""}`;
-  const desktop = `md:border-t-0 ${index < count - 1 ? "md:border-r" : "md:border-r-0"}`;
-  return `${mobile} ${desktop}`;
-}
-
-export default function StationDetailPanel({ triplet, onClose, isFavorite, onToggleFavorite }: StationDetailPanelProps) {
+export default function StationDetailPanel({ triplet, onClose, isFavorite, onToggleFavorite, expanded = false, onToggleExpand }: StationDetailPanelProps) {
   const station = getStation(triplet);
   const stationId = triplet.split(/[:-]/)[0];
   const imageUrl = `https://www.wcc.nrcs.usda.gov/siteimages/${stationId}.jpg`;
@@ -133,6 +129,20 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
           >
             <Star size={18} fill={isFavorite ? "#FBBF24" : "none"} />
           </button>
+          {onToggleExpand && (
+            <button
+              onClick={onToggleExpand}
+              className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
+              style={{
+                color: imageError ? theme.darkGray : "rgba(255,255,255,0.9)",
+                ...(imageError ? { background: "rgba(0,0,0,0.06)", border: `1px solid ${theme.borderGray}` } : glassmorphicButtonStyle),
+              }}
+              aria-label={expanded ? "Collapse panel" : "Expand panel"}
+              title={expanded ? "Collapse" : "Expand"}
+            >
+              {expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+            </button>
+          )}
           <button
             onClick={onClose}
             className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
@@ -149,7 +159,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
           <h2 className="text-lg font-semibold tracking-tight font-sans truncate" style={{ color: imageError ? theme.black : "#FFFFFF" }}>
             {station.name}
           </h2>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[11px] mt-0.5" style={{ color: imageError ? theme.gray : "rgba(255,255,255,0.7)" }}>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-xs mt-0.5" style={{ color: imageError ? theme.gray : "rgba(255,255,255,0.7)" }}>
             <span className="flex items-center gap-1"><MapPin size={11} /> {station.state}</span>
             <span className="flex items-center gap-1"><Mountain size={11} /> {formatElevation(station.elevation)}</span>
             <a
@@ -166,12 +176,12 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
       </div>
 
       <div className="flex-1 overflow-y-auto flex flex-col">
-        <div className="border-b" style={{ borderColor: theme.borderGray }}>
-          <div className="grid grid-cols-2 md:flex md:items-stretch md:overflow-x-auto md:min-w-min" style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
+        <div className="border-b @container" style={{ borderColor: theme.borderGray }}>
+          <div className="grid grid-cols-2 @lg:grid-cols-3 @3xl:grid-cols-6 gap-px" style={{ background: theme.borderGray }}>
             {seasonLoading ? (
-              ["SWE", "% Median", "Depth", "YTD Precip", "Snow ∆", "SWE ∆"].map((label, i) => (
-                <div key={label} className={`flex-1 flex flex-col gap-1 px-3 py-2.5 min-w-[64px] ${statCellBorders(i, 6)}`} style={{ borderColor: theme.borderGray }}>
-                  <span className="font-mono text-[10px]" style={{ color: theme.mediumGray }}>{label}</span>
+              ["SWE", "% Median", "Depth", "YTD Precip", "Snow (1/3/7d)", "SWE (1/3/7d)"].map((label) => (
+                <div key={label} className="flex flex-col gap-1 px-3 py-2.5" style={{ background: theme.white }}>
+                  <span className="font-mono text-xs" style={{ color: theme.mediumGray }}>{label}</span>
                   <div className="h-4 w-10 rounded animate-pulse" style={{ background: theme.borderGray }} />
                 </div>
               ))
@@ -189,24 +199,20 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
                   subColor: recentDepth ? theme.mediumGray : getDepthChangeColor(depthChange1d),
                   custom: null,
                 },
-                { label: "YTD Precip", tip: metricDescriptions.precip, value: current.precipAccum !== null ? `${current.precipAccum.toFixed(1)}"` : "—", sub: null, subColor: null, custom: null },
-                { label: "Snow ∆ (1/3/7d)", tip: "Snow depth change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "depthDeltas" },
-                { label: "SWE ∆ (1/3/7d)", tip: "SWE change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "sweDeltas" },
+                { label: "YTD Precip", tip: metricDescriptions.precip, value: formatPrecip(current.precipAccum), sub: null, subColor: null, custom: null },
+                { label: "Snow (1/3/7d)", tip: "Snow depth change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "depthDeltas" },
+                { label: "SWE (1/3/7d)", tip: "SWE change over 1, 3, and 7 days.", value: null, sub: null, subColor: null, custom: "sweDeltas" },
               ];
               return (
                 <>
-                  {stats.map((row, i) => (
-                    <div
-                      key={row.label}
-                      className={`flex-1 min-w-[64px] flex flex-col px-3 py-2.5 ${statCellBorders(i, stats.length)}`}
-                      style={{ borderColor: theme.borderGray }}
-                    >
-                      <span className="font-mono text-[10px] whitespace-nowrap flex items-center gap-0.5" style={{ color: theme.mediumGray }}>{row.label}<InfoTooltip text={row.tip} size={10} /></span>
+                  {stats.map((row) => (
+                    <div key={row.label} className="flex flex-col px-3 py-2.5" style={{ background: theme.white }}>
+                      <span className="font-mono text-xs whitespace-nowrap flex items-center gap-0.5" style={{ color: theme.mediumGray }}>{row.label}<InfoTooltip text={row.tip} size={10} /></span>
                       {row.custom === "sweDeltas" || row.custom === "depthDeltas" ? (
-                        <div className="flex items-baseline mt-0.5">
+                        <div className="flex flex-wrap items-baseline mt-0.5">
                           {(row.custom === "depthDeltas" ? depthDeltas : sweDeltas).map((val, j) => (
                             <span key={j} className="flex items-baseline">
-                              {j > 0 && <span className="font-mono text-[11px] mx-1" style={{ color: theme.borderGray }}>/</span>}
+                              {j > 0 && <span className="font-mono text-xs mx-1" style={{ color: theme.borderGray }}>/</span>}
                               <span className="font-mono text-[13px] font-semibold whitespace-nowrap" style={{ color: row.custom === "depthDeltas" ? getDepthChangeColor(val) : getChangeColor(val) }}>
                                 {row.custom === "depthDeltas" ? formatDepthChange(val) : formatChange(val)}
                               </span>
@@ -217,7 +223,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
                         <>
                           <span className="font-mono text-[13px] font-semibold mt-0.5 whitespace-nowrap" style={{ color: theme.black }}>{row.value}</span>
                           {row.sub ? (
-                            <span className="font-mono text-[10px] mt-0.5 whitespace-nowrap" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>
+                            <span className="font-mono text-xs mt-0.5 whitespace-nowrap" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>
                           ) : null}
                         </>
                       )}
@@ -229,7 +235,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
           </div>
         </div>
 
-        <div className="px-4 pt-3">
+        <div className="px-3 pt-3">
           <ChartCard
             title={
               <EnvelopeCardTitle
@@ -239,6 +245,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
               />
             }
             actions={<EnvelopeChartActions options={envelopeOptions} yearOptions={yearOptions} />}
+            menuItems={[{ label: "Percentiles", checked: envelopeOptions.showPercentiles, onSelect: envelopeOptions.togglePercentiles }]}
             height={280}
             footer={envelopeStats && (
               <EnvelopeStatGrid
@@ -279,8 +286,8 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
 
         <div className={`max-md:order-3 max-md:pb-4 ${showMoreCharts ? "" : "max-md:hidden"}`}>
         {envelopeData && envelopeData.depthEnvelope.length > 0 && (
-          <div className="px-4 pt-3">
-            <ChartCard title={<ChartTitle name={station.name} label="Snow Depth" />} height={280}>
+          <div className="px-3 pt-3">
+            <ChartCard dense title={<ChartTitle name={station.name} label="Snow Depth" />} height={280}>
               {seasonLoading || envelopeLoading ? (
                 <LoadingSpinner />
               ) : seasonData ? (
@@ -295,15 +302,15 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
         )}
 
         {forecast && forecast.days.length > 0 && (
-          <div className="px-4 pt-3">
-            <ChartCard title={<ChartTitle name={station.name} label="Snow Forecast" />} exportable={false}>
+          <div className="px-3 pt-3">
+            <ChartCard dense title={<ChartTitle name={station.name} label="Snow Forecast" />} exportable={false}>
               <ForecastBars forecast={forecast} station={station} />
             </ChartCard>
           </div>
         )}
 
-        <div className="px-4 pt-3">
-          <ChartCard title={<ChartTitle name={station.name} label="Snow Depth & Temp" />} description="Last 7 days" height={180}>
+        <div className="px-3 pt-3">
+          <ChartCard dense title={<ChartTitle name={station.name} label="Snow Depth & Temp" />} description="Last 7 days" height={180}>
             {hourlyLoading ? (
               <LoadingSpinner />
             ) : hourlyData.length > 0 ? (
@@ -314,7 +321,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
         </div>
 
         <div className="max-md:order-1 px-4 pt-3 md:pb-4">
-          <ChartCard title={<ChartTitle name={station.name} label="Peak SWE" />} description="By water year" height={200}>
+          <ChartCard dense title={<ChartTitle name={station.name} label="Peak SWE" />} description="By water year" height={200}>
             {historicalLoading ? (
               <LoadingSpinner />
             ) : (

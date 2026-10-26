@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import useSWR from "swr";
-import { compareYearColors } from "@snotel/core/theme";
+import { compareYearColors } from "@/lib/theme";
 import type { YearsFile } from "@snotel/core/envelope-files";
 import { getCurrentWaterYear, rowsToWaterYear } from "@snotel/core/water-year";
 import type { CompareYear } from "@/components/EnvelopeChart";

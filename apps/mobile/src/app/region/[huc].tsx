@@ -14,8 +14,11 @@ import StationRow from "@/components/StationRow";
 import { Hero, Row } from "@/components/Summary";
 import { useRegionDetail, useStationList } from "@/hooks/data";
 import { colors } from "@/theme";
+import { formatAxisLength } from "@snotel/core/units";
+import { useAppSettings } from "@/lib/app-settings";
 
 export default function RegionScreen() {
+  const { units } = useAppSettings();
   const { huc } = useLocalSearchParams<{ huc: string }>();
   const level = huc.length === 2 ? 2 : 4;
   const { stations } = useStationList();
@@ -39,7 +42,7 @@ export default function RegionScreen() {
   const pctColor = pct !== null ? getConditionColor(pct) : colors.secondaryLabel;
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView key={units} contentContainerStyle={styles.content}>
       <DetailHeader
         title={name}
         subtitle={[
@@ -76,7 +79,7 @@ export default function RegionScreen() {
                 peakDay={envelope.medianPeakDay}
                 peakValue={envelope.medianPeakSwe}
                 format={formatSwe}
-                axisLabel={(v) => `${v}"`}
+                axisLabel={formatAxisLength}
               />
             </Section>
           ) : null}

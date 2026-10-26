@@ -5,6 +5,7 @@ import GlobalHeader from "@/components/GlobalHeader";
 import CommandSearch from "@/components/CommandSearch";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { SWRProvider } from "@/lib/swr-config";
+import { SettingsProvider, appearanceScript } from "@/lib/settings";
 
 const ibmPlexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
@@ -42,13 +43,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: appearanceScript }} />
+      </head>
       <body className={`${ibmPlexMono.variable} ${dmSans.variable} antialiased`}>
         <GoogleAnalytics />
         <SWRProvider>
-          <GlobalHeader />
-          <CommandSearch />
-          {children}
+          <SettingsProvider>
+            <GlobalHeader />
+            <CommandSearch />
+            {children}
+          </SettingsProvider>
         </SWRProvider>
       </body>
     </html>

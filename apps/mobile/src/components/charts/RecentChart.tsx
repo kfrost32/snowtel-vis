@@ -7,6 +7,7 @@ import { formatHour, formatSnowDepth, formatTemp } from "@snotel/core/formatting
 import { colors } from "@/theme";
 import Readout, { Legend } from "./Readout";
 import { linePath, niceScale, useScrub } from "./useScrub";
+import { formatAxisLength, formatAxisTemp } from "@snotel/core/units";
 
 const PANEL = 90;
 const GAP = 14;
@@ -14,7 +15,7 @@ const AXIS_WIDTH = 34;
 const AXIS_HEIGHT = 18;
 const HEIGHT = PANEL * 2 + GAP + AXIS_HEIGHT;
 const FREEZING = 32;
-export const DEPTH_COLOR = "#7AA0DD";
+export const DEPTH_COLOR = snowColors.snowDepth;
 const TEMP_COLOR = "#EA580C";
 
 export default function RecentChart({ data }: { data: HourlyObservation[] }) {
@@ -63,14 +64,14 @@ export default function RecentChart({ data }: { data: HourlyObservation[] }) {
             ))}
             <Path d={depthArea} fill={DEPTH_COLOR} fillOpacity={0.25} />
             <Path d={depthLine} stroke={DEPTH_COLOR} strokeWidth={2} fill="none" />
-            <SvgText x={plotWidth + 6} y={depthY(depthScale.max) + 10} fontSize={11} fill={colors.secondaryLabel}>{`${depthScale.max}"`}</SvgText>
-            <SvgText x={plotWidth + 6} y={PANEL} fontSize={11} fill={colors.secondaryLabel}>0"</SvgText>
+            <SvgText x={plotWidth + 6} y={depthY(depthScale.max) + 10} fontSize={11} fill={colors.secondaryLabel}>{formatAxisLength(depthScale.max)}</SvgText>
+            <SvgText x={plotWidth + 6} y={PANEL} fontSize={11} fill={colors.secondaryLabel}>{formatAxisLength(0)}</SvgText>
 
             <Line x1={0} x2={plotWidth} y1={tempY(FREEZING)} y2={tempY(FREEZING)} stroke={snowColors.median} strokeWidth={1} strokeDasharray="4 3" />
             <Path d={linePath(data.map((d, i) => (d.temp === null ? null : { x: x(i), y: tempY(d.temp) })))} stroke={TEMP_COLOR} strokeWidth={2} fill="none" />
-            <SvgText x={plotWidth + 6} y={tempY(tempScale.max) + 10} fontSize={11} fill={colors.secondaryLabel}>{`${tempScale.max}°`}</SvgText>
-            <SvgText x={plotWidth + 6} y={tempY(FREEZING) + 4} fontSize={11} fill={colors.secondaryLabel}>32°</SvgText>
-            <SvgText x={plotWidth + 6} y={tempY(tempScale.min)} fontSize={11} fill={colors.secondaryLabel}>{`${tempScale.min}°`}</SvgText>
+            <SvgText x={plotWidth + 6} y={tempY(tempScale.max) + 10} fontSize={11} fill={colors.secondaryLabel}>{formatAxisTemp(tempScale.max)}</SvgText>
+            <SvgText x={plotWidth + 6} y={tempY(FREEZING) + 4} fontSize={11} fill={colors.secondaryLabel}>{formatAxisTemp(FREEZING)}</SvgText>
+            <SvgText x={plotWidth + 6} y={tempY(tempScale.min)} fontSize={11} fill={colors.secondaryLabel}>{formatAxisTemp(tempScale.min)}</SvgText>
 
             {index !== null && (
               <Line x1={x(index)} x2={x(index)} y1={0} y2={PANEL * 2 + GAP} stroke={colors.label} strokeWidth={1} />

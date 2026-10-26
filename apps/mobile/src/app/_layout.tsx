@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { AppState, useColorScheme } from "react-native";
 import { SWRConfig } from "swr";
 import { fetcher } from "@/lib/api";
+import "@/lib/app-settings";
 import { persistedCache } from "@/lib/swr-cache";
 
 function onAppActive(callback: () => void) {
@@ -29,6 +30,15 @@ export default function RootLayout() {
               sheetInitialDetentIndex: 0,
               sheetGrabberVisible: true,
               sheetLargestUndimmedDetentIndex: 0,
+            }}
+          />
+          <Stack.Screen
+            name="settings"
+            options={{
+              presentation: "formSheet",
+              headerShown: false,
+              sheetAllowedDetents: [0.6, 1],
+              sheetGrabberVisible: true,
             }}
           />
           <Stack.Screen

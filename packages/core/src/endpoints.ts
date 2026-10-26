@@ -4,6 +4,7 @@ export const endpoints = {
   stations: () => "/api/stations",
   stationReadings: () => "/api/stations/readings",
   stationsRecent: () => "/api/stations/recent",
+  stationsForecasts: () => "/api/stations/forecasts",
   stationSeason: (triplet: string) => `/api/stations/${urlTriplet(triplet)}`,
   stationHourly: (triplet: string) => `/api/stations/${urlTriplet(triplet)}/hourly`,
   stationForecast: (triplet: string) => `/api/stations/${urlTriplet(triplet)}/forecast`,

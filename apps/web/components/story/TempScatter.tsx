@@ -12,7 +12,7 @@ import {
   Cell,
   Label,
 } from "recharts";
-import { theme, chartColors, snowColors, chartTooltipStyle } from "@snotel/core/theme";
+import { theme, chartColors, snowColors, chartTooltipStyle } from "@/lib/theme";
 import { getConditionColor } from "@snotel/core/colors";
 
 interface ScatterPoint {
@@ -30,10 +30,10 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { payl
   const d = payload[0].payload;
   return (
     <div style={chartTooltipStyle}>
-      <div className="font-mono text-[11px] font-medium" style={{ color: theme.darkGray }}>
+      <div className="font-mono text-xs font-medium" style={{ color: theme.darkGray }}>
         {d.name}
       </div>
-      <div className="font-mono text-[11px]" style={{ color: theme.gray }}>
+      <div className="font-mono text-xs" style={{ color: theme.gray }}>
         {Math.round(d.temp)}°F / {Math.round(d.pctOfNormal)}% of median
       </div>
     </div>
@@ -43,7 +43,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { payl
 const FREEZING_F = 32;
 
 const MONO_LABEL_STYLE = {
-  fontSize: 10,
+  fontSize: 12,
   fontFamily: "var(--font-ibm-plex-mono)",
 };
 
@@ -53,7 +53,7 @@ const QUADRANT_LABEL_STYLE = {
   letterSpacing: "0.05em",
 };
 
-const AXIS_TICK_STYLE = { fontSize: 11, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray };
+const AXIS_TICK_STYLE = { fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray };
 
 const REFERENCE_LINE_PROPS = { stroke: theme.darkGray, strokeWidth: 1.5, strokeDasharray: "6 3" };
 

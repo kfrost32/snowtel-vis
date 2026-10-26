@@ -1,6 +1,6 @@
 "use client";
 
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 
 interface SidebarRadioItemProps {
   label: string;

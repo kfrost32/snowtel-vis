@@ -56,7 +56,7 @@ export default async function Image({ params }: { params: Promise<{ triplet: str
             />
             {storm && (
               <Stat
-                label="Last storm"
+                label="Storm total"
                 value={`+${formatSnowDepth(storm.newSnow)}`}
                 color={storm.quality ? SNOW_QUALITY[storm.quality].color : theme.black}
               />

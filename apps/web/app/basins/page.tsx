@@ -3,7 +3,7 @@
 import { Suspense, useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { X } from "lucide-react";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth } from "@snotel/core/formatting";
 import { getConditionColor } from "@snotel/core/colors";
 import { STATE_NAMES } from "@snotel/core/constants";
@@ -49,7 +49,7 @@ function BasinCard({
       >
         {basin.name}
       </div>
-      <div className="text-[11px] font-mono" style={{ color: theme.mediumGray }}>
+      <div className="text-xs font-mono" style={{ color: theme.mediumGray }}>
         {basin.stationCount} stations
       </div>
     </button>
@@ -71,7 +71,7 @@ const stationColumns: Column<StationCurrentConditions>[] = [
         >
           {item.name}
         </div>
-        <div className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>
+        <div className="font-mono text-xs" style={{ color: theme.mediumGray }}>
           {STATE_NAMES[item.state] || item.state}
         </div>
       </div>
@@ -145,7 +145,7 @@ const basinColumns: Column<BasinSummary>[] = [
         >
           {item.name}
         </div>
-        <div className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>
+        <div className="font-mono text-xs" style={{ color: theme.mediumGray }}>
           {item.region}
         </div>
       </div>
@@ -353,7 +353,7 @@ function BasinsPageInner() {
               </div>
               <button
                 onClick={clearSelection}
-                className="p-1.5 rounded-md hover:bg-black/[0.05] transition-colors cursor-pointer"
+                className="p-1.5 rounded-md hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
                 style={{ color: theme.gray }}
                 aria-label="Close basin detail"
               >

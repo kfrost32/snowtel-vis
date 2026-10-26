@@ -14,7 +14,8 @@
     "mobile": "npm run start -w mobile",
     "refresh-snapshots": "tsx scripts/refresh-snapshots.ts",
     "build-spot-icons": "tsx scripts/build-spot-icons.ts",
-    "test": "tsx --test packages/core/test/*.test.ts apps/web/test/*.test.ts"
+    "test": "tsx --test packages/core/test/*.test.ts apps/web/test/*.test.ts",
+    "refresh-forecasts": "tsx scripts/refresh-forecasts.ts"
   },
   "devDependencies": {
     "mapshaper": "^0.7.98",

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 
 export default function GlobalFooter() {
   return (

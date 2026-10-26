@@ -137,7 +137,7 @@ export default function FavoriteCard({ station, detail }: { station: Station; de
           <View style={styles.stats}>
             <Stat label="SWE" value={formatSwe(conditions?.swe ?? null)} />
             <Stat label="24h" value={formatDepthChange(change)} color={change ? getDepthChangeColor(change) : undefined} />
-            <Stat label="Last storm" value={storm ? `+${formatSnowDepth(storm.newSnow)}` : "—"} />
+            <Stat label="Storm total" value={storm ? `+${formatSnowDepth(storm.newSnow)}` : "—"} />
           </View>
         </Pressable>
       </Link.Trigger>

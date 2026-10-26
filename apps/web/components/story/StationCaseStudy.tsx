@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { theme } from "@snotel/core/theme";
+import { theme } from "@/lib/theme";
 import { formatElevation, formatPctOfNormal, formatSwe } from "@snotel/core/formatting";
 import { useSeasonData } from "@/hooks/useSeasonData";
 import { STATE_NAMES } from "@snotel/core/constants";
@@ -29,7 +29,7 @@ export default function StationCaseStudy({ station }: StationCaseStudyProps) {
           <h4 className="font-sans font-semibold text-base truncate" style={{ color: theme.black }}>
             {station.name}
           </h4>
-          <div className="font-mono text-[11px] mt-0.5" style={{ color: theme.gray }}>
+          <div className="font-mono text-xs mt-0.5" style={{ color: theme.gray }}>
             {STATE_NAMES[station.state] || station.state} · {formatElevation(station.elevation)}
           </div>
           <div className="mt-2">
@@ -40,7 +40,7 @@ export default function StationCaseStudy({ station }: StationCaseStudyProps) {
       </div>
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-wide" style={{ color: theme.mediumGray }}>
+          <div className="font-mono text-xs uppercase tracking-wide" style={{ color: theme.mediumGray }}>
             Current SWE
           </div>
           <div className="font-sans font-semibold text-sm" style={{ color: theme.black }}>
@@ -48,7 +48,7 @@ export default function StationCaseStudy({ station }: StationCaseStudyProps) {
           </div>
         </div>
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-wide" style={{ color: theme.mediumGray }}>
+          <div className="font-mono text-xs uppercase tracking-wide" style={{ color: theme.mediumGray }}>
             Normal
           </div>
           <div className="font-sans font-semibold text-sm" style={{ color: theme.black }}>
@@ -56,7 +56,7 @@ export default function StationCaseStudy({ station }: StationCaseStudyProps) {
           </div>
         </div>
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-wide" style={{ color: theme.mediumGray }}>
+          <div className="font-mono text-xs uppercase tracking-wide" style={{ color: theme.mediumGray }}>
             % of Median
           </div>
           <div className="font-sans font-semibold text-sm" style={{ color: theme.black }}>

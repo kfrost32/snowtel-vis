@@ -8,6 +8,7 @@ import { getCurrentWaterYear } from "@snotel/core/water-year";
 import { colors } from "@/theme";
 import Readout, { Legend } from "./Readout";
 import { niceScale, useScrub } from "./useScrub";
+import { formatAxisLength } from "@snotel/core/units";
 
 const HEIGHT = 160;
 const AXIS_WIDTH = 30;
@@ -49,7 +50,7 @@ export default function PeakChart({ peaks, medianPeak }: { peaks: WaterYearSumma
             {yTicks.map((t) => (
               <G key={t}>
                 <Line x1={0} x2={plotWidth} y1={y(t)} y2={y(t)} stroke={colors.separator} strokeWidth={StyleSheet.hairlineWidth} />
-                <SvgText x={plotWidth + 6} y={y(t) + 4} fontSize={11} fill={colors.secondaryLabel}>{`${t}"`}</SvgText>
+                <SvgText x={plotWidth + 6} y={y(t) + 4} fontSize={11} fill={colors.secondaryLabel}>{formatAxisLength(t)}</SvgText>
               </G>
             ))}
             {data.map((p, i) => {

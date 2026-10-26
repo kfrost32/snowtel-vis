@@ -15,6 +15,7 @@ export const snapshotKeys = {
   basinSeason: (huc: string) => `basin-season:${huc}`,
   nwsPoint: (triplet: string) => `nws-point:${triplet}`,
   forecast: (triplet: string) => `forecast:${triplet}`,
+  forecasts: "forecasts",
 };
 
 const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;

@@ -6,10 +6,12 @@ import { getAllStations } from "@snotel/core/stations";
 import StationRow from "@/components/StationRow";
 import { useStationList } from "@/hooks/data";
 import { colors } from "@/theme";
+import { useAppSettings } from "@/lib/app-settings";
 
 const MAX_RESULTS = 50;
 
 export default function SearchScreen() {
+  const { units } = useAppSettings();
   const [query, setQuery] = useState("");
   const { stations } = useStationList();
   const byTriplet = useMemo(() => new Map(stations?.map((s) => [s.triplet, s])), [stations]);
@@ -31,7 +33,7 @@ export default function SearchScreen() {
           <ContentUnavailableView title="No Results" systemImage="magnifyingglass" description={`No stations match “${query.trim()}”.`} />
         </Host>
       ) : (
-        <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardDismissMode="on-drag" style={styles.scroll}>
+        <ScrollView key={units} contentInsetAdjustmentBehavior="automatic" keyboardDismissMode="on-drag" style={styles.scroll}>
           {results.length > 0 && (
             <View style={styles.group}>
               {results.map((s, i) => (

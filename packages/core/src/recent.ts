@@ -21,7 +21,15 @@ function usesRecentReading(metric: string): boolean {
   return metric === "SNWD" || metric === "SNWD_CHANGE_1D";
 }
 
-export function dataAsOfLabel(metric: string, stations: StationCurrentConditions[], recent: RecentConditions | null): string | null {
+export function dataAsOfLabel(
+  metric: string,
+  stations: StationCurrentConditions[],
+  recent: RecentConditions | null,
+  forecastUpdated?: string | null
+): string | null {
+  if (metric.startsWith("FORECAST")) {
+    return forecastUpdated ? `NWS forecast · ${new Date(forecastUpdated).toLocaleString("en-US", { weekday: "short", hour: "numeric" })}` : "NWS forecast";
+  }
   if (usesRecentReading(metric) && recent?.asOf) return `As of ${formatHourlyTime(recent.asOf)}`;
   const latest = stations.reduce((max, s) => (s.lastUpdated > max ? s.lastUpdated : max), "");
   return latest ? formatReadingEndOfDay(latest) : null;
