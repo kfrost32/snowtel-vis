@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Search, Settings, X } from "lucide-react";
+import { ArrowUpRight, ChevronLeft, Search, Settings, X } from "lucide-react";
 import { theme } from "@/lib/theme";
 import { getStation } from "@snotel/core/stations";
 import type { BasinSummary } from "@snotel/core/types";
@@ -11,6 +11,7 @@ import { SidebarFavoriteItem, SidebarSection } from "@/components/sidebar";
 import { useFavorites } from "@/hooks/useFavorites";
 
 const settingsOpen = memoryValue(false);
+const NEWSLETTER_URL = "https://read.hereandthere.club/subscribe";
 
 interface MapSidebarProps {
   stationCount: number;
@@ -91,6 +92,19 @@ export default function MapSidebar({ stationCount, isMobile, basins, controls, o
             <MapControls {...controls} />
           </>
         )}
+
+        <a
+          href={NEWSLETTER_URL}
+          target="_blank"
+          rel="noopener"
+          className="group mt-auto max-md:order-last px-4 py-3 text-xs font-sans flex items-center gap-1 transition-colors"
+          style={{ color: theme.mediumGray }}
+        >
+          <span>
+            A <span className="group-hover:underline underline-offset-2" style={{ color: theme.gray }}>Here &amp; There</span> project · Get the newsletter
+          </span>
+          <ArrowUpRight size={12} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+        </a>
       </div>
     </>
   );
