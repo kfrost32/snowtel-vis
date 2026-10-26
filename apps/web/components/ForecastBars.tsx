@@ -2,7 +2,7 @@
 
 import { ArrowUpRight, Cloud, CloudRain, CloudSnow, CloudSun, Sun, type LucideIcon } from "lucide-react";
 import type { Station } from "@snotel/core/types";
-import { theme, snowColors } from "@snotel/core/theme";
+import { theme } from "@snotel/core/theme";
 import {
   forecastDayLabel,
   forecastSky,
@@ -11,7 +11,6 @@ import {
   formatTempRange,
   forecastSourceLine,
   nwsForecastUrl,
-  snowLevelNote,
   type ForecastSky,
   type StationForecast,
 } from "@snotel/core/forecast";
@@ -29,27 +28,18 @@ const SKY_ICONS: Record<ForecastSky, { icon: LucideIcon; color: string }> = {
 };
 
 export default function ForecastBars({ forecast, station }: { forecast: StationForecast; station: Station }) {
-  const stationElevation = station.elevation;
   const total = forecastTotal(forecast);
   const scale = Math.max(MIN_SCALE, ...forecast.days.map((d) => d.snow));
-  const note = snowLevelNote(forecast, stationElevation);
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <div className="flex items-baseline gap-2">
-          <span className="font-sans text-2xl font-semibold tabular-nums" style={{ color: theme.black }}>
-            {total > 0 ? `+${formatSnowfall(total)}` : "No snow"}
-          </span>
-          <span className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>
-            next {forecast.days.length} days
-          </span>
-        </div>
-        {note && (
-          <span className="font-mono text-[11px]" style={{ color: note.rain ? snowColors.temp : theme.gray }}>
-            {note.text}
-          </span>
-        )}
+      <div className="flex items-baseline gap-2">
+        <span className="font-sans text-2xl font-semibold tabular-nums" style={{ color: theme.black }}>
+          {total > 0 ? `+${formatSnowfall(total)}` : "No snow"}
+        </span>
+        <span className="font-mono text-[11px]" style={{ color: theme.mediumGray }}>
+          next {forecast.days.length} days
+        </span>
       </div>
 
       <div className="grid grid-cols-7 gap-2">

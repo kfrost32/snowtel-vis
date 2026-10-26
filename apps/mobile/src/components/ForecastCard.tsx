@@ -10,7 +10,6 @@ import {
   formatTempRange,
   forecastSourceLine,
   nwsForecastUrl,
-  snowLevelNote,
   type ForecastSky,
   type StationForecast,
 } from "@snotel/core/forecast";
@@ -20,7 +19,6 @@ import { colors, numeric } from "@/theme";
 
 const BAR_HEIGHT = 40;
 const MIN_SCALE = 1;
-const RAIN_COLOR = "#EA580C";
 
 const SKY_SYMBOLS: Record<ForecastSky, { name: SFSymbol; color: string }> = {
   clear: { name: "sun.max.fill", color: "#F59E0B" },
@@ -31,10 +29,8 @@ const SKY_SYMBOLS: Record<ForecastSky, { name: SFSymbol; color: string }> = {
 };
 
 export default function ForecastCard({ forecast, station }: { forecast: StationForecast; station: Station }) {
-  const stationElevation = station.elevation;
   const total = forecastTotal(forecast);
   const scale = Math.max(MIN_SCALE, ...forecast.days.map((d) => d.snow));
-  const note = snowLevelNote(forecast, stationElevation);
 
   return (
     <Section title="Snow Forecast">
@@ -63,7 +59,6 @@ export default function ForecastCard({ forecast, station }: { forecast: StationF
         })}
       </View>
 
-      {note && <Text style={[styles.note, note.rain && { color: RAIN_COLOR }]}>{note.text}</Text>}
       <Pressable onPress={() => WebBrowser.openBrowserAsync(nwsForecastUrl(station.latitude, station.longitude))} hitSlop={8}>
         <Text style={styles.source}>{forecastSourceLine(forecast)} <Text style={styles.sourceLink}>↗</Text></Text>
       </Pressable>
@@ -87,7 +82,6 @@ const styles = StyleSheet.create({
   high: { fontSize: 13, fontWeight: "600", color: colors.label },
   low: { fontSize: 12, color: colors.secondaryLabel, marginTop: -3 },
   chance: { fontSize: 11, color: colors.tertiaryLabel },
-  note: { fontSize: 13, color: colors.secondaryLabel, paddingTop: 12 },
   source: { fontSize: 12, color: colors.tertiaryLabel, paddingTop: 10 },
   sourceLink: { color: colors.tint },
 });

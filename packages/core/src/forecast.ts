@@ -105,7 +105,6 @@ export function forecastTotal(forecast: StationForecast): number {
   return Math.round(forecast.days.reduce((sum, d) => sum + d.snow, 0) * 10) / 10;
 }
 
-const WET_DAY_CHANCE = 40;
 
 export function formatSnowfall(inches: number): string {
   if (inches <= 0) return "0″";
@@ -115,20 +114,6 @@ export function formatSnowfall(inches: number): string {
 export function forecastDayLabel(date: string, index: number): string {
   if (index === 0) return "Today";
   return new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
-}
-
-export function snowLevelNote(forecast: StationForecast, stationElevation: number): { text: string; rain: boolean } | null {
-  const levels = forecast.days
-    .filter((d) => (d.precipChance ?? 0) >= WET_DAY_CHANCE || d.snow > 0)
-    .map((d) => d.snowLevel)
-    .filter((v): v is number => v !== null);
-  if (!levels.length) return null;
-  const highest = Math.max(...levels);
-  const station = `${stationElevation.toLocaleString()}′`;
-  if (highest > stationElevation) {
-    return { text: `Snow level up to ${highest.toLocaleString()}′, above the station (${station}). Rain possible.`, rain: true };
-  }
-  return { text: `Snow level ${Math.min(...levels).toLocaleString()}–${highest.toLocaleString()}′, below the station (${station}).`, rain: false };
 }
 
 export function forecastSky(day: ForecastDay): ForecastSky {
@@ -145,8 +130,7 @@ export function formatTempRange(day: ForecastDay): { high: string; low: string }
 
 export function forecastSourceLine(forecast: StationForecast): string {
   const updated = new Date(forecast.updated).toLocaleString("en-US", { weekday: "short", hour: "numeric" });
-  const terrain = forecast.gridElevation ? ` · terrain around ${forecast.gridElevation.toLocaleString()}′` : "";
-  return `NWS point forecast${terrain} · Updated ${updated}`;
+  return `NWS point forecast · Updated ${updated}`;
 }
 
 export function nwsForecastUrl(latitude: number, longitude: number): string {

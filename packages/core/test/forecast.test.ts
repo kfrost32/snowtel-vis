@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { forecastTotal, snowLevelNote, summarizeForecast } from "../src/forecast";
+import { forecastTotal, summarizeForecast } from "../src/forecast";
 
 const grid = {
   updateTime: "2026-10-26T12:00:00+00:00",
@@ -24,10 +24,4 @@ test("splits an interval that crosses local midnight across both days", () => {
   assert.equal(forecastTotal(forecast), 3.4);
   assert.equal(forecast.gridElevation, 11575);
   assert.equal(byDate["2026-10-30"].high, 32);
-});
-
-test("flags rain when the snow level is above the station", () => {
-  const forecast = summarizeForecast(grid, "America/Denver", new Date("2026-10-26T18:00:00Z"));
-  assert.equal(snowLevelNote(forecast, 11060)?.rain, false);
-  assert.equal(snowLevelNote(forecast, 9000)?.rain, true);
 });
