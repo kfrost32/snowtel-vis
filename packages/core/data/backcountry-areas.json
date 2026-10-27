@@ -478,5 +478,141 @@
     "latitude": 61.1294,
     "longitude": -145.7334,
     "elevation": 2683
+  },
+  {
+    "id": "marble-co",
+    "name": "Marble",
+    "state": "CO",
+    "latitude": 39.0717,
+    "longitude": -107.1895,
+    "elevation": 7950
+  },
+  {
+    "id": "st-mary-s-glacier-co",
+    "name": "St. Mary's Glacier",
+    "state": "CO",
+    "latitude": 39.8226,
+    "longitude": -105.6442,
+    "elevation": 10400
+  },
+  {
+    "id": "brainard-lake-co",
+    "name": "Brainard Lake",
+    "state": "CO",
+    "latitude": 40.0785,
+    "longitude": -105.5687,
+    "elevation": 10345
+  },
+  {
+    "id": "mayflower-gulch-co",
+    "name": "Mayflower Gulch",
+    "state": "CO",
+    "latitude": 39.4302,
+    "longitude": -106.1631,
+    "elevation": 10980
+  },
+  {
+    "id": "hoosier-pass-co",
+    "name": "Hoosier Pass",
+    "state": "CO",
+    "latitude": 39.3617,
+    "longitude": -106.0624,
+    "elevation": 11542
+  },
+  {
+    "id": "buffalo-pass-co",
+    "name": "Buffalo Pass",
+    "state": "CO",
+    "latitude": 40.5394,
+    "longitude": -106.6818,
+    "elevation": 10300
+  },
+  {
+    "id": "lizard-head-pass-co",
+    "name": "Lizard Head Pass",
+    "state": "CO",
+    "latitude": 37.8122,
+    "longitude": -107.908,
+    "elevation": 10222
+  },
+  {
+    "id": "ashcroft-co",
+    "name": "Ashcroft",
+    "state": "CO",
+    "latitude": 39.0536,
+    "longitude": -106.7994,
+    "elevation": 9500
+  },
+  {
+    "id": "washington-gulch-crested-butte-co",
+    "name": "Washington Gulch (Crested Butte)",
+    "state": "CO",
+    "latitude": 38.918,
+    "longitude": -107.005,
+    "elevation": 9600
+  },
+  {
+    "id": "aspen-grove-timpanogos-ut",
+    "name": "Aspen Grove (Timpanogos)",
+    "state": "UT",
+    "latitude": 40.4043,
+    "longitude": -111.6055,
+    "elevation": 6900
+  },
+  {
+    "id": "mount-tallac-ca",
+    "name": "Mount Tallac",
+    "state": "CA",
+    "latitude": 38.9208,
+    "longitude": -120.0752,
+    "elevation": 6450
+  },
+  {
+    "id": "north-ogden-divide-ut",
+    "name": "North Ogden Divide",
+    "state": "UT",
+    "latitude": 41.329,
+    "longitude": -111.907,
+    "elevation": 6200
+  },
+  {
+    "id": "taggart-lake-grand-teton-wy",
+    "name": "Taggart Lake (Grand Teton)",
+    "state": "WY",
+    "latitude": 43.6926,
+    "longitude": -110.733,
+    "elevation": 6600
+  },
+  {
+    "id": "powder-pass-wy",
+    "name": "Powder Pass",
+    "state": "WY",
+    "latitude": 44.1386,
+    "longitude": -107.0477,
+    "elevation": 9666
+  },
+  {
+    "id": "mores-creek-summit-id",
+    "name": "Mores Creek Summit",
+    "state": "ID",
+    "latitude": 43.93,
+    "longitude": -115.665,
+    "elevation": 6118
+  },
+  {
+    "id": "marble-mountain-mt-st-helens-wa",
+    "name": "Marble Mountain (Mt St Helens)",
+    "state": "WA",
+    "latitude": 46.1338,
+    "longitude": -122.1652,
+    "elevation": 2700
+  },
+  {
+    "id": "lakes-basin-mammoth-ca",
+    "name": "Lakes Basin (Mammoth)",
+    "state": "CA",
+    "latitude": 37.6045,
+    "longitude": -119.0115,
+    "elevation": 8900
   }
 ]
