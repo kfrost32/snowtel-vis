@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 
-export const API_BASE: string = Constants.expoConfig?.extra?.apiBase ?? "https://snotel.hereandthere.club";
+export const API_BASE: string = Constants.expoConfig?.extra?.apiBase ?? "https://snotel.fyi";
 
 export async function fetcher<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);

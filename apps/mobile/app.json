@@ -50,7 +50,7 @@
       "reactCompiler": true
     },
     "extra": {
-      "apiBase": "https://snotel.hereandthere.club"
+      "apiBase": "https://snotel.fyi"
     }
   }
 }

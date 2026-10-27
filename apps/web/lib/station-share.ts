@@ -1,4 +1,5 @@
-import { getStation } from "@snotel/core/stations";
+import type { Metadata } from "next";
+import { getStation, urlTriplet } from "@snotel/core/stations";
 import { applyRecentDepth, type RecentConditions } from "@snotel/core/recent";
 import { lastStorm, SNOW_QUALITY, type StormSummary } from "@snotel/core/storm";
 import { formatDepthChange, formatElevation, formatPctOfNormal, formatReadingEndOfDay, formatSnowDepth, formatSwe } from "@snotel/core/formatting";
@@ -46,4 +47,20 @@ export function stationShareDescription({ station, conditions, storm }: StationS
   ]
     .filter(Boolean)
     .join(" · ");
+}
+
+export async function stationMetadata(triplet: string, withImages = false): Promise<Metadata> {
+  const share = await stationShare(triplet);
+  if (!share) return {};
+  const title = `${share.station.name}, ${share.station.state} · SNOTEL Explorer`;
+  const description = stationShareDescription(share);
+  const url = `/station/${urlTriplet(triplet)}`;
+  const images = withImages ? [`${url}/opengraph-image`] : undefined;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, type: "website", url, images },
+    twitter: { card: "summary_large_image", title, description, images },
+  };
 }
