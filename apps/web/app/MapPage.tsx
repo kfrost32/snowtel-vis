@@ -99,6 +99,11 @@ function HomePageInner() {
     selection.selectStation(triplet);
   };
 
+  const handleFavoriteStation = (triplet: string) => {
+    if (isMobile) setSidebarOpen(false);
+    selection.focusStation(triplet);
+  };
+
   const handleBasinClick = (huc: string) => {
     if (isMobile) setSidebarOpen(false);
     selection.selectBasin(huc);
@@ -167,7 +172,7 @@ function HomePageInner() {
       basins={allBasins}
       controls={controls}
       onClose={() => setSidebarOpen(false)}
-      onSelectStation={handleStationClick}
+      onSelectStation={handleFavoriteStation}
       onSelectBasin={handleBasinClick}
     />
   );

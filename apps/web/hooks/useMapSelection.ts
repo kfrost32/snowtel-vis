@@ -29,6 +29,12 @@ export function useMapSelection() {
     setBasinHuc(null);
   }, []);
 
+  const focusStation = useCallback((next: string) => {
+    setTriplet(next);
+    setBasinHuc(null);
+    setFocus({ triplet: next });
+  }, []);
+
   const selectBasin = useCallback((huc: string) => {
     setBasinHuc(huc);
     setTriplet(null);
@@ -53,5 +59,5 @@ export function useMapSelection() {
     return () => window.removeEventListener("keydown", onKey);
   }, [clear]);
 
-  return { triplet, basinHuc, focus, selectStation, selectBasin, clear };
+  return { triplet, basinHuc, focus, selectStation, focusStation, selectBasin, clear };
 }

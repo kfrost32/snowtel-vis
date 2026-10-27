@@ -109,30 +109,33 @@ export default function MapSidebar({ stationCount, isMobile, basins, controls, o
           </div>
         ) : (
           <div key="layers" className={`flex flex-col ${enter}`}>
-            {hasFavorites && (
-              <div className="max-md:order-last">
-                <SidebarSection label="Favorites" flush>
-                  {favorites.stations.map((triplet) => {
-                    const s = getStation(triplet);
-                    if (!s) return null;
-                    return (
-                      <SidebarFavoriteItem
-                        key={triplet}
-                        name={s.name}
-                        detail={s.state}
-                        onClick={() => onSelectStation(triplet)}
-                        onRemove={() => toggleStation(triplet)}
-                      />
-                    );
-                  })}
-                  {favorites.basins.map((huc) => {
-                    const b = basins.find((basin) => basin.huc === huc);
-                    if (!b) return null;
-                    return <SidebarFavoriteItem key={huc} name={b.name} onClick={() => onSelectBasin(huc)} onRemove={() => toggleBasin(huc)} />;
-                  })}
-                </SidebarSection>
-              </div>
-            )}
+            <div className="max-md:order-last">
+              <SidebarSection label="Favorites" flush>
+                {!hasFavorites && (
+                  <p className="px-4 pb-2 text-sm font-sans" style={{ color: theme.mediumGray }}>
+                    No favorites added yet
+                  </p>
+                )}
+                {favorites.stations.map((triplet) => {
+                  const s = getStation(triplet);
+                  if (!s) return null;
+                  return (
+                    <SidebarFavoriteItem
+                      key={triplet}
+                      name={s.name}
+                      detail={s.state}
+                      onClick={() => onSelectStation(triplet)}
+                      onRemove={() => toggleStation(triplet)}
+                    />
+                  );
+                })}
+                {favorites.basins.map((huc) => {
+                  const b = basins.find((basin) => basin.huc === huc);
+                  if (!b) return null;
+                  return <SidebarFavoriteItem key={huc} name={b.name} onClick={() => onSelectBasin(huc)} onRemove={() => toggleBasin(huc)} />;
+                })}
+              </SidebarSection>
+            </div>
 
             <MapControls {...controls} />
           </div>
