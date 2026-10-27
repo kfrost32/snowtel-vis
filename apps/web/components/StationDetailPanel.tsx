@@ -244,6 +244,14 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
           </ChartCard>
         </div>
 
+        {forecast && forecast.days.length > 0 && (
+          <div className="px-3 pt-3">
+            <ChartCard dense title={<ChartTitle name={station.name} label="Snow Forecast" />} exportable={false}>
+              <ForecastBars forecast={forecast} station={station} />
+            </ChartCard>
+          </div>
+        )}
+
         <div className="md:hidden max-md:order-2 px-4 pt-3 pb-4">
           <button
             onClick={() => setShowMoreCharts((v) => !v)}
@@ -268,14 +276,6 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
                   lastUpdated={current?.lastUpdated ?? null}
                 />
               ) : null}
-            </ChartCard>
-          </div>
-        )}
-
-        {forecast && forecast.days.length > 0 && (
-          <div className="px-3 pt-3">
-            <ChartCard dense title={<ChartTitle name={station.name} label="Snow Forecast" />} exportable={false}>
-              <ForecastBars forecast={forecast} station={station} />
             </ChartCard>
           </div>
         )}

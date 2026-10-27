@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
-import { ChevronRight, Loader2, Search, SlidersHorizontal } from "lucide-react";
+import { Loader2, Search, SlidersHorizontal } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useIsDark, useSettings } from "@/lib/settings";
@@ -56,6 +56,8 @@ function HomePageInner() {
   const { metric, selectedStates } = controls;
   const selection = useMapSelection();
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const isCompactDesktop = useMediaQuery("(min-width: 768px) and (max-width: 1279px)");
+  const [sidebarReopenedFor, setSidebarReopenedFor] = useState<string | null>(null);
   const dark = useIsDark();
   const [sidebarChoice, setSidebarChoice] = useState<{ open: boolean; mobile: boolean } | null>(null);
   const sidebarOpen = sidebarChoice && sidebarChoice.mobile === isMobile ? sidebarChoice.open : !isMobile;
@@ -107,7 +109,11 @@ function HomePageInner() {
   }, [selectedTriplet, selection.basinHuc]);
 
   const hasDetailPanel = selectedTriplet !== null || selectedBasin !== null;
-  const sidebarOffset = !isMobile && sidebarOpen ? SIDEBAR_WIDTH + SIDEBAR_INSET * 2 : 0;
+  const selectionKey = selectedTriplet ?? selectedBasin?.huc ?? null;
+  const sidebarYields = isCompactDesktop && hasDetailPanel && sidebarReopenedFor !== selectionKey;
+  const sidebarShown = sidebarOpen && !sidebarYields;
+  const openSidebar = () => (sidebarOpen ? setSidebarReopenedFor(selectionKey) : setSidebarOpen(true));
+  const sidebarOffset = !isMobile && sidebarShown ? SIDEBAR_WIDTH + SIDEBAR_INSET * 2 : 0;
   const expanded = useStoredValue(expandedStore);
   const toggleExpand = isMobile ? undefined : () => expandedStore.set((v) => !v);
   const detailWidth = expanded ? `min(${EXPANDED_DETAIL_MAX}px, calc(100vw - ${(sidebarOffset || SIDEBAR_INSET) + SIDEBAR_INSET}px))` : DETAIL_WIDTH;
@@ -149,7 +155,7 @@ function HomePageInner() {
 
   return (
     <div className="h-dvh flex w-full relative">
-      {sidebarOpen && (isMobile ? (
+      {sidebarShown && (isMobile ? (
         <MobileOverlay onDismiss={() => setSidebarOpen(false)} zIndex={30}>
           {sidebarContent}
         </MobileOverlay>
@@ -162,28 +168,24 @@ function HomePageInner() {
         </div>
       ))}
 
-      {!sidebarOpen && (
-        <div
-          className="absolute z-20 flex items-center gap-2 md:gap-0.5 md:p-0.5 md:rounded-xl"
-          style={{ ...(isMobile ? {} : GLASS_STYLE), top: SIDEBAR_INSET, left: SIDEBAR_INSET }}
-        >
+      {!sidebarShown && (
+        <div className="absolute z-20 flex items-center gap-2" style={{ top: SIDEBAR_INSET, left: SIDEBAR_INSET }}>
           <button
-            onClick={() => setSidebarOpen(true)}
-            className="flex items-center justify-center gap-2 h-11 md:h-8 pl-3.5 pr-4 md:p-0 md:w-8 rounded-xl md:rounded-lg hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
-            style={isMobile ? GLASS_STYLE : undefined}
-            aria-label="Open sidebar"
+            onClick={openSidebar}
+            className="flex items-center justify-center gap-2 h-11 md:h-10 pl-3.5 pr-4 rounded-xl hover:brightness-95 transition cursor-pointer"
+            style={GLASS_STYLE}
+            aria-label="Open layers and filters"
           >
-            <SlidersHorizontal size={16} className="md:hidden" style={{ color: theme.darkGray }} />
-            <span className="md:hidden text-sm font-sans font-semibold" style={{ color: theme.darkGray }}>Layers</span>
-            <ChevronRight size={16} className="hidden md:block" style={{ color: theme.gray }} />
+            <SlidersHorizontal size={16} style={{ color: theme.darkGray }} />
+            <span className="text-sm font-sans font-semibold" style={{ color: theme.darkGray }}>Layers</span>
           </button>
           <button
             onClick={openSearch}
-            className="flex items-center justify-center w-11 h-11 md:w-8 md:h-8 rounded-xl md:rounded-lg hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
-            style={isMobile ? GLASS_STYLE : undefined}
+            className="flex items-center justify-center w-11 h-11 md:w-10 md:h-10 rounded-xl hover:brightness-95 transition cursor-pointer"
+            style={GLASS_STYLE}
             aria-label="Search"
           >
-            <Search size={16} className="max-md:size-[18px]" style={{ color: isMobile ? theme.darkGray : theme.gray }} />
+            <Search size={18} style={{ color: theme.darkGray }} />
           </button>
         </div>
       )}

@@ -13,14 +13,14 @@ interface PanelHeaderActionsProps {
   plain?: boolean;
 }
 
-function HeaderButton({ label, color, plain, onClick, children }: { label: string; color?: string; plain: boolean; onClick: () => void; children: ReactNode }) {
+function HeaderButton({ label, color, plain, onClick, className = "", children }: { label: string; color?: string; plain: boolean; onClick: () => void; className?: string; children: ReactNode }) {
   const style: CSSProperties = plain
     ? { color: color ?? theme.darkGray, background: "rgba(0,0,0,0.06)", border: `1px solid ${theme.borderGray}` }
     : { color: color ?? "rgba(255,255,255,0.9)", ...glassmorphicButtonStyle };
   return (
     <button
       onClick={onClick}
-      className="flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer"
+      className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer ${className}`}
       style={style}
       aria-label={label}
       title={label}
@@ -46,8 +46,9 @@ export default function PanelHeaderActions({ isFavorite, onToggleFavorite, onClo
           {expanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
         </HeaderButton>
       )}
-      <HeaderButton label="Close panel" plain={plain} onClick={onClose}>
+      <HeaderButton label="Close panel" plain={plain} onClick={onClose} className="max-md:w-auto max-md:gap-1.5 max-md:pl-3 max-md:pr-4">
         <X size={18} />
+        <span className="md:hidden text-sm font-sans font-semibold">Close</span>
       </HeaderButton>
     </div>
   );
