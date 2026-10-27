@@ -71,6 +71,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
   const recentDepth = stationDepth(useRecentConditions()?.stations[triplet], hourlyData);
   const { data: envelopeData, loading: envelopeLoading } = useEnvelopeData(triplet);
   const envelopeOptions = useEnvelopeOptions(endpoints.stationYears(triplet));
+  const chartOptions = expanded ? envelopeOptions : { ...envelopeOptions, compareYears: [] };
   const yearOptions = useMemo(() => {
     const currentWy = getCurrentWaterYear();
     return historicalData
@@ -215,7 +216,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
                 asOf={current?.lastUpdated ?? null}
               />
             }
-            actions={<EnvelopeChartActions options={envelopeOptions} yearOptions={yearOptions} />}
+            actions={expanded && <EnvelopeChartActions options={envelopeOptions} yearOptions={yearOptions} />}
             menuItems={[{ label: "Percentiles", checked: envelopeOptions.showPercentiles, onSelect: envelopeOptions.togglePercentiles }]}
             height={280}
             footer={envelopeStats && (
@@ -238,7 +239,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
                 season={seasonData.season}
                 envelope={envelopeData}
                 lastUpdated={current?.lastUpdated ?? null}
-                options={envelopeOptions}
+                options={chartOptions}
               />
             ) : null}
           </ChartCard>

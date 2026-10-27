@@ -42,6 +42,7 @@ export default function BasinDetailPanel({
 }: BasinDetailPanelProps) {
   const { data: envelopeData, loading: envelopeLoading } = useBasinEnvelopeData(basin.huc);
   const envelopeOptions = useEnvelopeOptions(endpoints.basinYears(basin.huc));
+  const chartOptions = expanded ? envelopeOptions : { ...envelopeOptions, compareYears: [] };
   const yearOptions = useMemo(
     () =>
       Array.from({ length: getCurrentWaterYear() - FIRST_COMPARE_YEAR }, (_, i) => getCurrentWaterYear() - 1 - i)
@@ -128,7 +129,7 @@ export default function BasinDetailPanel({
                 asOf={basin.asOf}
               />
             }
-            actions={<EnvelopeChartActions options={envelopeOptions} yearOptions={yearOptions} />}
+            actions={expanded && <EnvelopeChartActions options={envelopeOptions} yearOptions={yearOptions} />}
             menuItems={[{ label: "Percentiles", checked: envelopeOptions.showPercentiles, onSelect: envelopeOptions.togglePercentiles }]}
             description={envelopeData ? `Chart averages ${envelopeData.stationCount} stations` : undefined}
             height={240}
@@ -152,7 +153,7 @@ export default function BasinDetailPanel({
                 envelope={envelopeData}
                 seasonMap={seasonMap}
                 lastUpdated={basin.asOf}
-                options={envelopeOptions}
+                options={chartOptions}
               />
             ) : null}
           </ChartCard>

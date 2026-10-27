@@ -197,7 +197,7 @@ export default function EnvelopeChart({
               dataKey="wyDay"
               type="number"
               domain={[1, 366]}
-              tickFormatter={(day: number) => waterYearDayToLabel(day, wy)}
+              tickFormatter={(day: number) => waterYearDayToLabel(day, wy).split(" ")[0]}
               ticks={[1, 32, 62, 93, 124, 152, 183, 213, 244, 274, 305, 336]}
               tick={{ fontSize: 12, fontFamily: "var(--font-ibm-plex-mono)", fill: theme.mediumGray }}
               axisLine={{ stroke: theme.borderGray }}
