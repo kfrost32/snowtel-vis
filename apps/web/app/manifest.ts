@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: SITE_NAME,
     short_name: "SNOTEL",
-    description: "Snowpack, snow depth and storm totals for every SNOTEL station in the western US.",
+    description: "Live snowpack, storm totals and snow forecasts for 900+ SNOTEL stations across the West.",
     start_url: "/",
     display: "standalone",
     background_color: "#F8FAFC",

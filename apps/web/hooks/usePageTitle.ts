@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const DEFAULT_TITLE = "snotel.fyi · SNOTEL snowpack map";
+const DEFAULT_TITLE = "SNOTEL snowpack map · snotel.fyi";
 
 export function usePageTitle(title: string | null) {
   useEffect(() => {
