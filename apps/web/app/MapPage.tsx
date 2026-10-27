@@ -162,10 +162,14 @@ function HomePageInner() {
       ))}
 
       {!sidebarOpen && (
-        <div className="absolute z-20 flex items-center gap-0.5 p-0.5 rounded-xl" style={{ ...GLASS_STYLE, top: SIDEBAR_INSET, left: SIDEBAR_INSET }}>
+        <div
+          className="absolute z-20 flex items-center gap-2 md:gap-0.5 md:p-0.5 md:rounded-xl"
+          style={{ ...(isMobile ? {} : GLASS_STYLE), top: SIDEBAR_INSET, left: SIDEBAR_INSET }}
+        >
           <button
             onClick={() => setSidebarOpen(true)}
-            className="flex items-center justify-center gap-2 h-10 md:h-8 pl-3 pr-3.5 md:p-0 md:w-8 rounded-lg hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-2 h-11 md:h-8 pl-3.5 pr-4 md:p-0 md:w-8 rounded-xl md:rounded-lg hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
+            style={isMobile ? GLASS_STYLE : undefined}
             aria-label="Open sidebar"
           >
             <SlidersHorizontal size={16} className="md:hidden" style={{ color: theme.darkGray }} />
@@ -174,10 +178,11 @@ function HomePageInner() {
           </button>
           <button
             onClick={openSearch}
-            className="flex items-center justify-center w-10 h-10 md:w-8 md:h-8 rounded-lg hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
+            className="flex items-center justify-center w-11 h-11 md:w-8 md:h-8 rounded-xl md:rounded-lg hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
+            style={isMobile ? GLASS_STYLE : undefined}
             aria-label="Search"
           >
-            <Search size={16} style={{ color: theme.gray }} />
+            <Search size={16} className="max-md:size-[18px]" style={{ color: isMobile ? theme.darkGray : theme.gray }} />
           </button>
         </div>
       )}
