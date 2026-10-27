@@ -34,27 +34,38 @@ export default function MapSidebar({ stationCount, isMobile, basins, controls, o
       <div className="flex items-center justify-between px-4 pt-6 pb-2.5 md:pt-2.5 border-b flex-shrink-0" style={{ borderColor: "var(--c-hairline)" }}>
         <div className="min-w-0">
           <div className="text-sm font-semibold tracking-tight font-sans truncate" style={{ color: theme.black }}>
-            SNOTEL Explorer
+            snotel.fyi
           </div>
           <div className="text-xs font-mono" style={{ color: theme.mediumGray }}>
             {`${stationCount} stations`}
           </div>
         </div>
-        <div className="flex items-center gap-0.5 shrink-0">
-          <button onClick={onSearch} className="p-1.5 max-md:p-2.5 rounded-md hover:bg-[var(--c-hover)] transition-colors cursor-pointer" aria-label="Search">
-            <Search size={16} className="max-md:size-[18px]" style={{ color: theme.gray }} />
+        <div className="flex items-center gap-0.5 max-md:gap-2 shrink-0">
+          <button onClick={onSearch} className="max-md:hidden p-1.5 rounded-md hover:bg-[var(--c-hover)] transition-colors cursor-pointer" aria-label="Search">
+            <Search size={16} style={{ color: theme.gray }} />
           </button>
           <button
             onClick={() => settingsOpen.set((open) => !open)}
-            className="p-1.5 max-md:p-2.5 rounded-md hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
+            className="p-1.5 rounded-md max-md:flex max-md:items-center max-md:justify-center max-md:size-10 max-md:p-0 max-md:rounded-full max-md:bg-[var(--c-hairline)] hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
             style={{ background: showSettings ? "var(--c-hover)" : undefined }}
             aria-label="Settings"
             aria-pressed={showSettings}
           >
-            <Settings size={16} className="max-md:size-[18px]" style={{ color: showSettings ? theme.black : theme.gray }} />
+            <Settings size={16} className="max-md:size-5" style={{ color: showSettings ? theme.black : theme.gray }} />
           </button>
-          <button onClick={onClose} className="p-1.5 max-md:p-2.5 rounded-md hover:bg-[var(--c-hover)] transition-colors cursor-pointer" aria-label="Close sidebar">
-            {isMobile ? <X size={18} style={{ color: theme.gray }} /> : <ChevronLeft size={16} style={{ color: theme.gray }} />}
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-md max-md:flex max-md:items-center max-md:gap-1.5 max-md:h-10 max-md:pl-3 max-md:pr-4 max-md:rounded-full max-md:bg-[var(--c-hairline)] hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
+            aria-label="Close sidebar"
+          >
+            {isMobile ? (
+              <>
+                <X size={18} style={{ color: theme.darkGray }} />
+                <span className="text-sm font-sans font-semibold" style={{ color: theme.darkGray }}>Close</span>
+              </>
+            ) : (
+              <ChevronLeft size={16} style={{ color: theme.gray }} />
+            )}
           </button>
         </div>
       </div>

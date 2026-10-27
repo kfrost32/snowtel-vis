@@ -22,17 +22,17 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "SNOTEL Explorer",
+  title: "snotel.fyi · SNOTEL snowpack map",
   description: "Interactive map of SNOTEL snowpack conditions across the western United States. Current SWE, snow depth, and percent of normal for 900+ mountain stations.",
   openGraph: {
-    title: "SNOTEL Explorer",
+    title: "snotel.fyi · SNOTEL snowpack map",
     description: "Interactive map of SNOTEL snowpack conditions across the western United States.",
     type: "website",
     images: [{ url: "/og.jpg" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "SNOTEL Explorer",
+    title: "snotel.fyi · SNOTEL snowpack map",
     description: "Interactive map of SNOTEL snowpack conditions across the western United States.",
     images: ["/og.jpg"],
   },

@@ -21,7 +21,7 @@ export default function GlobalHeader() {
           className="text-sm font-semibold tracking-tight hover:opacity-70 transition-opacity duration-150 truncate font-sans"
           style={{ color: theme.white }}
         >
-          SNOTEL Explorer
+          snotel.fyi
         </Link>
 
         <button

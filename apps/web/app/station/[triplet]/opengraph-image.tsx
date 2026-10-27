@@ -36,7 +36,7 @@ export default async function Image({ params }: { params: Promise<{ triplet: str
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 64, background: theme.offWhite }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontSize: 24, letterSpacing: 4, color: theme.mediumGray }}>SNOTEL EXPLORER</div>
+          <div style={{ fontSize: 24, letterSpacing: 4, color: theme.mediumGray }}>SNOTEL.FYI</div>
           <div style={{ fontSize: 76, fontWeight: 700, color: theme.black, lineHeight: 1.05 }}>{station?.name ?? "SNOTEL station"}</div>
           {station && <div style={{ fontSize: 34, color: theme.gray }}>{stationPlace(station)}</div>}
         </div>

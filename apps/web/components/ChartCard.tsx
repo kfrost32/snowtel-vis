@@ -224,7 +224,7 @@ export default function ChartCard({ title, description, height, actions, footer,
         style={{ display: "none", borderColor: theme.borderGray }}
       >
         <span style={{ color: theme.gray, fontSize: "10px" }}>
-          snotel.fyi · SNOTEL Explorer
+          snotel.fyi
         </span>
         <span style={{ color: theme.mediumGray, fontSize: "10px" }}>
           Source: USDA NRCS

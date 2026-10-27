@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const title = "Compare SNOTEL Stations · SNOTEL Explorer";
+const title = "Compare SNOTEL Stations · snotel.fyi";
 const description = "Compare snow depth and snow water equivalent across SNOTEL stations side by side for the current water year.";
 
 export const metadata: Metadata = {

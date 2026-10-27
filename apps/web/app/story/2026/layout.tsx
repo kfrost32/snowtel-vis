@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const title = "Water Year 2026 · SNOTEL Explorer";
+const title = "Water Year 2026 · snotel.fyi";
 const description = "How the 2026 water year is shaping up across the West, told through SNOTEL snowpack data.";
 
 export const metadata: Metadata = {

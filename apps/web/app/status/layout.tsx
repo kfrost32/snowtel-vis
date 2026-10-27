@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
-const title = "Data Status · SNOTEL Explorer";
-const description = "Freshness of the NRCS SNOTEL and NWS forecast data behind SNOTEL Explorer.";
+const title = "Data Status · snotel.fyi";
+const description = "Freshness of the NRCS SNOTEL and NWS forecast data behind snotel.fyi.";
 
 export const metadata: Metadata = {
   title,

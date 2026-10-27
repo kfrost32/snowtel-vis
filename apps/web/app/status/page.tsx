@@ -69,7 +69,7 @@ export default function StatusPage() {
             className="font-mono text-xs uppercase tracking-wider"
             style={{ color: theme.mediumGray }}
           >
-            SNOTEL Explorer
+            snotel.fyi
           </Link>
           <h1
             className="font-sans font-bold text-2xl sm:text-3xl mt-2"
@@ -152,7 +152,7 @@ export default function StatusPage() {
 
         <div className="mt-8 text-center">
           <p className="font-mono text-xs" style={{ color: theme.mediumGray }}>
-            SNOTEL Explorer depends on the USDA NRCS web services for snowpack data.
+            snotel.fyi depends on the USDA NRCS web services for snowpack data.
             When these services are unavailable, cached data is served automatically.
           </p>
         </div>
