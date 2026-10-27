@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpRight, ChevronLeft, PanelLeftClose, Settings, X } from "lucide-react";
+import { ChevronLeft, PanelLeftClose, Settings, X } from "lucide-react";
 import { theme } from "@/lib/theme";
 import { getStation } from "@snotel/core/stations";
 import type { BasinSummary } from "@snotel/core/types";
@@ -10,14 +10,12 @@ import SettingsPanel from "@/components/SettingsPanel";
 import { memoryValue, useStoredValue } from "@/lib/stored-value";
 import { SidebarFavoriteItem, SidebarSection } from "@/components/sidebar";
 import { useFavorites } from "@/hooks/useFavorites";
-import { track } from "@/lib/analytics";
 
 const settingsOpen = memoryValue(false);
 const SLIDE_IN = {
   layers: "motion-safe:animate-slide-in-left",
   settings: "motion-safe:animate-slide-in-right",
 };
-const NEWSLETTER_URL = "https://read.hereandthere.club/subscribe";
 
 interface MapSidebarProps {
   stationCount: number;
@@ -140,20 +138,6 @@ export default function MapSidebar({ stationCount, isMobile, basins, controls, o
             <MapControls {...controls} />
           </div>
         )}
-
-        <a
-          href={NEWSLETTER_URL}
-          target="_blank"
-          rel="noopener"
-          onClick={() => track("newsletter_click", { location: "sidebar" })}
-          className="group mt-auto max-md:order-last mx-3 my-3 px-3 py-2.5 rounded-lg flex items-center gap-3 bg-[var(--c-hairline)] hover:bg-[var(--c-hover)] active:scale-[0.99] transition"
-        >
-          <span className="min-w-0 flex-1 font-sans">
-            <span className="block text-xs font-medium" style={{ color: theme.black }}>Get the Here &amp; There newsletter</span>
-            <span className="block text-xs" style={{ color: theme.mediumGray }}>Writing and research for the outdoors</span>
-          </span>
-          <ArrowUpRight size={16} className="shrink-0 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" style={{ color: theme.darkGray }} />
-        </a>
       </div>
     </>
   );
