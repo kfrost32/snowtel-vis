@@ -158,7 +158,7 @@ function CompareContent() {
       <div className="px-4 sm:px-6 pb-4">
         <div className="relative max-w-md">
           <Search
-            size={14}
+            size={16}
             className="absolute left-3 top-1/2 -translate-y-1/2"
             style={{ color: theme.mediumGray }}
           />

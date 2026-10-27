@@ -55,14 +55,14 @@ export default function ForecastBars({ forecast, station }: { forecast: StationF
               <span className="font-mono text-xs" style={{ color: i === 0 ? theme.black : theme.gray, fontWeight: i === 0 ? 600 : 400 }}>
                 {forecastDayLabel(day.date, i)}
               </span>
-              <Icon size={20} strokeWidth={1.75} style={{ color }} />
-              <span className="font-mono text-[12px] font-semibold tabular-nums" style={{ color: day.snow > 0 ? theme.black : theme.borderGray }}>
+              <Icon size={18} strokeWidth={1.75} style={{ color }} />
+              <span className="font-mono text-xs font-semibold tabular-nums" style={{ color: day.snow > 0 ? theme.black : theme.borderGray }}>
                 {day.snow > 0 ? formatSnowfall(day.snow) : "–"}
               </span>
               <div className="w-3/5 max-w-[22px] flex items-end" style={{ height: BAR_HEIGHT }}>
                 <div className="w-full rounded" style={{ height: Math.max(day.snow > 0 ? 3 : 0, (day.snow / scale) * BAR_HEIGHT), background: BAR_COLOR }} />
               </div>
-              <span className="font-mono text-[12px] tabular-nums" style={{ color: theme.black }}>{temps.high}</span>
+              <span className="font-mono text-xs tabular-nums" style={{ color: theme.black }}>{temps.high}</span>
               <span className="font-mono text-xs tabular-nums -mt-1" style={{ color: theme.mediumGray }}>{temps.low}</span>
               <span className="font-mono text-xs tabular-nums" style={{ color: theme.mediumGray }}>
                 {day.precipChance != null ? `${day.precipChance}%` : ""}
@@ -79,7 +79,7 @@ export default function ForecastBars({ forecast, station }: { forecast: StationF
         className="self-start inline-flex items-center gap-0.5 font-mono text-xs underline-offset-2 hover:underline"
         style={{ color: theme.mediumGray }}
       >
-        {forecastSourceLine(forecast)} <ArrowUpRight size={10} />
+        {forecastSourceLine(forecast)} <ArrowUpRight size={12} />
       </a>
     </div>
   );

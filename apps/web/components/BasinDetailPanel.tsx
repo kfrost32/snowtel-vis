@@ -111,7 +111,7 @@ export default function BasinDetailPanel({
           ].map((stat, i) => (
             <div key={stat.label} className="flex-1 min-w-[72px] flex flex-col px-3 py-2.5" style={{ borderLeft: i > 0 ? `1px solid ${theme.borderGray}` : undefined }}>
               <span className="font-mono text-xs whitespace-nowrap" style={{ color: theme.mediumGray }}>{stat.label}</span>
-              <span className="font-mono text-[13px] font-semibold mt-0.5 whitespace-nowrap" style={{ color: stat.color }}>{stat.value}</span>
+              <span className="font-mono text-sm font-semibold mt-0.5 whitespace-nowrap" style={{ color: stat.color }}>{stat.value}</span>
             </div>
           ))}
         </div>

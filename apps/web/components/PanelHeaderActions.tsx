@@ -43,11 +43,11 @@ export default function PanelHeaderActions({ isFavorite, onToggleFavorite, onClo
       </HeaderButton>
       {onToggleExpand && (
         <HeaderButton label={expanded ? "Collapse panel" : "Expand panel"} plain={plain} onClick={onToggleExpand}>
-          {expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+          {expanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
         </HeaderButton>
       )}
       <HeaderButton label="Close panel" plain={plain} onClick={onClose}>
-        <X size={20} />
+        <X size={18} />
       </HeaderButton>
     </div>
   );

@@ -116,7 +116,7 @@ export default function ChartCard({ title, description, height, actions, footer,
     >
       {dense && (
         <div className="flex items-center justify-between gap-3 mb-3">
-          <h3 className="min-w-0 flex items-baseline gap-x-2 flex-wrap text-[15px] font-medium" style={{ color: theme.black }}>
+          <h3 className="min-w-0 flex items-baseline gap-x-2 flex-wrap text-sm font-medium" style={{ color: theme.black }}>
             {title}
             {description && (
               <span className="font-mono text-xs font-normal" style={{ color: theme.mediumGray }}>

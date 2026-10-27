@@ -13,7 +13,7 @@ export default function SidebarToggle({ label, description, checked, onChange }:
   return (
     <div className="flex items-center justify-between gap-2 min-h-[40px] md:min-h-0">
       <div>
-        <div className="font-sans text-[13px] font-medium" style={{ color: theme.darkGray }}>{label}</div>
+        <div className="font-sans text-sm font-medium" style={{ color: theme.darkGray }}>{label}</div>
         {description && (
           <div className="font-sans text-xs" style={{ color: theme.gray }}>{description}</div>
         )}

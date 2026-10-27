@@ -169,7 +169,7 @@ function HomePageInner() {
             aria-label="Open sidebar"
           >
             <SlidersHorizontal size={16} className="md:hidden" style={{ color: theme.darkGray }} />
-            <span className="md:hidden text-[13px] font-sans font-semibold" style={{ color: theme.darkGray }}>Layers</span>
+            <span className="md:hidden text-sm font-sans font-semibold" style={{ color: theme.darkGray }}>Layers</span>
             <ChevronRight size={16} className="hidden md:block" style={{ color: theme.gray }} />
           </button>
           <button
@@ -177,7 +177,7 @@ function HomePageInner() {
             className="flex items-center justify-center w-10 h-10 md:w-8 md:h-8 rounded-lg hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
             aria-label="Search"
           >
-            <Search size={15} style={{ color: theme.gray }} />
+            <Search size={16} style={{ color: theme.gray }} />
           </button>
         </div>
       )}

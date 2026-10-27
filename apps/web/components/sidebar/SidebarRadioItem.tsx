@@ -19,7 +19,7 @@ export default function SidebarRadioItem({ label, active, onClick }: SidebarRadi
         style={{ background: active ? theme.black : theme.mediumGray, opacity: active ? 1 : 0.4 }}
       />
       <span
-        className="text-[13px] font-sans"
+        className="text-sm font-sans"
         style={{ color: active ? theme.black : theme.gray, fontWeight: active ? 600 : 400 }}
       >
         {label}

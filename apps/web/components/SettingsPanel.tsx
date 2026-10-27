@@ -31,7 +31,7 @@ export default function SettingsPanel() {
         <select
           value={settings.homeState ?? ""}
           onChange={(e) => updateSettings({ homeState: e.target.value || null })}
-          className="w-full px-2.5 py-1.5 rounded-md border font-sans text-[13px] cursor-pointer"
+          className="w-full px-2.5 py-1.5 rounded-md border font-sans text-sm cursor-pointer"
           style={{ background: theme.white, borderColor: theme.borderGray, color: theme.black }}
         >
           <option value="">None (whole West)</option>

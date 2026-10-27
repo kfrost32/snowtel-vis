@@ -39,7 +39,7 @@ export default function EnvelopeChartActions({ options, yearOptions }: EnvelopeC
             </span>
           )}
           Compare years{selectedYears.length > 0 && ` (${selectedYears.length})`}
-          <ChevronDown size={14} style={{ color: theme.gray }} />
+          <ChevronDown size={16} style={{ color: theme.gray }} />
         </button>
         {open && (
           <div
@@ -77,7 +77,7 @@ export default function EnvelopeChartActions({ options, yearOptions }: EnvelopeC
                         background: selected ? selected.color : theme.white,
                       }}
                     >
-                      {selected && <Check size={10} color="#FFFFFF" strokeWidth={3} />}
+                      {selected && <Check size={12} color="#FFFFFF" strokeWidth={3} />}
                     </span>
                     {label}
                   </button>

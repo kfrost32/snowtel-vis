@@ -131,8 +131,8 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
             {station.name}
           </h2>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-xs mt-0.5" style={{ color: imageError ? theme.gray : "rgba(255,255,255,0.7)" }}>
-            <span className="flex items-center gap-1"><MapPin size={11} /> {station.state}</span>
-            <span className="flex items-center gap-1"><Mountain size={11} /> {formatElevation(station.elevation)}</span>
+            <span className="flex items-center gap-1"><MapPin size={12} /> {station.state}</span>
+            <span className="flex items-center gap-1"><Mountain size={12} /> {formatElevation(station.elevation)}</span>
             <a
               href={nrcsSiteUrl(station.triplet)}
               target="_blank"
@@ -140,7 +140,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
               className="flex items-center gap-0.5 underline-offset-2 hover:underline"
               title="Official NRCS site page"
             >
-              NRCS <ArrowUpRight size={11} />
+              NRCS <ArrowUpRight size={12} />
             </a>
           </div>
         </div>
@@ -178,13 +178,13 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
                 <>
                   {stats.map((row) => (
                     <div key={row.label} className="flex flex-col px-3 py-2.5" style={{ background: theme.white }}>
-                      <span className="font-mono text-xs whitespace-nowrap flex items-center gap-0.5" style={{ color: theme.mediumGray }}>{row.label}<InfoTooltip text={row.tip} size={10} /></span>
+                      <span className="font-mono text-xs whitespace-nowrap flex items-center gap-0.5" style={{ color: theme.mediumGray }}>{row.label}<InfoTooltip text={row.tip} size={12} /></span>
                       {row.custom === "sweDeltas" || row.custom === "depthDeltas" ? (
                         <div className="flex flex-wrap items-baseline mt-0.5">
                           {(row.custom === "depthDeltas" ? depthDeltas : sweDeltas).map((val, j) => (
                             <span key={j} className="flex items-baseline">
                               {j > 0 && <span className="font-mono text-xs mx-1" style={{ color: theme.borderGray }}>/</span>}
-                              <span className="font-mono text-[13px] font-semibold whitespace-nowrap" style={{ color: row.custom === "depthDeltas" ? getDepthChangeColor(val) : getChangeColor(val) }}>
+                              <span className="font-mono text-sm font-semibold whitespace-nowrap" style={{ color: row.custom === "depthDeltas" ? getDepthChangeColor(val) : getChangeColor(val) }}>
                                 {row.custom === "depthDeltas" ? formatDepthChange(val) : formatChange(val)}
                               </span>
                             </span>
@@ -192,7 +192,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
                         </div>
                       ) : (
                         <>
-                          <span className="font-mono text-[13px] font-semibold mt-0.5 whitespace-nowrap" style={{ color: theme.black }}>{row.value}</span>
+                          <span className="font-mono text-sm font-semibold mt-0.5 whitespace-nowrap" style={{ color: theme.black }}>{row.value}</span>
                           {row.sub ? (
                             <span className="font-mono text-xs mt-0.5 whitespace-nowrap" style={{ color: row.subColor ?? theme.mediumGray }}>{row.sub}</span>
                           ) : null}
@@ -247,11 +247,11 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
         <div className="md:hidden max-md:order-2 px-4 pt-3 pb-4">
           <button
             onClick={() => setShowMoreCharts((v) => !v)}
-            className="w-full flex items-center justify-center gap-1.5 h-10 rounded-lg border font-sans text-[13px] font-medium cursor-pointer"
+            className="w-full flex items-center justify-center gap-1.5 h-10 rounded-lg border font-sans text-sm font-medium cursor-pointer"
             style={{ borderColor: theme.borderGray, color: theme.darkGray }}
           >
             {showMoreCharts ? "Fewer charts" : "More charts: snow depth & temperature"}
-            <ChevronDown size={14} style={{ transform: showMoreCharts ? "rotate(180deg)" : undefined, color: theme.gray }} />
+            <ChevronDown size={16} style={{ transform: showMoreCharts ? "rotate(180deg)" : undefined, color: theme.gray }} />
           </button>
         </div>
 

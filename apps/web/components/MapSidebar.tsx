@@ -41,19 +41,19 @@ export default function MapSidebar({ stationCount, isMobile, basins, controls, o
           </div>
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
-          <button onClick={onSearch} className="p-1.5 rounded-md hover:bg-[var(--c-hover)] transition-colors cursor-pointer" aria-label="Search">
-            <Search size={14} style={{ color: theme.gray }} />
+          <button onClick={onSearch} className="p-1.5 max-md:p-2.5 rounded-md hover:bg-[var(--c-hover)] transition-colors cursor-pointer" aria-label="Search">
+            <Search size={16} className="max-md:size-[18px]" style={{ color: theme.gray }} />
           </button>
           <button
             onClick={() => settingsOpen.set((open) => !open)}
-            className="p-1.5 rounded-md hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
+            className="p-1.5 max-md:p-2.5 rounded-md hover:bg-[var(--c-hover)] transition-colors cursor-pointer"
             style={{ background: showSettings ? "var(--c-hover)" : undefined }}
             aria-label="Settings"
             aria-pressed={showSettings}
           >
-            <Settings size={14} style={{ color: showSettings ? theme.black : theme.gray }} />
+            <Settings size={16} className="max-md:size-[18px]" style={{ color: showSettings ? theme.black : theme.gray }} />
           </button>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-[var(--c-hover)] transition-colors cursor-pointer" aria-label="Close sidebar">
+          <button onClick={onClose} className="p-1.5 max-md:p-2.5 rounded-md hover:bg-[var(--c-hover)] transition-colors cursor-pointer" aria-label="Close sidebar">
             {isMobile ? <X size={18} style={{ color: theme.gray }} /> : <ChevronLeft size={16} style={{ color: theme.gray }} />}
           </button>
         </div>
@@ -97,13 +97,13 @@ export default function MapSidebar({ stationCount, isMobile, basins, controls, o
           href={NEWSLETTER_URL}
           target="_blank"
           rel="noopener"
-          className="group mt-auto max-md:order-last px-4 py-3 text-xs font-sans flex items-center gap-1 transition-colors"
+          className="group mt-auto max-md:order-last px-4 py-3 max-md:py-5 text-xs max-md:text-sm font-sans flex items-center gap-1 transition-colors"
           style={{ color: theme.mediumGray }}
         >
           <span>
             A <span className="group-hover:underline underline-offset-2" style={{ color: theme.gray }}>Here &amp; There</span> project · Get the newsletter
           </span>
-          <ArrowUpRight size={12} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+          <ArrowUpRight size={12} className="max-md:size-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
         </a>
       </div>
     </>

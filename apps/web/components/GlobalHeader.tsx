@@ -29,7 +29,7 @@ export default function GlobalHeader() {
           className="flex items-center px-2 py-1 rounded transition-colors duration-150 hover:bg-white/10 cursor-pointer"
           aria-label="Search"
         >
-          <Search size={14} style={{ color: "#CCCCCC" }} />
+          <Search size={16} style={{ color: "#CCCCCC" }} />
         </button>
       </div>
     </header>

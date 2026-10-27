@@ -165,7 +165,7 @@ export default function MapControls({
             value={elevMin}
             onChange={(e) => onElevMinChange(e.target.value)}
             aria-label="Minimum elevation (feet)"
-            className="flex-1 w-full px-2.5 py-2 md:py-1.5 text-[13px] md:text-xs font-mono rounded-lg border outline-none transition-all duration-150"
+            className="flex-1 w-full px-2.5 py-2 md:py-1.5 text-sm md:text-xs font-mono rounded-lg border outline-none transition-all duration-150"
             style={{ borderColor: elevMinFocused ? theme.mediumGray : theme.borderGray, color: theme.black, background: theme.white }}
             onFocus={() => setElevMinFocused(true)}
             onBlur={() => setElevMinFocused(false)}
@@ -177,7 +177,7 @@ export default function MapControls({
             value={elevMax}
             onChange={(e) => onElevMaxChange(e.target.value)}
             aria-label="Maximum elevation (feet)"
-            className="flex-1 w-full px-2.5 py-2 md:py-1.5 text-[13px] md:text-xs font-mono rounded-lg border outline-none transition-all duration-150"
+            className="flex-1 w-full px-2.5 py-2 md:py-1.5 text-sm md:text-xs font-mono rounded-lg border outline-none transition-all duration-150"
             style={{ borderColor: elevMaxFocused ? theme.mediumGray : theme.borderGray, color: theme.black, background: theme.white }}
             onFocus={() => setElevMaxFocused(true)}
             onBlur={() => setElevMaxFocused(false)}

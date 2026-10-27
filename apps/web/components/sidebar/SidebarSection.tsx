@@ -30,7 +30,7 @@ export default function SidebarSection({ label, defaultOpen = true, trailing, fl
         <div className="flex items-center gap-2">
           {trailing && <span onClick={(e) => e.stopPropagation()}>{trailing}</span>}
           <ChevronDown
-            size={14}
+            size={16}
             style={{
               color: theme.gray,
               transform: open ? "rotate(0deg)" : "rotate(-90deg)",

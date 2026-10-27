@@ -46,10 +46,10 @@ export default function OverflowMenu({ items }: { items: OverflowMenuItem[] }) {
                 item.onSelect();
                 if (item.checked === undefined) setOpen(false);
               }}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-left font-sans text-[13px] transition-colors hover:bg-[var(--c-hover)] cursor-pointer disabled:opacity-50"
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-left font-sans text-sm transition-colors hover:bg-[var(--c-hover)] cursor-pointer disabled:opacity-50"
               style={{ color: theme.black }}
             >
-              <span className="w-4 shrink-0">{item.checked && <Check size={14} />}</span>
+              <span className="w-4 shrink-0">{item.checked && <Check size={16} />}</span>
               {item.label}
             </button>
           ))}

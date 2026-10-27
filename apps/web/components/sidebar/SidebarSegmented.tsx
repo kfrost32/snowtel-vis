@@ -17,7 +17,7 @@ export default function SidebarSegmented<T extends string>({ options, value, onC
           <button
             key={option.value}
             onClick={() => !selected && onChange(option.value)}
-            className="flex-1 py-1.5 md:py-1 rounded-md text-xs font-sans font-medium transition-all duration-150 cursor-pointer"
+            className="flex-1 py-1.5 md:py-1 max-md:min-h-[36px] rounded-md text-xs font-sans font-medium transition-all duration-150 cursor-pointer"
             style={{
               background: selected ? theme.white : "transparent",
               color: selected ? theme.black : theme.gray,

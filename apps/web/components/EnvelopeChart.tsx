@@ -327,7 +327,7 @@ export default function EnvelopeChart({
           >
             <div className="w-4 border-t-2" style={{ borderColor: y.color }} />
             WY {y.year}
-            {onRemoveYear && <X size={10} style={{ color: theme.mediumGray }} />}
+            {onRemoveYear && <X size={12} style={{ color: theme.mediumGray }} />}
           </button>
         ))}
         {hasMedian && (
