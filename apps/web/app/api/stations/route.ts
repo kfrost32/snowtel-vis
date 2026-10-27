@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isBcStation } from "@snotel/core/stations";
 import { getStationList } from "@/lib/station-list";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
 export async function GET() {
   try {
     const result = await getStationList();
-    return NextResponse.json(result, { headers: result.stale ? STALE_HEADER : CACHE_HEADER });
+    return NextResponse.json({ ...result, data: result.data.filter((s) => !isBcStation(s)) }, { headers: result.stale ? STALE_HEADER : CACHE_HEADER });
   } catch (e) {
     console.error("Station conditions fetch failed:", (e as Error).message);
     return NextResponse.json({ error: "Failed to fetch station conditions" }, { status: 503, headers: NO_CACHE_HEADER });

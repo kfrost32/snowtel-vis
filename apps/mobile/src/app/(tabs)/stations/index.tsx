@@ -18,8 +18,8 @@ import { colors } from "@/theme";
 
 const NEARBY_COUNT = 50;
 const CARD_RADIUS = 26;
-const SNOTEL_STATIONS = getAllStations().filter(hasLiveReadings);
-const BY_STATE = groupByState(SNOTEL_STATIONS);
+const LIVE_STATIONS = getAllStations().filter(hasLiveReadings);
+const BY_STATE = groupByState(LIVE_STATIONS);
 
 function groupByState(stations: Station[]) {
   const groups = new Map<string, Station[]>();
@@ -62,7 +62,7 @@ export default function StationsScreen() {
     const result: Section[] = favoriteRows.length ? [{ title: "Favorites", cards: true, data: favoriteRows }] : [];
     if (coords) {
       const excluded = new Set(favorites);
-      const nearby = SNOTEL_STATIONS.filter((s) => !excluded.has(s.triplet))
+      const nearby = LIVE_STATIONS.filter((s) => !excluded.has(s.triplet))
         .map((station) => ({ station, distance: distanceTo(station)! }))
         .sort((a, b) => a.distance - b.distance)
         .slice(0, NEARBY_COUNT);

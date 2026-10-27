@@ -7,13 +7,19 @@ const PERCENTILES = [10, 30, 70, 90];
 const DAY_MS = 86400000;
 const CALENDAR_START = Date.UTC(1999, 9, 1);
 
+export function waterYear(dateStr) {
+  return Number(dateStr.slice(0, 4)) + (Number(dateStr.slice(5, 7)) >= 10 ? 1 : 0);
+}
+
+export const lastCompleteWaterYear = waterYear(new Date().toISOString()) - 1;
+
 export function calendarRow(dateStr) {
   const month = Number(dateStr.slice(5, 7));
   const day = Number(dateStr.slice(8, 10));
   return Math.round((Date.UTC(month >= 10 ? 1999 : 2000, month - 1, day) - CALENDAR_START) / DAY_MS);
 }
 
-export function rowDate(row, wy) {
+function rowDate(row, wy) {
   const monthDay = new Date(CALENDAR_START + row * DAY_MS).toISOString().slice(5, 10);
   return `${Number(monthDay.slice(0, 2)) >= 10 ? wy - 1 : wy}-${monthDay}`;
 }

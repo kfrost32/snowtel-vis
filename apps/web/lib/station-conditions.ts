@@ -1,4 +1,4 @@
-import { getAllStations, getPlaceholderConditions, isBcStation } from "@snotel/core/stations";
+import { getAllStations, isBcStation } from "@snotel/core/stations";
 import { shiftDate } from "@snotel/core/water-year";
 import { fetchDailyData } from "./snotel-api";
 import type { StationCurrentConditions } from "@snotel/core/types";
@@ -16,7 +16,7 @@ export function todayInDataTimezone(): string {
 }
 
 export async function fetchStationConditions(): Promise<StationCurrentConditions[]> {
-  const stations = getAllStations().filter((s) => !isBcStation(s));
+  const stations = getAllStations();
   const snotelTriplets = stations.filter((s) => s.network === "SNOTEL").map((s) => s.triplet);
 
   const endDate = todayInDataTimezone();
@@ -29,11 +29,14 @@ export async function fetchStationConditions(): Promise<StationCurrentConditions
     }),
     fetchBcConditions().catch((e) => {
       console.error("BC conditions fetch failed:", (e as Error).message);
-      return getPlaceholderConditions().filter(isBcStation);
+      return [];
     }),
   ]);
+  const bcByTriplet = new Map(bc.map((s) => [s.triplet, s]));
 
-  const nrcs = stations.map((station): StationCurrentConditions => {
+  return stations.map((station): StationCurrentConditions => {
+    const bcConditions = isBcStation(station) ? bcByTriplet.get(station.triplet) : undefined;
+    if (bcConditions) return bcConditions;
     if (station.network !== "SNOTEL") {
       return {
         ...station,
@@ -73,7 +76,6 @@ export async function fetchStationConditions(): Promise<StationCurrentConditions
       lastUpdated: series.WTEQ?.dates.at(-1) ?? endDate,
     };
   });
-  return [...nrcs, ...bc].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function mergeConditions(

@@ -44,9 +44,68 @@ interface BcStation {
   elevation_m: number | null;
 }
 
-export const BC_NETWORK = "ASWS";
-const LIVE_NETWORKS = new Set(["SNOTEL", BC_NETWORK]);
-const BC_DATA_URL = "https://www2.gov.bc.ca/gov/content/environment/air-land-water/water/water-science-data/water-data-tools/snow-survey-data";
+const BC_NETWORK = "ASWS";
+
+export interface StationSource {
+  name: string;
+  label: string;
+  linkText: string;
+  description: string;
+  url: string;
+}
+
+interface NetworkInfo {
+  label: string;
+  liveReadings: boolean;
+  nwsForecast: boolean;
+  title: (station: Pick<Station, "name" | "state">) => string;
+  source: (triplet: string) => StationSource;
+  photoUrl: (triplet: string) => string | null;
+}
+
+const nrcsSiteNumber = (triplet: string) => triplet.split(":")[0];
+
+const nrcsSource = (triplet: string): StationSource => ({
+  name: "USDA NRCS SNOTEL",
+  label: "NRCS",
+  linkText: "NRCS station page",
+  description: "NRCS automated snow telemetry",
+  url: `https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=${nrcsSiteNumber(triplet)}`,
+});
+
+const nrcsPhotoUrl = (triplet: string) => `https://www.wcc.nrcs.usda.gov/siteimages/${nrcsSiteNumber(triplet)}.jpg`;
+
+const NRCS_NETWORK: NetworkInfo = {
+  label: "SNOTEL",
+  liveReadings: true,
+  nwsForecast: true,
+  title: (s) => `${s.name} SNOTEL, ${s.state}`,
+  source: nrcsSource,
+  photoUrl: nrcsPhotoUrl,
+};
+
+const NETWORKS: Record<string, NetworkInfo> = {
+  SNOTEL: NRCS_NETWORK,
+  "Snow Course": { ...NRCS_NETWORK, label: "Snow course", liveReadings: false, nwsForecast: false },
+  [BC_NETWORK]: {
+    label: "BC snow pillow",
+    liveReadings: true,
+    nwsForecast: false,
+    title: (s) => `${s.name} snow pillow, BC`,
+    source: () => ({
+      name: "BC River Forecast Centre",
+      label: "BC RFC",
+      linkText: "BC snow survey data",
+      description: "the BC River Forecast Centre",
+      url: "https://www2.gov.bc.ca/gov/content/environment/air-land-water/water/water-science-data/water-data-tools/snow-survey-data",
+    }),
+    photoUrl: () => null,
+  },
+};
+
+function network(station: Pick<Station, "network">): NetworkInfo {
+  return NETWORKS[station.network] ?? NRCS_NETWORK;
+}
 
 let _stations: Station[] | null = null;
 let _stationMap: Map<string, Station> | null = null;
@@ -120,7 +179,7 @@ export function getStationsByState(state: string): Station[] {
 }
 
 export function hasLiveReadings(station: Pick<Station, "network">): boolean {
-  return LIVE_NETWORKS.has(station.network);
+  return network(station).liveReadings;
 }
 
 export function isBcStation(station: Pick<Station, "network">): boolean {
@@ -128,24 +187,23 @@ export function isBcStation(station: Pick<Station, "network">): boolean {
 }
 
 export function hasNwsForecast(station: Pick<Station, "network"> | undefined): boolean {
-  return station?.network === "SNOTEL";
+  return station ? network(station).nwsForecast : false;
 }
 
 export function networkLabel(station: Pick<Station, "network">): string {
-  return isBcStation(station) ? "BC snow pillow" : "SNOTEL";
+  return network(station).label;
 }
 
 export function stationTitle(station: Pick<Station, "name" | "state" | "network">): string {
-  return isBcStation(station) ? `${station.name} snow pillow, BC` : `${station.name} SNOTEL, ${station.state}`;
+  return network(station).title(station);
 }
 
-export function stationSource(station: Pick<Station, "triplet" | "network">): { name: string; label: string; url: string } {
-  if (isBcStation(station)) return { name: "BC River Forecast Centre", label: "BC RFC", url: BC_DATA_URL };
-  return { name: "USDA NRCS SNOTEL", label: "NRCS", url: nrcsSiteUrl(station.triplet) };
+export function stationSource(station: Pick<Station, "triplet" | "network">): StationSource {
+  return network(station).source(station.triplet);
 }
 
-export function nrcsSiteUrl(triplet: string): string {
-  return `https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=${triplet.split(":")[0]}`;
+export function stationPhotoUrl(station: Pick<Station, "triplet" | "network">): string | null {
+  return network(station).photoUrl(station.triplet);
 }
 
 export { urlTriplet, parseTripletFromUrl };

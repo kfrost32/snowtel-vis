@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { buildSeries, calendarRow, DAYS, writeYears, yearlyPeaks } from "./lib/envelope-stats.mjs";
+import { buildSeries, calendarRow, DAYS, lastCompleteWaterYear, writeYears, yearlyPeaks } from "./lib/envelope-stats.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -19,8 +19,6 @@ const ELEMENTS = { swe: "WTEQ", depth: "SNWD" };
 const QUARTERS = [[10, 12, 31], [1, 3, 31], [4, 6, 30], [7, 9, 30]];
 
 const now = new Date();
-const currentWaterYear = now.getUTCMonth() >= 9 ? now.getUTCFullYear() + 1 : now.getUTCFullYear();
-const lastCompleteWaterYear = currentWaterYear - 1;
 
 const geo = JSON.parse(fs.readFileSync(path.join(ROOT, "packages", "core", "data", "stations.json"), "utf8"));
 const associations = JSON.parse(fs.readFileSync(path.join(ROOT, "packages", "core", "data", "huc-associations.json"), "utf8"));

@@ -1,4 +1,4 @@
-import { getAllStations } from "@snotel/core/stations";
+import { getAllStations, hasNwsForecast } from "@snotel/core/stations";
 import { forecastWindowTotals, type ForecastTotals } from "@snotel/core/forecast";
 import { fetchNwsForecast, fetchNwsPoint, POINT_MAX_AGE_MS, type NwsPoint } from "../apps/web/lib/nws";
 import { readSnapshots, snapshotKeys, snapshotStoreConfigured, writeSnapshots, type Snapshot } from "../apps/web/lib/snapshot-store";
@@ -21,7 +21,7 @@ async function withRetry<T>(run: () => Promise<T>): Promise<T> {
 async function main() {
   if (!snapshotStoreConfigured) throw new Error("Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN (or KV_REST_API_URL and KV_REST_API_TOKEN)");
   const started = Date.now();
-  const stations = getAllStations().filter((s) => s.network === "SNOTEL");
+  const stations = getAllStations().filter(hasNwsForecast);
   const totals: ForecastTotals["stations"] = {};
   const perStation: Record<string, Snapshot<unknown>> = {};
   const savedPoints = await readSnapshots<NwsPoint>(stations.map((s) => snapshotKeys.nwsPoint(s.triplet)));

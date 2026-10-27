@@ -44,6 +44,10 @@ async function refreshSeasons(): Promise<Map<string, StationSeasonData>> {
       console.error(`Seasons ${i + 1}-${i + chunk.length} failed, keeping previous snapshots:`, (e as Error).message);
     }
   }
+  return seasons;
+}
+
+async function refreshBcSeasons(): Promise<void> {
   try {
     const bc = await fetchBcSeasons();
     await writeAll([...bc].map(([triplet, season]) => [snapshotKeys.season(triplet), season]));
@@ -51,7 +55,6 @@ async function refreshSeasons(): Promise<Map<string, StationSeasonData>> {
   } catch (e) {
     console.error("BC seasons failed, keeping previous snapshots:", (e as Error).message);
   }
-  return seasons;
 }
 
 async function refreshBasins(seasons: Map<string, StationSeasonData>): Promise<void> {
@@ -79,6 +82,7 @@ async function main() {
     failed = true;
     console.error("Station list failed, keeping previous snapshot:", (e as Error).message);
   }
+  await refreshBcSeasons();
   const seasons = await refreshSeasons();
   if (seasons.size === 0) failed = true;
   await refreshBasins(seasons);

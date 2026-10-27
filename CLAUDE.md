@@ -32,7 +32,7 @@ npm run build-spot-icons   # Render mobile spot icon PNGs from the shared SVG in
 - `/` — Full-viewport MapLibre map with sidebar (metric, layers, state/elevation filters, favorites). `?station=` or `?basin=` opens a detail panel
 - `/station/[triplet]` — Shareable station link (triplet uses dashes, e.g. `669-CO-SNTL`). Renders per-station metadata and a generated Open Graph image, then redirects to `/?station=`
 - `/basins`, `/status`; `/map` redirects to `/`
-- `/api/stations` — All 1,900 stations with current conditions (full records; kept for installed app versions)
+- `/api/stations` — All NRCS stations with current conditions (full records; kept for installed app versions, so BC stations are left out)
 - `/api/stations/readings` — Same data, compact: SNOTEL stations only as value rows plus a field list. Clients expand it with `unpackReadings` from `@snotel/core/readings`
 - `/api/stations/recent` — Latest hourly snow depth and 24h change for every SNOTEL station
 - `/api/stations/[triplet]` — Single station season-to-date with daily medians
@@ -53,9 +53,9 @@ npm run build-spot-icons   # Render mobile spot icon PNGs from the shared SVG in
 
 ### British Columbia snow pillows
 
-- BC River Forecast Centre automated snow weather stations (network `ASWS`, state `BC`, triplets like `2A06P:BC:ASWS`) are merged into the station list from `packages/core/data/bc-stations.json` (`node scripts/fetch-bc-stations.mjs`). Use `hasLiveReadings` / `isBcStation` from `@snotel/core/stations` rather than checking `network === "SNOTEL"`
+- BC River Forecast Centre automated snow weather stations (network `ASWS`, state `BC`, triplets like `2A06P:BC:ASWS`) are merged into the station list from `packages/core/data/bc-stations.json` (`node scripts/fetch-bc-stations.mjs`). Per-network facts (label, page title, source link, photo, live readings, NWS forecast) live in the `NETWORKS` table in `packages/core/src/stations.ts`; use its helpers (`hasLiveReadings`, `hasNwsForecast`, `stationSource`, `stationPhotoUrl`, …) rather than checking `network === "SNOTEL"`. `isBcStation` is only for picking the data source
 - `apps/web/lib/bc-snow.ts` reads the province's current-season hourly CSVs (SWE mm, depth cm, temperature °C, gauge precipitation mm; UTC), converts to the app's imperial units and builds daily series from the local-midnight (UTC−8) reading, matching the NRCS end-of-day convention. Season precipitation sums gauge increases since Oct 1 because the gauges don't reset
-- History comes from the BC daily SWE and hourly depth archives: `node scripts/build-bc-envelopes.mjs` writes station envelopes/years and `apps/web/lib/bc-medians.json` (daily SWE medians, only for stations with 10+ years). Run it after `build-envelopes.mjs`, which clears the envelopes folder
+- History comes from the BC daily SWE and hourly depth archives: `node scripts/build-bc-envelopes.mjs` writes station envelopes/years and `apps/web/lib/bc-medians.json` (daily SWE medians, only for stations with 10+ years; a server-bundled copy of the envelope medians, since API routes can't read `public/` at runtime). Run it after `build-envelopes.mjs`, which clears the envelopes folder
 - BC stations have no HUC (no basins) and no NWS forecast (`hasNwsForecast`)
 
 ### Client caching

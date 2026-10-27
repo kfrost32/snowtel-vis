@@ -1,4 +1,5 @@
 import { getStation } from "@snotel/core/stations";
+import { seasonCurrent } from "@snotel/core/season";
 import { getCurrentWaterYear, getWaterYearStart } from "@snotel/core/water-year";
 import type { DailyObservation, Station, StationSeasonData } from "@snotel/core/types";
 import { fetchDailyData, generateDates, type BulkFetchOptions, type DailySeries } from "./snotel-api";
@@ -20,22 +21,7 @@ function buildSeason(station: Station, series: Record<string, DailySeries>, wySt
     tavg: series.TAVG?.values[i] ?? null,
   }));
 
-  const latest = season.at(-1);
-  const swe = latest?.swe ?? null;
-  const median = latest?.sweMedian ?? null;
-  return {
-    station,
-    current: {
-      swe,
-      sweNormal: median,
-      pctOfNormal: swe !== null && median !== null && median > 0 ? Math.round((swe / median) * 100) : null,
-      snowDepth: latest?.snowDepth ?? null,
-      temp: latest?.tavg ?? null,
-      precipAccum: latest?.precip ?? null,
-      lastUpdated: latest?.date ?? null,
-    },
-    season,
-  };
+  return { station, current: seasonCurrent(season), season };
 }
 
 export async function fetchStationSeasons(triplets: string[], options: BulkFetchOptions = {}): Promise<Map<string, StationSeasonData>> {

@@ -5,7 +5,7 @@ import { MapPin, Mountain, ChevronDown, ArrowUpRight } from "lucide-react";
 import { theme } from "@/lib/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
-import { getStation, isBcStation, networkLabel, stationSource } from "@snotel/core/stations";
+import { getStation, networkLabel, stationPhotoUrl, stationSource } from "@snotel/core/stations";
 import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatDepthChange, formatHourlyTime, formatPrecip, formatReadingDateShort } from "@snotel/core/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor, getDepthChangeColor } from "@snotel/core/colors";
 import InfoTooltip from "@/components/InfoTooltip";
@@ -59,10 +59,9 @@ function DepthEnvelope({ season, envelopeData, lastUpdated }: { season: import("
 
 export default function StationDetailPanel({ triplet, onClose, isFavorite, onToggleFavorite, expanded = false, onToggleExpand }: StationDetailPanelProps) {
   const station = getStation(triplet);
-  const stationId = triplet.split(/[:-]/)[0];
-  const imageUrl = `https://www.wcc.nrcs.usda.gov/siteimages/${stationId}.jpg`;
+  const imageUrl = station ? stationPhotoUrl(station) : null;
   const [imageErrorFor, setImageErrorFor] = useState<string | null>(null);
-  const imageError = imageErrorFor === triplet || (station ? isBcStation(station) : false);
+  const imageError = imageErrorFor === triplet || !imageUrl;
   const [showMoreCharts, setShowMoreCharts] = useState(false);
   const { data: seasonData, loading: seasonLoading } = useSeasonData(triplet);
   const { data: historicalData, loading: historicalLoading } = useHistoricalData(triplet);
@@ -107,7 +106,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
       >
         {!imageError && (
           <img
-            src={imageUrl}
+            src={imageUrl ?? undefined}
             alt={`${station.name} site photo`}
             className="absolute inset-0 w-full h-full object-cover"
             style={{ display: "block", opacity: 0.72 }}
@@ -266,7 +265,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
         </div>
 
         <div className={`max-md:order-3 max-md:pb-4 ${showMoreCharts ? "" : "max-md:hidden"}`}>
-        {envelopeData && envelopeData.depthEnvelope.length > 0 && (
+        {envelopeData && envelopeData.depthEnvelope.some((d) => d.max !== null) && (
           <div className="px-3 pt-3">
             <ChartCard dense title={<ChartTitle name={station.name} label="Snow Depth" />} height={280}>
               {seasonLoading || envelopeLoading ? (

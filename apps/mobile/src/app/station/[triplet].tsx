@@ -104,6 +104,8 @@ export default function StationScreen() {
     );
   }
 
+  const source = stationSource(station);
+
   return (
     <ScrollView key={units} contentContainerStyle={styles.content}>
       {header}
@@ -191,9 +193,9 @@ export default function StationScreen() {
             </Section>
           )}
 
-          <Pressable onPress={() => WebBrowser.openBrowserAsync(stationSource(station).url)} hitSlop={8}>
+          <Pressable onPress={() => WebBrowser.openBrowserAsync(source.url)} hitSlop={8}>
             <Text style={styles.footer}>
-              {station.triplet} · Data from {stationSource(station).name} · <Text style={styles.footerLink}>View on {stationSource(station).label}</Text>
+              {station.triplet} · Data from {source.name} · <Text style={styles.footerLink}>View on {source.label}</Text>
             </Text>
           </Pressable>
         </>

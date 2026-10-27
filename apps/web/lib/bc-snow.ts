@@ -1,7 +1,9 @@
 import { getAllStations, isBcStation } from "@snotel/core/stations";
 import { latestDepth, type RecentDepth } from "@snotel/core/recent";
+import { seasonCurrent } from "@snotel/core/season";
+import { celsiusToFahrenheit, cmToInches, mmToInches } from "@snotel/core/units";
 import type { DailyObservation, HourlyObservation, Station, StationCurrentConditions, StationSeasonData } from "@snotel/core/types";
-import { calendarRow, getCurrentWaterYear, getWaterYearStart, shiftDate } from "@snotel/core/water-year";
+import { calendarRow, getCurrentWaterYear, getWaterYearStart } from "@snotel/core/water-year";
 import { generateDates } from "./snotel-api";
 import { seriesChange } from "./series";
 import bcMedians from "./bc-medians.json";
@@ -11,8 +13,9 @@ const ELEMENTS = ["SW", "SD", "TA", "PC"] as const;
 const TIMEOUT_MS = 30000;
 const MEMO_MS = 10 * 60 * 1000;
 const HOUR_MS = 3600_000;
+const DAY_MS = 24 * HOUR_MS;
 const LOCAL_OFFSET_MS = 8 * HOUR_MS;
-const MIDNIGHT_LOOKBACK_HOURS = 6;
+const MIDNIGHT_LOOKBACK_MS = 6 * HOUR_MS;
 const MAX_DAILY_PRECIP_MM = 250;
 const HOURLY_DAYS = 7;
 
@@ -20,52 +23,60 @@ type Element = (typeof ELEMENTS)[number];
 
 interface ElementTable {
   times: number[];
-  columns: Map<string, (number | null)[]>;
+  columns: Map<string, Float64Array>;
 }
 
-type BcData = Record<Element, ElementTable>;
+interface BcStationSeries {
+  season: StationSeasonData;
+  midnightTemp: number | null;
+}
 
 const medians = bcMedians as { stations: Record<string, (number | null)[]> };
 
-const toInches = (mm: number) => Math.round((mm / 25.4) * 10) / 10;
-const cmToInches = (cm: number) => Math.round(cm / 2.54);
-const toFahrenheit = (c: number) => Math.round((c * 9) / 5 * 10 + 320) / 10;
+const round1 = (v: number) => Math.round(v * 10) / 10;
+const sweInches = (mm: number) => round1(mmToInches(mm));
+const depthInches = (cm: number) => Math.round(cmToInches(cm));
+const fahrenheit = (c: number) => round1(celsiusToFahrenheit(c));
+const orNull = (v: number, convert: (v: number) => number) => (Number.isNaN(v) ? null : convert(v));
 
 function parseTable(csv: string): ElementTable {
   const [header, ...rows] = csv.trim().split(/\r?\n/);
   const ids = header.split(",").slice(1).map((column) => column.split(" ")[0]);
-  const columns = new Map(ids.map((id) => [id, [] as (number | null)[]]));
-  const times: number[] = [];
-  for (const row of rows) {
+  const columns = ids.map(() => new Float64Array(rows.length).fill(NaN));
+  const times = rows.map((row, r) => {
     const cells = row.split(",");
-    times.push(Date.parse(`${cells[0].replace(" ", "T")}:00Z`));
-    ids.forEach((id, i) => {
+    for (let i = 0; i < ids.length; i++) {
       const cell = cells[i + 1];
-      const value = cell === undefined || cell === "" ? NaN : Number(cell);
-      columns.get(id)!.push(Number.isFinite(value) ? value : null);
-    });
-  }
-  return { times, columns };
-}
-
-async function fetchTable(element: Element): Promise<ElementTable> {
-  const res = await fetch(`${DATA_URL}/${element}.csv`, { signal: AbortSignal.timeout(TIMEOUT_MS), cache: "no-store" });
-  if (!res.ok) throw new Error(`BC ${element} request failed: ${res.status}`);
-  return parseTable(await res.text());
-}
-
-let memo: { data: Promise<BcData>; at: number } | null = null;
-
-function fetchBcData(): Promise<BcData> {
-  if (memo && Date.now() - memo.at < MEMO_MS) return memo.data;
-  const data = Promise.all(ELEMENTS.map(fetchTable)).then((tables) => Object.fromEntries(ELEMENTS.map((e, i) => [e, tables[i]])) as BcData);
-  const entry = { data, at: Date.now() };
-  memo = entry;
-  data.catch(() => {
-    if (memo === entry) memo = null;
+      if (cell) columns[i][r] = Number(cell);
+    }
+    return Date.parse(`${cells[0].replace(" ", "T")}:00Z`);
   });
-  return data;
+  return { times, columns: new Map(ids.map((id, i) => [id, columns[i]])) };
 }
+
+function memoized<T>(load: () => Promise<T>): () => Promise<T> {
+  let entry: { value: Promise<T>; at: number } | null = null;
+  return () => {
+    if (entry && Date.now() - entry.at < MEMO_MS) return entry.value;
+    const current = { value: load(), at: Date.now() };
+    entry = current;
+    current.value.catch(() => {
+      if (entry === current) entry = null;
+    });
+    return current.value;
+  };
+}
+
+const tables = Object.fromEntries(
+  ELEMENTS.map((element) => [
+    element,
+    memoized(async () => {
+      const res = await fetch(`${DATA_URL}/${element}.csv`, { signal: AbortSignal.timeout(TIMEOUT_MS), cache: "no-store" });
+      if (!res.ok) throw new Error(`BC ${element} request failed: ${res.status}`);
+      return parseTable(await res.text());
+    }),
+  ])
+) as Record<Element, () => Promise<ElementTable>>;
 
 function bcStationId(triplet: string): string {
   return triplet.split(":")[0];
@@ -79,90 +90,94 @@ function localMidnight(date: string): number {
   return Date.parse(`${date}T00:00:00Z`) + LOCAL_OFFSET_MS;
 }
 
-function localToday(): string {
-  return localDateTime(Date.now()).slice(0, 10);
+function firstRowAtOrAfter(times: number[], t: number): number {
+  let lo = 0;
+  let hi = times.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (times[mid] < t) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
 }
 
-function readings(table: ElementTable, id: string): { time: number; value: number }[] {
-  const column = table.columns.get(id);
-  if (!column) return [];
-  return column.flatMap((value, i) => (value === null ? [] : [{ time: table.times[i], value }]));
+function valueAt(table: ElementTable, values: Float64Array | undefined, t: number): number {
+  if (!values) return NaN;
+  const row = firstRowAtOrAfter(table.times, t);
+  return table.times[row] === t ? values[row] : NaN;
 }
 
-function atMidnights(points: { time: number; value: number }[], dates: string[]): (number | null)[] {
-  let cursor = 0;
+function atMidnights(table: ElementTable, values: Float64Array | undefined, dates: string[]): number[] {
+  if (!values) return dates.map(() => NaN);
+  const { times } = table;
+  let row = 0;
+  let last = -1;
   return dates.map((date) => {
     const midnight = localMidnight(date);
-    while (cursor < points.length && points[cursor].time <= midnight) cursor++;
-    const last = points[cursor - 1];
-    return last && midnight - last.time <= MIDNIGHT_LOOKBACK_HOURS * HOUR_MS ? last.value : null;
-  });
-}
-
-function dailyTemps(points: { time: number; value: number }[], dates: string[]) {
-  const byDate = new Map<string, number[]>();
-  for (const { time, value } of points) {
-    const date = shiftDate(localDateTime(time - 1).slice(0, 10), 1);
-    if (!byDate.has(date)) byDate.set(date, []);
-    byDate.get(date)!.push(value);
-  }
-  return dates.map((date) => {
-    const values = byDate.get(date);
-    if (!values?.length) return { tmax: null, tmin: null, tavg: null };
-    return {
-      tmax: toFahrenheit(Math.max(...values)),
-      tmin: toFahrenheit(Math.min(...values)),
-      tavg: toFahrenheit(values.reduce((a, b) => a + b, 0) / values.length),
-    };
-  });
-}
-
-function seasonPrecip(gauge: (number | null)[]): (number | null)[] {
-  let total = 0;
-  let previous: number | null = null;
-  return gauge.map((value) => {
-    if (value === null) return null;
-    if (previous !== null) {
-      const diff = value - previous;
-      if (diff > 0 && diff < MAX_DAILY_PRECIP_MM) total += diff;
+    for (; row < times.length && times[row] <= midnight; row++) {
+      if (!Number.isNaN(values[row])) last = row;
     }
-    previous = value;
-    return toInches(total);
+    return last >= 0 && midnight - times[last] <= MIDNIGHT_LOOKBACK_MS ? values[last] : NaN;
   });
 }
 
-function buildSeason(station: Station, data: BcData, dates: string[]): StationSeasonData {
+function dailyTemps(table: ElementTable, values: Float64Array | undefined, dates: string[]) {
+  const max = new Float64Array(dates.length).fill(-Infinity);
+  const min = new Float64Array(dates.length).fill(Infinity);
+  const sum = new Float64Array(dates.length);
+  const count = new Uint16Array(dates.length);
+  const start = localMidnight(dates[0]);
+  if (values) {
+    table.times.forEach((t, row) => {
+      const value = values[row];
+      const day = Math.floor((t - 1 - start) / DAY_MS) + 1;
+      if (Number.isNaN(value) || day < 0 || day >= dates.length) return;
+      max[day] = Math.max(max[day], value);
+      min[day] = Math.min(min[day], value);
+      sum[day] += value;
+      count[day]++;
+    });
+  }
+  return dates.map((_, day) =>
+    count[day]
+      ? { tmax: fahrenheit(max[day]), tmin: fahrenheit(min[day]), tavg: fahrenheit(sum[day] / count[day]) }
+      : { tmax: null, tmin: null, tavg: null }
+  );
+}
+
+function seasonPrecip(gauge: number[]): (number | null)[] {
+  let total = 0;
+  let previous = NaN;
+  return gauge.map((value) => {
+    if (Number.isNaN(value)) return null;
+    const diff = value - previous;
+    if (diff > 0 && diff < MAX_DAILY_PRECIP_MM) total += diff;
+    previous = value;
+    return sweInches(total);
+  });
+}
+
+function buildSeries(station: Station, data: Record<Element, ElementTable>, dates: string[]): BcStationSeries {
   const id = bcStationId(station.triplet);
-  const swe = atMidnights(readings(data.SW, id), dates).map((v) => (v === null ? null : toInches(v)));
-  const depth = atMidnights(readings(data.SD, id), dates).map((v) => (v === null ? null : cmToInches(v)));
-  const precip = seasonPrecip(atMidnights(readings(data.PC, id), dates));
-  const temps = dailyTemps(readings(data.TA, id), dates);
+  const swe = atMidnights(data.SW, data.SW.columns.get(id), dates);
+  const depth = atMidnights(data.SD, data.SD.columns.get(id), dates);
+  const precip = seasonPrecip(atMidnights(data.PC, data.PC.columns.get(id), dates));
+  const temperature = data.TA.columns.get(id);
+  const temps = dailyTemps(data.TA, temperature, dates);
+  const midnightTemps = atMidnights(data.TA, temperature, dates);
   const stationMedians = medians.stations[id];
   const season: DailyObservation[] = dates.map((date, i) => ({
     date,
-    swe: swe[i],
+    swe: orNull(swe[i], sweInches),
     sweMedian: stationMedians?.[calendarRow(date) - 1] ?? null,
-    snowDepth: depth[i],
+    snowDepth: orNull(depth[i], depthInches),
     precip: precip[i],
     ...temps[i],
   }));
   while (season.length > 1 && season.at(-1)!.swe === null && season.at(-1)!.snowDepth === null) season.pop();
-
-  const latest = season.at(-1);
-  const current = latest?.swe ?? null;
-  const median = latest?.sweMedian ?? null;
   return {
-    station,
-    current: {
-      swe: current,
-      sweNormal: median,
-      pctOfNormal: current !== null && median !== null && median > 0 ? Math.round((current / median) * 100) : null,
-      snowDepth: latest?.snowDepth ?? null,
-      temp: latest?.tavg ?? null,
-      precipAccum: latest?.precip ?? null,
-      lastUpdated: latest?.date ?? null,
-    },
-    season,
+    season: { station, current: seasonCurrent(season), season },
+    midnightTemp: orNull(midnightTemps[season.length - 1], fahrenheit),
   };
 }
 
@@ -170,37 +185,34 @@ function bcStations(): Station[] {
   return getAllStations().filter(isBcStation);
 }
 
-function seasonDates(): string[] {
-  return generateDates(getWaterYearStart(getCurrentWaterYear()), localToday());
+const allSeries = memoized(async () => {
+  const loaded = await Promise.all(ELEMENTS.map((element) => tables[element]()));
+  const data = Object.fromEntries(ELEMENTS.map((element, i) => [element, loaded[i]])) as Record<Element, ElementTable>;
+  const dates = generateDates(getWaterYearStart(getCurrentWaterYear()), localDateTime(Date.now()).slice(0, 10));
+  return new Map(bcStations().map((station) => [station.triplet, buildSeries(station, data, dates)]));
+});
+
+export async function fetchBcSeasons(): Promise<Map<string, StationSeasonData>> {
+  const series = await allSeries();
+  return new Map([...series].map(([triplet, { season }]) => [triplet, season]));
 }
 
-export async function fetchBcSeasons(triplets?: string[]): Promise<Map<string, StationSeasonData>> {
-  const data = await fetchBcData();
-  const wanted = triplets && new Set(triplets);
-  const dates = seasonDates();
-  const seasons = new Map<string, StationSeasonData>();
-  for (const station of bcStations()) {
-    if (!wanted || wanted.has(station.triplet)) seasons.set(station.triplet, buildSeason(station, data, dates));
-  }
-  return seasons;
+export async function fetchBcSeason(triplet: string): Promise<StationSeasonData | null> {
+  return (await allSeries()).get(triplet)?.season ?? null;
 }
 
 export async function fetchBcConditions(): Promise<StationCurrentConditions[]> {
-  const data = await fetchBcData();
-  const dates = seasonDates();
-  return bcStations().map((station): StationCurrentConditions => {
-    const { current, season } = buildSeason(station, data, dates);
-    const lastUpdated = current.lastUpdated ?? dates.at(-1)!;
+  const series = await allSeries();
+  return [...series.values()].map(({ season: { station, current, season }, midnightTemp }): StationCurrentConditions => {
     const swe = season.map((d) => d.swe);
     const depth = season.map((d) => d.snowDepth);
-    const [temp] = atMidnights(readings(data.TA, bcStationId(station.triplet)), [lastUpdated]);
     return {
       ...station,
       swe: current.swe,
       sweNormal: current.sweNormal,
       pctOfNormal: current.pctOfNormal,
       snowDepth: current.snowDepth,
-      temp: temp === null ? null : toFahrenheit(temp),
+      temp: midnightTemp,
       precipAccum: current.precipAccum,
       sweChange1d: seriesChange(swe, 1),
       sweChange3d: seriesChange(swe, 3),
@@ -208,44 +220,42 @@ export async function fetchBcConditions(): Promise<StationCurrentConditions[]> {
       depthChange1d: seriesChange(depth, 1, 0),
       depthChange3d: seriesChange(depth, 3, 0),
       depthChange7d: seriesChange(depth, 7, 0),
-      lastUpdated,
+      lastUpdated: current.lastUpdated ?? season[0].date,
     };
   });
 }
 
-function hourlyFor(data: BcData, id: string): HourlyObservation[] {
-  const since = Date.now() - HOURLY_DAYS * 24 * HOUR_MS;
-  const byTime = (table: ElementTable) => {
-    const column = table.columns.get(id) ?? [];
-    return new Map(table.times.map((t, i) => [t, column[i]]));
-  };
-  const temps = byTime(data.TA);
-  const swe = byTime(data.SW);
-  const depth = byTime(data.SD);
-  return data.SD.times
-    .filter((t) => t >= since)
-    .map((t) => {
-      const d = depth.get(t);
-      const s = swe.get(t);
-      const c = temps.get(t);
-      return {
-        datetime: localDateTime(t),
-        snowDepth: d == null ? null : cmToInches(d),
-        temp: c == null ? null : toFahrenheit(c),
-        swe: s == null ? null : toInches(s),
-      };
-    });
+function recentRows(table: ElementTable): number[] {
+  const start = firstRowAtOrAfter(table.times, Date.now() - HOURLY_DAYS * DAY_MS);
+  return Array.from({ length: table.times.length - start }, (_, i) => start + i);
 }
 
 export async function fetchBcHourly(triplet: string): Promise<HourlyObservation[]> {
-  return hourlyFor(await fetchBcData(), bcStationId(triplet));
+  const [depthTable, sweTable, tempTable] = await Promise.all([tables.SD(), tables.SW(), tables.TA()]);
+  const id = bcStationId(triplet);
+  const depth = depthTable.columns.get(id);
+  const swe = sweTable.columns.get(id);
+  const temp = tempTable.columns.get(id);
+  return recentRows(depthTable).map((row) => {
+    const t = depthTable.times[row];
+    return {
+      datetime: localDateTime(t),
+      snowDepth: depth ? orNull(depth[row], depthInches) : null,
+      temp: orNull(valueAt(tempTable, temp, t), fahrenheit),
+      swe: orNull(valueAt(sweTable, swe, t), sweInches),
+    };
+  });
 }
 
 export async function fetchBcRecentDepth(): Promise<Record<string, RecentDepth>> {
-  const data = await fetchBcData();
+  const table = await tables.SD();
+  const rows = recentRows(table);
+  const datetimes = rows.map((row) => localDateTime(table.times[row]));
   const stations: Record<string, RecentDepth> = {};
   for (const station of bcStations()) {
-    const recent = latestDepth(hourlyFor(data, bcStationId(station.triplet)));
+    const depth = table.columns.get(bcStationId(station.triplet));
+    if (!depth) continue;
+    const recent = latestDepth(rows.map((row, i) => ({ datetime: datetimes[i], snowDepth: orNull(depth[row], depthInches) })));
     if (recent) stations[station.triplet] = recent;
   }
   return stations;

@@ -1,4 +1,5 @@
 import type { ApiResponse, StationCurrentConditions } from "@snotel/core/types";
+import { getAllStations } from "@snotel/core/stations";
 import { fetchStationConditions, mergeConditions } from "./station-conditions";
 import { getSnapshot } from "./snapshot-cache";
 import { snapshotKeys } from "./snapshot-store";
@@ -12,5 +13,6 @@ export function getStationList(): Promise<ApiResponse<StationCurrentConditions[]
     maxAge: MAX_AGE_MS,
     waitMs: WAIT_FOR_LIVE_MS,
     load: async (previous) => mergeConditions(await fetchStationConditions(), previous),
+    expired: async (snapshot) => snapshot.data.length !== getAllStations().length,
   });
 }

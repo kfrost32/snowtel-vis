@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllStations, hasLiveReadings, isBcStation, networkLabel, parseTripletFromUrl, stationSource, urlTriplet } from "@snotel/core/stations";
+import { getAllStations, hasLiveReadings, networkLabel, parseTripletFromUrl, stationSource, urlTriplet } from "@snotel/core/stations";
 import { findNearestStations } from "@snotel/core/geo";
 import { STATE_NAMES } from "@snotel/core/constants";
 import { SNOW_QUALITY } from "@snotel/core/storm";
@@ -48,9 +48,7 @@ export default async function StationPage({ params }: Params) {
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{station.name} snowpack</h1>
         <p className="mt-2 text-sm" style={{ color: theme.gray }}>
-          {isBcStation(station)
-            ? `Current snow depth, snow water equivalent and storm totals for the ${station.name} automated snow pillow in ${stateName}, from the BC River Forecast Centre.`
-            : `Current snow depth, snow water equivalent and storm totals for the ${station.name} SNOTEL station in ${stateName}, from NRCS automated snow telemetry.`}
+          Current snow depth, snow water equivalent and storm totals for the {station.name} {networkLabel(station)} station in {stateName}, from {source.description}.
           {conditions?.lastUpdated && ` Latest reading ${formatReadingEndOfDay(conditions.lastUpdated)}.`}
         </p>
 
@@ -67,7 +65,7 @@ export default async function StationPage({ params }: Params) {
 
         <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm">
           <Link href={mapHref} className="font-medium underline underline-offset-2">Open on the map</Link>
-          <a href={source.url} className="underline underline-offset-2" style={{ color: theme.gray }}>{isBcStation(station) ? "BC snow survey data" : "NRCS station page"}</a>
+          <a href={source.url} className="underline underline-offset-2" style={{ color: theme.gray }}>{source.linkText}</a>
         </div>
 
         <section className="mt-8">
