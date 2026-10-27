@@ -7,7 +7,7 @@ type Props = { searchParams: Promise<{ station?: string | string[] }> };
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const { station } = await searchParams;
-  return typeof station === "string" ? stationMetadata(parseTripletFromUrl(station), true) : {};
+  return typeof station === "string" ? stationMetadata(parseTripletFromUrl(station)) : {};
 }
 
 export default function HomePage() {

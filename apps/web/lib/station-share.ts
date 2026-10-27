@@ -49,13 +49,13 @@ export function stationShareDescription({ station, conditions, storm }: StationS
     .join(" · ");
 }
 
-export async function stationMetadata(triplet: string, withImages = false): Promise<Metadata> {
+export async function stationMetadata(triplet: string): Promise<Metadata> {
   const share = await stationShare(triplet);
   if (!share) return {};
   const title = `${share.station.name}, ${share.station.state} · SNOTEL Explorer`;
   const description = stationShareDescription(share);
   const url = `/station/${urlTriplet(triplet)}`;
-  const images = withImages ? [`${url}/opengraph-image`] : undefined;
+  const images = [`${url}/opengraph-image`];
   return {
     title,
     description,
