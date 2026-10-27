@@ -20,7 +20,7 @@ function HeaderButton({ label, color, plain, onClick, className = "", children }
   return (
     <button
       onClick={onClick}
-      className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-150 cursor-pointer ${className}`}
+      className={`flex items-center justify-center w-10 h-10 rounded-full transition duration-150 active:scale-[0.94] cursor-pointer ${className}`}
       style={style}
       aria-label={label}
       title={label}

@@ -55,6 +55,7 @@ interface StationMapProps {
   stations: StationCurrentConditions[];
   onVisibleStationsChange?: (triplets: Set<string>) => void;
   flyTo?: { lng: number; lat: number; triplet: string } | null;
+  focusInsets?: { left: number; right: number; bottomShare: number };
   huc2Markers?: RegionMarker[];
   huc4Markers?: RegionMarker[];
   showStations?: boolean;
@@ -112,6 +113,7 @@ function StationMapInner({
   stations,
   onVisibleStationsChange,
   flyTo,
+  focusInsets,
   huc2Markers,
   huc4Markers,
   showStations = true,
@@ -431,8 +433,18 @@ function StationMapInner({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !flyTo) return;
-    map.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: 11, duration: 1500 });
-  }, [flyTo]);
+    const insets = focusInsetsRef.current;
+    const right = insets ? Math.min(insets.right, map.getContainer().clientWidth / 2) : 0;
+    const bottom = insets ? map.getContainer().clientHeight * insets.bottomShare : 0;
+    map.stop();
+    map.easeTo({
+      center: [flyTo.lng, flyTo.lat],
+      zoom: Math.max(map.getZoom(), 8.5),
+      offset: [((insets?.left ?? 0) - right) / 2, -bottom / 2],
+      duration: 700,
+      easing: (t) => 1 - Math.pow(1 - t, 3),
+    });
+  }, [flyTo, mapLoaded]);
 
   const updateRegions = useCallback((level: RegionLevel, markers: RegionMarker[] | undefined, boundaries: GeoJSON.FeatureCollection) => {
     const map = mapRef.current;
@@ -472,8 +484,20 @@ function StationMapInner({
     for (const { id } of SELECTED_LAYERS) {
       if (map.getLayer(id)) map.setFilter(id, selectedStationFilter(selectedTriplet));
     }
+    if (!selectedTriplet || !map.getLayer("station-selected-glow")) return;
+    map.setPaintProperty("station-selected-glow", "circle-opacity-transition", { duration: 0, delay: 0 });
+    map.setPaintProperty("station-selected-glow", "circle-opacity", 0);
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        map.setPaintProperty("station-selected-glow", "circle-opacity-transition", { duration: 350, delay: 0 });
+        map.setPaintProperty("station-selected-glow", "circle-opacity", selectedStationGlowPaint?.["circle-opacity"]);
+      });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [selectedTriplet, mapLoaded]);
 
+  const focusInsetsRef = useRef(focusInsets);
+  focusInsetsRef.current = focusInsets;
   const fitPaddingRef = useRef(fitPadding);
   fitPaddingRef.current = fitPadding;
 

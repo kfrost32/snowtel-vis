@@ -12,15 +12,14 @@ export default function SidebarRadioItem({ label, active, onClick }: SidebarRadi
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2.5 py-1.5 md:py-1.5 min-h-[40px] md:min-h-0 text-left transition-colors duration-150 cursor-pointer"
+      className="group flex items-center gap-2.5 py-1.5 min-h-[40px] md:min-h-0 text-left cursor-pointer"
     >
       <div
-        className="shrink-0 w-2.5 h-2.5 md:w-2 md:h-2 rounded-full"
-        style={{ background: active ? theme.black : theme.mediumGray, opacity: active ? 1 : 0.4 }}
+        className={`shrink-0 w-2.5 h-2.5 md:w-2 md:h-2 rounded-full transition-opacity ${active ? "" : "opacity-40 group-hover:opacity-70"}`}
+        style={{ background: active ? theme.black : theme.mediumGray }}
       />
       <span
-        className="text-sm font-sans"
-        style={{ color: active ? theme.black : theme.gray, fontWeight: active ? 600 : 400 }}
+        className={`text-sm font-sans transition-colors ${active ? "font-semibold text-[var(--c-black)]" : "text-[var(--c-gray)] group-hover:text-[var(--c-black)]"}`}
       >
         {label}
       </span>

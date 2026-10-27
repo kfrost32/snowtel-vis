@@ -1,6 +1,5 @@
 import Script from "next/script";
-
-const GA_ID = "G-FT9C9G8N18";
+import { GA_ID } from "@/lib/analytics";
 
 export default function GoogleAnalytics() {
   return (

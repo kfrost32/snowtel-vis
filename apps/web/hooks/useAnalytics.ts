@@ -1,30 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
+import { getStation } from "@snotel/core/stations";
+import { track } from "@/lib/analytics";
 
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void;
-  }
-}
+export function useAnalytics(selectedStation: string | null, selectedBasin: { huc: string; name: string } | null) {
+  const basinHuc = selectedBasin?.huc ?? null;
+  const basinName = selectedBasin?.name;
 
-export function useAnalytics(selectedStation: string | null, selectedBasin: string | null) {
   useEffect(() => {
-    if (!window.gtag) return;
     if (selectedStation) {
-      window.gtag("event", "page_view", {
-        page_title: document.title,
-        page_location: window.location.href,
-        content_type: "station",
-        content_id: selectedStation,
-      });
-    } else if (selectedBasin) {
-      window.gtag("event", "page_view", {
-        page_title: document.title,
-        page_location: window.location.href,
-        content_type: "basin",
-        content_id: selectedBasin,
-      });
+      const station = getStation(selectedStation);
+      track("view_station", { station_id: selectedStation, station_name: station?.name, state: station?.state });
+    } else if (basinHuc) {
+      track("view_region", { region_id: basinHuc, region_name: basinName });
     }
-  }, [selectedStation, selectedBasin]);
+  }, [selectedStation, basinHuc, basinName]);
 }

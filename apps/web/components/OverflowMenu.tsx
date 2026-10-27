@@ -33,7 +33,7 @@ export default function OverflowMenu({ items }: { items: OverflowMenuItem[] }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full mt-1 z-20 min-w-[180px] py-1 rounded-lg border shadow-lg"
+          className="absolute right-0 top-full mt-1 z-20 min-w-[180px] py-1 rounded-lg border shadow-lg origin-top-right motion-safe:animate-menu-in"
           style={{ background: theme.white, borderColor: theme.borderGray }}
         >
           {items.map((item) => (

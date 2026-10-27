@@ -19,11 +19,10 @@ export default function SidebarSection({ label, defaultOpen = true, trailing, fl
     <div className="border-b" style={{ borderColor: theme.borderGray }}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 md:py-2.5 min-h-[44px] md:min-h-0 cursor-pointer hover:bg-[var(--c-hover)] transition-colors"
+        className="group w-full flex items-center justify-between px-4 py-3 md:py-2.5 min-h-[44px] md:min-h-0 cursor-pointer"
       >
         <span
-          className="text-xs font-semibold uppercase tracking-wider font-sans select-none"
-          style={{ color: theme.gray }}
+          className="text-xs font-semibold uppercase tracking-wider font-sans select-none text-[var(--c-gray)] group-hover:text-[var(--c-black)] transition-colors"
         >
           {label}
         </span>
@@ -31,10 +30,10 @@ export default function SidebarSection({ label, defaultOpen = true, trailing, fl
           {trailing && <span onClick={(e) => e.stopPropagation()}>{trailing}</span>}
           <ChevronDown
             size={16}
+            className="text-[var(--c-medium-gray)] group-hover:text-[var(--c-black)]"
             style={{
-              color: theme.gray,
               transform: open ? "rotate(0deg)" : "rotate(-90deg)",
-              transition: "transform 150ms",
+              transition: "transform 150ms, color 150ms",
             }}
           />
         </div>

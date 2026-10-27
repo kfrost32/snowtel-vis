@@ -4,6 +4,7 @@ import { ReactNode, useRef, useState, useCallback } from "react";
 import { Check, Copy, Download, Share } from "lucide-react";
 import { theme } from "@/lib/theme";
 import OverflowMenu, { type OverflowMenuItem } from "@/components/OverflowMenu";
+import { track } from "@/lib/analytics";
 
 interface ChartCardProps {
   dense?: boolean;
@@ -44,6 +45,7 @@ export default function ChartCard({ title, description, height, actions, footer,
   }, []);
 
   const handleExport = useCallback(async () => {
+    track("chart_export", { method: "download" });
     if (!cardRef.current || exporting) return;
     setExporting(true);
     try {
@@ -61,6 +63,7 @@ export default function ChartCard({ title, description, height, actions, footer,
   }, [exporting, capture]);
 
   const handleShare = useCallback(async () => {
+    track("chart_export", { method: "share" });
     if (!cardRef.current || exporting) return;
     setExporting(true);
     const filename = `snotel-chart-${Date.now()}.png`;
@@ -89,6 +92,7 @@ export default function ChartCard({ title, description, height, actions, footer,
   }, [exporting, capture]);
 
   const handleCopy = useCallback(async () => {
+    track("chart_export", { method: "copy" });
     if (!cardRef.current || exporting) return;
     setExporting(true);
     try {

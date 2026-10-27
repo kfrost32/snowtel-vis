@@ -8,25 +8,28 @@ import { SidebarSection, SidebarToggle, SidebarRadioItem, SidebarChip, SidebarSe
 const METRIC_GROUPS = [
   {
     label: "SWE",
+    prefix: "SWE",
     metrics: [
-      { key: "WTEQ", label: "SWE" },
-      { key: "WTEQ_PCT", label: "% of Median" },
-      { key: "CHANGE_1D", label: "1-Day Δ" },
-      { key: "CHANGE_3D", label: "3-Day Δ" },
-      { key: "CHANGE_7D", label: "7-Day Δ" },
+      { key: "WTEQ", label: "Total" },
+      { key: "WTEQ_PCT", label: "% of median" },
+      { key: "CHANGE_1D", label: "1-day change" },
+      { key: "CHANGE_3D", label: "3-day change" },
+      { key: "CHANGE_7D", label: "7-day change" },
     ],
   },
   {
     label: "Depth",
+    prefix: "Depth",
     metrics: [
-      { key: "SNWD", label: "Snow Depth" },
-      { key: "SNWD_CHANGE_1D", label: "1-Day Δ" },
-      { key: "SNWD_CHANGE_3D", label: "3-Day Δ" },
-      { key: "SNWD_CHANGE_7D", label: "7-Day Δ" },
+      { key: "SNWD", label: "Total" },
+      { key: "SNWD_CHANGE_1D", label: "1-day change" },
+      { key: "SNWD_CHANGE_3D", label: "3-day change" },
+      { key: "SNWD_CHANGE_7D", label: "7-day change" },
     ],
   },
   {
     label: "Forecast",
+    prefix: "Forecast",
     metrics: [
       { key: "FORECAST_3D", label: "Next 3 days" },
       { key: "FORECAST_7D", label: "Next 7 days" },
@@ -35,11 +38,19 @@ const METRIC_GROUPS = [
   {
     label: "Other",
     metrics: [
-      { key: "PREC", label: "Season Precip" },
+      { key: "PREC", label: "Season precip" },
       { key: "TAVG", label: "Temperature" },
     ],
   },
 ] as const;
+
+export function metricButtonLabel(metric: string): string {
+  for (const group of METRIC_GROUPS) {
+    const item = group.metrics.find((m) => m.key === metric);
+    if (item) return "prefix" in group ? `${group.prefix} · ${item.label}` : item.label;
+  }
+  return metric;
+}
 
 export interface MapControlsProps {
   metric: string;
@@ -106,12 +117,7 @@ export default function MapControls({
         </div>
         <div className="flex flex-col">
           {activeGroup.metrics.map((m) => (
-            <SidebarRadioItem
-              key={m.key}
-              label={m.label}
-              active={metric === m.key}
-              onClick={() => onMetricChange(m.key)}
-            />
+            <SidebarRadioItem key={m.key} label={m.label} active={metric === m.key} onClick={() => onMetricChange(m.key)} />
           ))}
         </div>
       </SidebarSection>
@@ -119,18 +125,16 @@ export default function MapControls({
       <SidebarSection label="Layers">
         <div className="flex flex-col gap-3">
           <SidebarToggle label="Stations" description="Individual sites" checked={showStations} onChange={onShowStationsChange} />
+          <SidebarToggle label="Active stations only" description="Has SWE data this season" checked={activeOnly} onChange={onActiveOnlyChange} />
           <SidebarToggle label="Regions" description="Major river basins (HUC-2)" checked={showHuc2} onChange={onShowHuc2Change} />
           <SidebarToggle label="Sub-regions" description="Smaller basins (HUC-4)" checked={showHuc4} onChange={onShowHuc4Change} />
           <SidebarToggle label="Ski areas" description="Resorts and backcountry spots" checked={showSpots} onChange={onShowSpotsChange} />
         </div>
       </SidebarSection>
 
-      <SidebarSection label="Filters">
-        <SidebarToggle label="Active stations only" description="Has SWE data this season" checked={activeOnly} onChange={onActiveOnlyChange} />
-      </SidebarSection>
-
       <SidebarSection
         label="States"
+        defaultOpen={selectedStates.size > 0}
         trailing={
           selectedStates.size > 0 ? (
             <button
@@ -157,7 +161,7 @@ export default function MapControls({
         </div>
       </SidebarSection>
 
-      <SidebarSection label="Elevation (ft)">
+      <SidebarSection label="Elevation (ft)" defaultOpen={Boolean(elevMin || elevMax)}>
         <div className="flex gap-2 items-center">
           <input
             type="number"

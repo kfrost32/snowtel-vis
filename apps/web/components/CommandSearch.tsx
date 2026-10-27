@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { theme } from "@/lib/theme";
 import { getAllStations, urlTriplet } from "@snotel/core/stations";
 import { formatElevation } from "@snotel/core/formatting";
+import { track } from "@/lib/analytics";
 
 interface SearchItem {
   label: string;
@@ -65,10 +66,12 @@ export default function CommandSearch() {
 
   const navigate = useCallback(
     (href: string) => {
+      if (query) track("search", { search_term: query });
+      track("select_content", { content_type: "search_result", item_id: href });
       router.push(href);
       close();
     },
-    [router, close]
+    [router, close, query]
   );
 
   useEffect(() => {
@@ -78,7 +81,10 @@ export default function CommandSearch() {
         setOpen((prev) => !prev);
       }
     };
-    const handleCustomOpen = () => setOpen(true);
+    const handleCustomOpen = () => {
+      setOpen(true);
+      track("open_search");
+    };
     document.addEventListener("keydown", handleKey);
     window.addEventListener("open-command-search", handleCustomOpen);
     return () => {

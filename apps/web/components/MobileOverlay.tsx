@@ -1,21 +1,26 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 const INSET = 12;
 
 export default function MobileOverlay({ onDismiss, zIndex, children }: { onDismiss: () => void; zIndex: number; children: ReactNode }) {
   const [visible, setVisible] = useState(false);
+  const dismissRef = useRef(onDismiss);
+
+  useEffect(() => {
+    dismissRef.current = onDismiss;
+  });
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setVisible(true));
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onDismiss();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && dismissRef.current();
     window.addEventListener("keydown", onKey);
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("keydown", onKey);
     };
-  }, [onDismiss]);
+  }, []);
 
   return (
     <>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, Suspense } from "react";
+import { useState, useMemo, useEffect, useRef, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { Loader2, Search, SlidersHorizontal } from "lucide-react";
 import { useStationList } from "@/hooks/useStationList";
@@ -27,7 +27,8 @@ import StationDetailPanel from "@/components/StationDetailPanel";
 import BasinDetailPanel from "@/components/BasinDetailPanel";
 import MapLegend from "@/components/MapLegend";
 import MapSidebar from "@/components/MapSidebar";
-import { DETAIL_WIDTH, EXPANDED_DETAIL_MAX, GLASS_STYLE, SIDEBAR_INSET, SIDEBAR_WIDTH } from "@/lib/map-layout";
+import { metricButtonLabel } from "@/components/MapControls";
+import { DETAIL_MAX, DETAIL_WIDTH, EXPANDED_DETAIL_MAX, GLASS_BUTTON, GLASS_STYLE, SIDEBAR_INSET, SIDEBAR_WIDTH } from "@/lib/map-layout";
 import { storedValue, useStoredValue } from "@/lib/stored-value";
 
 const StationMap = dynamic(() => import("@/components/StationMap"), {
@@ -91,7 +92,7 @@ function HomePageInner() {
   );
   const selectedStation = selectedTriplet ? getStation(selectedTriplet) : null;
   usePageTitle(selectedStation?.name ?? selectedBasin?.name ?? null);
-  useAnalytics(selectedTriplet, selection.basinHuc);
+  useAnalytics(selectedTriplet, selectedBasin);
 
   const handleStationClick = (triplet: string) => {
     if (isMobile) setSidebarOpen(false);
@@ -118,7 +119,9 @@ function HomePageInner() {
   const toggleExpand = isMobile ? undefined : () => expandedStore.set((v) => !v);
   const detailWidth = expanded ? `min(${EXPANDED_DETAIL_MAX}px, calc(100vw - ${(sidebarOffset || SIDEBAR_INSET) + SIDEBAR_INSET}px))` : DETAIL_WIDTH;
 
-  const detailContent = selectedTriplet ? (
+  const metricLabel = metricButtonLabel(metric);
+
+  const detailPanel = selectedTriplet ? (
     <StationDetailPanel
       triplet={selectedTriplet}
       onClose={selection.clear}
@@ -139,6 +142,23 @@ function HomePageInner() {
       onToggleExpand={toggleExpand}
     />
   ) : null;
+  const flyTo = useMemo(() => {
+    const station = selection.focus && getStation(selection.focus.triplet);
+    return station ? { lng: station.longitude, lat: station.latitude, triplet: station.triplet } : null;
+  }, [selection.focus]);
+  const focusInsets = { left: sidebarOffset, right: isMobile ? 0 : DETAIL_MAX + SIDEBAR_INSET * 2, bottomShare: isMobile ? 0.85 : 0 };
+
+  const detailRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!selectionKey || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    detailRef.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
+  }, [selectionKey]);
+
+  const detailContent = (
+    <div ref={detailRef} className="h-full min-h-0 flex flex-col">
+      {detailPanel}
+    </div>
+  );
 
   const sidebarContent = (
     <MapSidebar
@@ -147,7 +167,6 @@ function HomePageInner() {
       basins={allBasins}
       controls={controls}
       onClose={() => setSidebarOpen(false)}
-      onSearch={openSearch}
       onSelectStation={handleStationClick}
       onSelectBasin={handleBasinClick}
     />
@@ -155,38 +174,73 @@ function HomePageInner() {
 
   return (
     <div className="h-dvh flex w-full relative">
-      {sidebarShown && (isMobile ? (
-        <MobileOverlay onDismiss={() => setSidebarOpen(false)} zIndex={30}>
-          {sidebarContent}
-        </MobileOverlay>
+      {isMobile ? (
+        sidebarShown && (
+          <MobileOverlay onDismiss={() => setSidebarOpen(false)} zIndex={30}>
+            {sidebarContent}
+          </MobileOverlay>
+        )
       ) : (
         <div
-          className="absolute z-20 rounded-2xl flex flex-col overflow-hidden"
-          style={{ ...GLASS_STYLE, width: SIDEBAR_WIDTH, top: SIDEBAR_INSET, left: SIDEBAR_INSET, bottom: SIDEBAR_INSET }}
+          className="absolute z-20 rounded-2xl flex flex-col overflow-hidden transition-[transform,opacity,visibility] duration-250 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
+          style={{
+            ...GLASS_STYLE,
+            width: SIDEBAR_WIDTH,
+            top: SIDEBAR_INSET,
+            left: SIDEBAR_INSET,
+            bottom: SIDEBAR_INSET,
+            transform: sidebarShown ? "none" : `translateX(calc(-100% - ${SIDEBAR_INSET * 2}px))`,
+            opacity: sidebarShown ? 1 : 0,
+            visibility: sidebarShown ? "visible" : "hidden",
+          }}
+          inert={!sidebarShown}
         >
           {sidebarContent}
         </div>
-      ))}
+      )}
 
-      {!sidebarShown && (
-        <div className="absolute z-20 flex items-center gap-2" style={{ top: SIDEBAR_INSET, left: SIDEBAR_INSET }}>
-          <button
-            onClick={openSidebar}
-            className="flex items-center justify-center gap-2 h-11 md:h-10 pl-3.5 pr-4 rounded-xl hover:brightness-95 transition cursor-pointer"
-            style={GLASS_STYLE}
-            aria-label="Open layers and filters"
-          >
-            <SlidersHorizontal size={16} style={{ color: theme.darkGray }} />
-            <span className="text-sm font-sans font-semibold" style={{ color: theme.darkGray }}>Layers</span>
-          </button>
-          <button
-            onClick={openSearch}
-            className="flex items-center justify-center w-11 h-11 md:w-10 md:h-10 rounded-xl hover:brightness-95 transition cursor-pointer"
-            style={GLASS_STYLE}
-            aria-label="Search"
-          >
-            <Search size={18} style={{ color: theme.darkGray }} />
-          </button>
+      {!(isMobile && sidebarShown) && (
+        <div
+          className="absolute z-20 flex items-center gap-2 pointer-events-none transition-[left,right] duration-250 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
+          style={{
+            top: SIDEBAR_INSET,
+            left: sidebarShown ? sidebarOffset : SIDEBAR_INSET,
+            right: !isMobile && hasDetailPanel ? `calc(${detailWidth} + ${SIDEBAR_INSET * 2}px)` : SIDEBAR_INSET,
+          }}
+        >
+          {!sidebarShown && (
+            <button
+              onClick={openSidebar}
+              className={`pointer-events-auto shrink-0 motion-safe:animate-slide-in-left flex items-center justify-center gap-2 h-11 pl-3.5 pr-4 rounded-xl ${GLASS_BUTTON}`}
+              style={GLASS_STYLE}
+              aria-label={`Map options: ${metricLabel}`}
+            >
+              <SlidersHorizontal size={16} style={{ color: theme.darkGray }} />
+              <span className="text-sm font-sans font-semibold truncate max-w-[200px]" style={{ color: theme.darkGray }}>{metricLabel}</span>
+            </button>
+          )}
+          {isMobile ? (
+            <button
+              onClick={openSearch}
+              className={`pointer-events-auto flex items-center justify-center size-11 rounded-xl ${GLASS_BUTTON}`}
+              style={GLASS_STYLE}
+              aria-label="Search"
+            >
+              <Search size={18} style={{ color: theme.darkGray }} />
+            </button>
+          ) : (
+            <div className="flex-1 min-w-0 flex justify-center">
+              <button
+                onClick={openSearch}
+                className={`pointer-events-auto w-full max-w-[320px] min-w-[44px] flex items-center gap-2.5 h-11 px-3.5 rounded-xl text-left overflow-hidden ${GLASS_BUTTON}`}
+                style={GLASS_STYLE}
+                aria-label="Search stations"
+              >
+                <Search size={16} className="shrink-0" style={{ color: theme.gray }} />
+                <span className="text-sm font-sans truncate" style={{ color: theme.mediumGray }}>Search stations</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -197,6 +251,8 @@ function HomePageInner() {
         <StationMap
           key={dark ? "dark" : "light"}
           dark={dark}
+          flyTo={flyTo}
+          focusInsets={focusInsets}
           stations={filteredStations}
           huc2Markers={huc2Markers}
           huc4Markers={huc4Markers}

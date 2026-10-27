@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import type { StationFilters } from "@snotel/core/filters";
 import { storedValue, useStoredValue } from "@/lib/stored-value";
+import { track } from "@/lib/analytics";
 
 interface MapSettings {
   metric: string;
@@ -34,14 +35,28 @@ function setting<K extends keyof MapSettings>(key: K) {
   return (value: MapSettings[K]) => settingsStore.set((prev) => ({ ...prev, [key]: value }));
 }
 
+function layerSetting(key: "showStations" | "showHuc2" | "showHuc4" | "showSpots" | "activeOnly") {
+  const set = setting(key);
+  return (value: boolean) => {
+    set(value);
+    track("toggle_layer", { layer: key, enabled: value });
+  };
+}
+
 const setters = {
-  onMetricChange: setting("metric"),
-  onShowStationsChange: setting("showStations"),
-  onShowHuc2Change: setting("showHuc2"),
-  onShowHuc4Change: setting("showHuc4"),
-  onShowSpotsChange: setting("showSpots"),
-  onActiveOnlyChange: setting("activeOnly"),
-  onStatesChange: (states: Set<string>) => settingsStore.set((prev) => ({ ...prev, states: [...states] })),
+  onMetricChange: (metric: string) => {
+    setting("metric")(metric);
+    track("change_metric", { metric });
+  },
+  onShowStationsChange: layerSetting("showStations"),
+  onShowHuc2Change: layerSetting("showHuc2"),
+  onShowHuc4Change: layerSetting("showHuc4"),
+  onShowSpotsChange: layerSetting("showSpots"),
+  onActiveOnlyChange: layerSetting("activeOnly"),
+  onStatesChange: (states: Set<string>) => {
+    settingsStore.set((prev) => ({ ...prev, states: [...states] }));
+    track("filter_states", { states: [...states].sort().join(",") || "none" });
+  },
   onElevMinChange: setting("elevMin"),
   onElevMaxChange: setting("elevMax"),
 };

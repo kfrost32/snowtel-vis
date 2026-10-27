@@ -11,13 +11,17 @@ function stationFromParams(params: URLSearchParams): string | null {
 
 export function useMapSelection() {
   const searchParams = useSearchParams();
-  const [triplet, setTriplet] = useState<string | null>(() => stationFromParams(searchParams));
+  const [initial] = useState(() => stationFromParams(searchParams));
+  const [triplet, setTriplet] = useState<string | null>(initial);
   const [basinHuc, setBasinHuc] = useState<string | null>(() => searchParams.get("basin"));
+  const [focus, setFocus] = useState<{ triplet: string } | null>(initial ? { triplet: initial } : null);
   const [prevSearchParams, setPrevSearchParams] = useState(searchParams);
   if (searchParams !== prevSearchParams) {
+    const next = stationFromParams(searchParams);
     setPrevSearchParams(searchParams);
-    setTriplet(stationFromParams(searchParams));
+    setTriplet(next);
     setBasinHuc(searchParams.get("basin") ?? null);
+    if (next && next !== triplet) setFocus({ triplet: next });
   }
 
   const selectStation = useCallback((next: string) => {
@@ -49,5 +53,5 @@ export function useMapSelection() {
     return () => window.removeEventListener("keydown", onKey);
   }, [clear]);
 
-  return { triplet, basinHuc, selectStation, selectBasin, clear };
+  return { triplet, basinHuc, focus, selectStation, selectBasin, clear };
 }

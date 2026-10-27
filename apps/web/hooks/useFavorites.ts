@@ -1,6 +1,7 @@
 "use client";
 
 import { storedValue, useStoredValue } from "@/lib/stored-value";
+import { track } from "@/lib/analytics";
 
 interface Favorites {
   stations: string[];
@@ -25,6 +26,7 @@ export function useFavorites() {
   const setFavorites = store.set;
 
   const toggleStation = (triplet: string) => {
+    track(favorites.stations.includes(triplet) ? "favorite_remove" : "favorite_add", { item_type: "station", item_id: triplet });
     setFavorites((prev) => ({
       ...prev,
       stations: prev.stations.includes(triplet)
@@ -34,6 +36,7 @@ export function useFavorites() {
   };
 
   const toggleBasin = (huc: string) => {
+    track(favorites.basins.includes(huc) ? "favorite_remove" : "favorite_add", { item_type: "region", item_id: huc });
     setFavorites((prev) => ({
       ...prev,
       basins: prev.basins.includes(huc)

@@ -33,6 +33,33 @@
   --font-mono: var(--font-ibm-plex-mono), monospace;
 }
 
+@theme {
+  --animate-slide-in-left: slide-in-left 200ms ease-out;
+  --animate-slide-in-right: slide-in-right 200ms ease-out;
+  --animate-menu-in: menu-in 140ms ease-out;
+
+  @keyframes slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+  }
+
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+  }
+
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(-2px);
+    }
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

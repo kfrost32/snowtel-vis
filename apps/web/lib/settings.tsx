@@ -5,6 +5,7 @@ import { setUnits } from "@snotel/core/units";
 import { DEFAULT_SETTINGS, parseSettings, type AppSettings } from "@snotel/core/settings";
 import { storedValue, useStoredValue } from "@/lib/stored-value";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { track } from "@/lib/analytics";
 
 export type { Appearance, AppSettings } from "@snotel/core/settings";
 
@@ -18,6 +19,7 @@ export function useSettings(): AppSettings {
 
 export function updateSettings(patch: Partial<AppSettings>): void {
   settingsStore.set((prev) => ({ ...prev, ...patch }));
+  for (const [setting, value] of Object.entries(patch)) track("change_setting", { setting, value: value ?? "none" });
 }
 
 export function useIsDark(): boolean {

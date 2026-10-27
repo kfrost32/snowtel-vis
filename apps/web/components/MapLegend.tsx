@@ -42,7 +42,7 @@ export default function MapLegend({ metric, dataDate, activeOnly, isMobile, left
   return (
     <div
       onClick={isMobile ? () => setOpen(false) : undefined}
-      className="absolute bottom-4 left-4 right-4 md:right-auto rounded-xl px-3 py-2 z-10"
+      className="absolute bottom-4 left-4 right-4 md:right-auto rounded-xl px-3 py-2 z-10 transition-[left] duration-250 ease-[cubic-bezier(0.32,0.72,0,1)]"
       style={{ ...GLASS_STYLE, left: isMobile ? undefined : left }}
     >
       <div className="flex items-baseline justify-center md:justify-start gap-1.5 mb-1.5">

@@ -45,7 +45,7 @@ export default function EnvelopeChartActions({ options, yearOptions }: EnvelopeC
           <div
             role="listbox"
             aria-multiselectable
-            className="absolute right-0 top-full mt-1 z-30 w-56 rounded-lg border shadow-lg overflow-hidden"
+            className="absolute right-0 top-full mt-1 z-30 w-56 rounded-lg border shadow-lg overflow-hidden origin-top-right motion-safe:animate-menu-in"
             style={{ background: theme.white, borderColor: theme.borderGray }}
           >
             <div className="flex items-center justify-between px-3 py-2 border-b font-mono text-xs" style={{ borderColor: theme.borderGray, color: theme.mediumGray }}>
