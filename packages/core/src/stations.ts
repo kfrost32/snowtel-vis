@@ -93,6 +93,10 @@ export function getStationsByState(state: string): Station[] {
   return getAllStations().filter((s) => s.state === state);
 }
 
+export function stationTitle(station: Pick<Station, "name" | "state">): string {
+  return `${station.name} SNOTEL, ${station.state}`;
+}
+
 export function nrcsSiteUrl(triplet: string): string {
   return `https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=${triplet.split(":")[0]}`;
 }

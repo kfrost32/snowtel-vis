@@ -19,7 +19,7 @@ import { theme } from "@/lib/theme";
 import { computeBasinSummaries } from "@snotel/core/basins";
 import { regionMarkers, stateBounds } from "@snotel/core/map-style";
 import { filterStations } from "@snotel/core/filters";
-import { getStation, getPlaceholderConditions } from "@snotel/core/stations";
+import { getStation, getPlaceholderConditions, stationTitle } from "@snotel/core/stations";
 import { getAllSpots } from "@snotel/core/spots";
 import BottomSheet from "@/components/BottomSheet";
 import MobileOverlay from "@/components/MobileOverlay";
@@ -91,7 +91,7 @@ function HomePageInner() {
     [allBasins, selection.basinHuc]
   );
   const selectedStation = selectedTriplet ? getStation(selectedTriplet) : null;
-  usePageTitle(selectedStation?.name ?? selectedBasin?.name ?? null);
+  usePageTitle(selectedStation ? stationTitle(selectedStation) : selectedBasin ? `${selectedBasin.name} snowpack` : null);
   useAnalytics(selectedTriplet, selectedBasin);
 
   const handleStationClick = (triplet: string) => {

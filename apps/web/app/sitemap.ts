@@ -9,7 +9,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const pages: MetadataRoute.Sitemap = [
     { url: SITE_URL, lastModified, changeFrequency: "hourly", priority: 1 },
     { url: `${SITE_URL}/basins`, lastModified, changeFrequency: "daily", priority: 0.7 },
-    { url: `${SITE_URL}/story/2026`, changeFrequency: "monthly", priority: 0.5 },
   ];
   const stations = getAllStations()
     .filter((s) => s.network === "SNOTEL")

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getStation, urlTriplet } from "@snotel/core/stations";
+import { getStation, stationTitle, urlTriplet } from "@snotel/core/stations";
 import { applyRecentDepth, type RecentConditions } from "@snotel/core/recent";
 import { lastStorm, SNOW_QUALITY, type StormSummary } from "@snotel/core/storm";
 import { formatDepthChange, formatElevation, formatPctOfNormal, formatReadingEndOfDay, formatSnowDepth, formatSwe } from "@snotel/core/formatting";
@@ -52,7 +52,7 @@ export function stationShareDescription({ station, conditions, storm }: StationS
 export async function stationMetadata(triplet: string): Promise<Metadata> {
   const share = await stationShare(triplet);
   if (!share) return {};
-  const title = `${share.station.name}, ${share.station.state} · snotel.fyi`;
+  const title = `${stationTitle(share.station)} · snotel.fyi`;
   const description = stationShareDescription(share);
   const url = `/station/${urlTriplet(triplet)}`;
   const images = [`${url}/opengraph-image`];

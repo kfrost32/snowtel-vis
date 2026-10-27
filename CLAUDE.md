@@ -31,7 +31,7 @@ npm run build-spot-icons   # Render mobile spot icon PNGs from the shared SVG in
 
 - `/` — Full-viewport MapLibre map with sidebar (metric, layers, state/elevation filters, favorites). `?station=` or `?basin=` opens a detail panel
 - `/station/[triplet]` — Shareable station link (triplet uses dashes, e.g. `669-CO-SNTL`). Renders per-station metadata and a generated Open Graph image, then redirects to `/?station=`
-- `/basins`, `/compare` (`?stations=`), `/status`, `/story/2026`; `/map` redirects to `/`
+- `/basins`, `/status`; `/map` redirects to `/`
 - `/api/stations` — All 1,900 stations with current conditions (full records; kept for installed app versions)
 - `/api/stations/readings` — Same data, compact: SNOTEL stations only as value rows plus a field list. Clients expand it with `unpackReadings` from `@snotel/core/readings`
 - `/api/stations/recent` — Latest hourly snow depth and 24h change for every SNOTEL station

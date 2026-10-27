@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const title = "Basin Snowpack · snotel.fyi";
+const title = "Basin snowpack · snotel.fyi";
 const description = "Snowpack by river basin across the western US: current snow water equivalent as a percent of median for every region, from NRCS SNOTEL stations.";
 
 export const metadata: Metadata = {
