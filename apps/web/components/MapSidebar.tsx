@@ -31,7 +31,7 @@ export default function MapSidebar({ stationCount, isMobile, basins, controls, o
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 pt-6 pb-2.5 md:pt-2.5 border-b flex-shrink-0" style={{ borderColor: "var(--c-hairline)" }}>
+      <div className="flex items-center justify-between px-4 py-2.5 max-md:py-3 border-b flex-shrink-0" style={{ borderColor: "var(--c-hairline)" }}>
         <div className="min-w-0">
           <div className="text-sm font-semibold tracking-tight font-sans truncate" style={{ color: theme.black }}>
             snotel.fyi
@@ -70,7 +70,7 @@ export default function MapSidebar({ stationCount, isMobile, basins, controls, o
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col max-md:pb-[calc(env(safe-area-inset-bottom)+32px)]" style={{ borderColor: theme.borderGray }}>
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col " style={{ borderColor: theme.borderGray }}>
         {showSettings ? (
           <SettingsPanel />
         ) : (

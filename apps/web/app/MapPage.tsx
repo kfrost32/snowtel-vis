@@ -22,6 +22,7 @@ import { filterStations } from "@snotel/core/filters";
 import { getStation, getPlaceholderConditions } from "@snotel/core/stations";
 import { getAllSpots } from "@snotel/core/spots";
 import BottomSheet from "@/components/BottomSheet";
+import MobileOverlay from "@/components/MobileOverlay";
 import StationDetailPanel from "@/components/StationDetailPanel";
 import BasinDetailPanel from "@/components/BasinDetailPanel";
 import MapLegend from "@/components/MapLegend";
@@ -149,9 +150,9 @@ function HomePageInner() {
   return (
     <div className="h-dvh flex w-full relative">
       {sidebarOpen && (isMobile ? (
-        <BottomSheet baseHeight="72dvh" onDismiss={() => setSidebarOpen(false)} zIndex={30} background="var(--c-sheet)">
+        <MobileOverlay onDismiss={() => setSidebarOpen(false)} zIndex={30}>
           {sidebarContent}
-        </BottomSheet>
+        </MobileOverlay>
       ) : (
         <div
           className="absolute z-20 rounded-2xl flex flex-col overflow-hidden"
