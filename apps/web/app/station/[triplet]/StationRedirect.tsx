@@ -2,14 +2,13 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
-export default function StationRedirect({ href, name }: { href: string; name: string }) {
+const CRAWLER = /bot|crawl|spider|slurp|facebookexternalhit|embedly|preview/i;
+
+export default function StationRedirect({ href }: { href: string }) {
   const router = useRouter();
-  useEffect(() => router.replace(href), [router, href]);
-  return (
-    <main className="min-h-screen flex items-center justify-center font-mono text-sm">
-      <Link href={href}>Opening {name}…</Link>
-    </main>
-  );
+  useEffect(() => {
+    if (!CRAWLER.test(navigator.userAgent)) router.replace(href);
+  }, [router, href]);
+  return null;
 }

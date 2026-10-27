@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 import { IBM_Plex_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
 import GlobalHeader from "@/components/GlobalHeader";
@@ -20,7 +21,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://snotel.fyi"),
+  metadataBase: new URL(SITE_URL),
   title: "SNOTEL Explorer",
   description: "Interactive map of SNOTEL snowpack conditions across the western United States. Current SWE, snow depth, and percent of normal for 900+ mountain stations.",
   openGraph: {
