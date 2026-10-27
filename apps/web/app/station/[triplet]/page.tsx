@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllStations, nrcsSiteUrl, parseTripletFromUrl, urlTriplet } from "@snotel/core/stations";
+import { getAllStations, hasLiveReadings, isBcStation, networkLabel, parseTripletFromUrl, stationSource, urlTriplet } from "@snotel/core/stations";
 import { findNearestStations } from "@snotel/core/geo";
 import { STATE_NAMES } from "@snotel/core/constants";
 import { SNOW_QUALITY } from "@snotel/core/storm";
@@ -24,8 +24,10 @@ export default async function StationPage({ params }: Params) {
   if (!share) notFound();
   const { station, conditions, storm } = share;
   const mapHref = `/?station=${urlTriplet(triplet)}`;
+  const source = stationSource(station);
+  const stateName = STATE_NAMES[station.state] ?? station.state;
   const nearby = findNearestStations(
-    getAllStations().filter((s) => s.network === "SNOTEL" && s.triplet !== triplet),
+    getAllStations().filter((s) => hasLiveReadings(s) && s.triplet !== triplet),
     station.latitude,
     station.longitude
   );
@@ -42,12 +44,13 @@ export default async function StationPage({ params }: Params) {
       <StationRedirect href={mapHref} />
       <article className="mx-auto max-w-xl font-sans">
         <p className="text-xs font-mono" style={{ color: theme.mediumGray }}>
-          SNOTEL station · {STATE_NAMES[station.state] ?? station.state} · {formatElevation(station.elevation)}
+          {networkLabel(station)} station · {stateName} · {formatElevation(station.elevation)}
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{station.name} snowpack</h1>
         <p className="mt-2 text-sm" style={{ color: theme.gray }}>
-          Current snow depth, snow water equivalent and storm totals for the {station.name} SNOTEL station in {STATE_NAMES[station.state] ?? station.state},
-          from NRCS automated snow telemetry.
+          {isBcStation(station)
+            ? `Current snow depth, snow water equivalent and storm totals for the ${station.name} automated snow pillow in ${stateName}, from the BC River Forecast Centre.`
+            : `Current snow depth, snow water equivalent and storm totals for the ${station.name} SNOTEL station in ${stateName}, from NRCS automated snow telemetry.`}
           {conditions?.lastUpdated && ` Latest reading ${formatReadingEndOfDay(conditions.lastUpdated)}.`}
         </p>
 
@@ -64,11 +67,11 @@ export default async function StationPage({ params }: Params) {
 
         <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm">
           <Link href={mapHref} className="font-medium underline underline-offset-2">Open on the map</Link>
-          <a href={nrcsSiteUrl(triplet)} className="underline underline-offset-2" style={{ color: theme.gray }}>NRCS station page</a>
+          <a href={source.url} className="underline underline-offset-2" style={{ color: theme.gray }}>{isBcStation(station) ? "BC snow survey data" : "NRCS station page"}</a>
         </div>
 
         <section className="mt-8">
-          <h2 className="text-sm font-semibold">Nearby SNOTEL stations</h2>
+          <h2 className="text-sm font-semibold">Nearby stations</h2>
           <ul className="mt-2 text-sm">
             {nearby.map((s) => (
               <li key={s.triplet} className="flex justify-between border-b py-2" style={{ borderColor: theme.borderGray }}>

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import useSWR from "swr";
 import { endpoints } from "@snotel/core/endpoints";
+import { getStation, hasNwsForecast } from "@snotel/core/stations";
 import { unpackReadings, type StationReadings } from "@snotel/core/readings";
 import type { ForecastTotals, StationForecast } from "@snotel/core/forecast";
 import { basinSeasonMap, peakHistory, toBasinEnvelope, toStationEnvelope } from "@snotel/core/station-stats";
@@ -58,7 +59,7 @@ export function useForecastTotals() {
 }
 
 export function useStationForecast(triplet: string) {
-  const { data, error } = useSWR<ApiResponse<StationForecast>>(endpoints.stationForecast(triplet));
+  const { data, error } = useSWR<ApiResponse<StationForecast>>(hasNwsForecast(getStation(triplet)) ? endpoints.stationForecast(triplet) : null);
   return { forecast: data?.data ?? null, unavailable: Boolean(error) && !data };
 }
 

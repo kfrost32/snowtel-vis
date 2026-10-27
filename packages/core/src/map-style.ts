@@ -21,7 +21,7 @@ import { hasFreshSnow } from "./recent";
 import { formatSnowfall } from "./forecast";
 import { theme } from "./theme";
 import { shiftDate } from "./water-year";
-import { getAllStations } from "./stations";
+import { getAllStations, hasLiveReadings } from "./stations";
 import stateBoundaries from "../data/state-boundaries.json";
 import { SPOT_COLORS, SPOT_KIND_LABELS, SPOT_TEXT_SIZE, spotElevationLabel, spotPlacement, type Spot, type SpotKind } from "./spots";
 
@@ -95,7 +95,7 @@ export function stationFeatures(stations: StationCurrentConditions[], metric: st
   return {
     type: "FeatureCollection",
     features: stations.filter((s) => s.latitude && s.longitude).map((s) => {
-      const outdated = s.network === "SNOTEL" && s.swe !== null && s.lastUpdated < cutoff;
+      const outdated = hasLiveReadings(s) && s.swe !== null && s.lastUpdated < cutoff;
       const inactive = outdated || isInactive(metric, s);
       const hollow = isHollow(metric, s);
       const fresh = hasFreshSnow(s);

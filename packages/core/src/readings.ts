@@ -1,5 +1,5 @@
 import type { StationCurrentConditions } from "./types";
-import { getPlaceholderConditions } from "./stations";
+import { getPlaceholderConditions, hasLiveReadings } from "./stations";
 
 export const READING_FIELDS = [
   "swe",
@@ -28,7 +28,7 @@ export interface StationReadings {
 export function packReadings(conditions: StationCurrentConditions[]): StationReadings {
   const stations: Record<string, ReadingValue[]> = {};
   for (const s of conditions) {
-    if (s.network === "SNOTEL") stations[s.triplet] = READING_FIELDS.map((field) => s[field]);
+    if (hasLiveReadings(s)) stations[s.triplet] = READING_FIELDS.map((field) => s[field]);
   }
   return { fields: [...READING_FIELDS], stations };
 }

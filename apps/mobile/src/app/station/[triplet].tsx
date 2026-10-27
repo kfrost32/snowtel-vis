@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Text, View
 import { useLocalSearchParams } from "expo-router";
 import { STATE_NAMES } from "@snotel/core/constants";
 import * as Haptics from "expo-haptics";
-import { getStation, nrcsSiteUrl, parseTripletFromUrl, urlTriplet } from "@snotel/core/stations";
+import { getStation, parseTripletFromUrl, stationSource, urlTriplet } from "@snotel/core/stations";
 import * as WebBrowser from "expo-web-browser";
 import { DELTA_DAYS, envelopeStats, seasonDeltas, statsAt } from "@snotel/core/station-stats";
 import { buildSeasonMap } from "@snotel/core/season";
@@ -191,9 +191,9 @@ export default function StationScreen() {
             </Section>
           )}
 
-          <Pressable onPress={() => WebBrowser.openBrowserAsync(nrcsSiteUrl(station.triplet))} hitSlop={8}>
+          <Pressable onPress={() => WebBrowser.openBrowserAsync(stationSource(station).url)} hitSlop={8}>
             <Text style={styles.footer}>
-              {station.triplet} · Data from USDA NRCS SNOTEL · <Text style={styles.footerLink}>View on NRCS</Text>
+              {station.triplet} · Data from {stationSource(station).name} · <Text style={styles.footerLink}>View on {stationSource(station).label}</Text>
             </Text>
           </Pressable>
         </>

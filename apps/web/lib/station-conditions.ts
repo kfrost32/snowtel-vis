@@ -1,7 +1,9 @@
-import { getAllStations } from "@snotel/core/stations";
+import { getAllStations, getPlaceholderConditions, isBcStation } from "@snotel/core/stations";
 import { shiftDate } from "@snotel/core/water-year";
 import { fetchDailyData } from "./snotel-api";
 import type { StationCurrentConditions } from "@snotel/core/types";
+import { seriesChange } from "./series";
+import { fetchBcConditions } from "./bc-snow";
 
 const LOOKBACK_DAYS = 8;
 const DATA_TIMEZONE = "America/Denver";
@@ -13,29 +15,25 @@ export function todayInDataTimezone(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: DATA_TIMEZONE }).format(new Date());
 }
 
-function change(values: (number | null)[], days: number, digits = 1): number | null {
-  const latest = values.length - 1;
-  if (latest < days) return null;
-  const now = values[latest];
-  const then = values[latest - days];
-  if (now === null || then === null) return null;
-  const factor = 10 ** digits;
-  return Math.round((now - then) * factor) / factor;
-}
-
 export async function fetchStationConditions(): Promise<StationCurrentConditions[]> {
-  const stations = getAllStations();
+  const stations = getAllStations().filter((s) => !isBcStation(s));
   const snotelTriplets = stations.filter((s) => s.network === "SNOTEL").map((s) => s.triplet);
 
   const endDate = todayInDataTimezone();
   const beginDate = shiftDate(endDate, -LOOKBACK_DAYS);
-  const data = await fetchDailyData(snotelTriplets, ["WTEQ", "SNWD", "PREC", "TOBS"], beginDate, endDate, {
-    timeout: BULK_TIMEOUT_MS,
-    batchSize: BATCH_SIZE,
-    median: true,
-  });
+  const [data, bc] = await Promise.all([
+    fetchDailyData(snotelTriplets, ["WTEQ", "SNWD", "PREC", "TOBS"], beginDate, endDate, {
+      timeout: BULK_TIMEOUT_MS,
+      batchSize: BATCH_SIZE,
+      median: true,
+    }),
+    fetchBcConditions().catch((e) => {
+      console.error("BC conditions fetch failed:", (e as Error).message);
+      return getPlaceholderConditions().filter(isBcStation);
+    }),
+  ]);
 
-  return stations.map((station): StationCurrentConditions => {
+  const nrcs = stations.map((station): StationCurrentConditions => {
     if (station.network !== "SNOTEL") {
       return {
         ...station,
@@ -66,15 +64,16 @@ export async function fetchStationConditions(): Promise<StationCurrentConditions
       snowDepth: snwd.at(-1) ?? null,
       temp: tobs.at(-1) ?? null,
       precipAccum: prec.at(-1) ?? null,
-      sweChange1d: change(wteq, 1),
-      sweChange3d: change(wteq, 3),
-      sweChange7d: change(wteq, 7),
-      depthChange1d: change(snwd, 1, 0),
-      depthChange3d: change(snwd, 3, 0),
-      depthChange7d: change(snwd, 7, 0),
+      sweChange1d: seriesChange(wteq, 1),
+      sweChange3d: seriesChange(wteq, 3),
+      sweChange7d: seriesChange(wteq, 7),
+      depthChange1d: seriesChange(snwd, 1, 0),
+      depthChange3d: seriesChange(snwd, 3, 0),
+      depthChange7d: seriesChange(snwd, 7, 0),
       lastUpdated: series.WTEQ?.dates.at(-1) ?? endDate,
     };
   });
+  return [...nrcs, ...bc].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function mergeConditions(

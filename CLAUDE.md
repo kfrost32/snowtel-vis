@@ -7,7 +7,7 @@ npm workspaces monorepo:
 - `apps/web` — Next.js app (Vercel root directory). Server-only code lives in `apps/web/lib` (NRCS fetching, snapshot cache, share metadata); UI in `apps/web/components` and `apps/web/hooks`
 - `packages/core` (`@snotel/core`) — platform-free logic and data shared by web and mobile: types, water-year and date math, envelope stats, basins, stations, spots, storm detection, map layer styles, formatting, colors, theme tokens, plus shared JSON in `packages/core/data`. Imported as `@snotel/core/<module>` (source TS, transpiled by consumers). No DOM, React, or Node APIs here
 - `apps/mobile` — Expo (SDK 58) iOS app. Expo Router with native tabs (Map, Stations, Search) and form-sheet station and region detail; MapLibre React Native map; SVG charts. Talks to the deployed web API (`expo.extra.apiBase` in `app.json`). Needs Node 22+ (`nvm use 24`); native modules require a dev build (`npm run ios`), not Expo Go. `apps/mobile/ios/` is generated and gitignored: after adding a native module or changing `app.json` plugins or permissions, run `npx expo prebuild --platform ios` before building. Follow iOS 26 conventions: Liquid Glass (`expo-glass-effect`, `@expo/ui` `glassEffect`), SF Symbols, `PlatformColor` system colors, native sheets/menus/link previews. See `apps/mobile/AGENTS.md` before touching Expo APIs
-- `scripts/` — data build scripts, run from the repo root
+- `scripts/` — data build scripts, run from the repo root; shared envelope math lives in `scripts/lib/envelope-stats.mjs`
 
 Shared behavior belongs in `packages/core` so both apps stay in sync: API paths (`endpoints.ts`), station stats (`station-stats.ts`), map layer styles and feature builders (`map-style.ts`), storm detection (`storm.ts`), recent depth (`recent.ts`), colors and formatting. Apps only own their UI.
 
@@ -50,6 +50,13 @@ npm run build-spot-icons   # Render mobile spot icon PNGs from the shared SVG in
 - `.github/workflows/refresh-snapshots.yml` runs `scripts/refresh-snapshots.ts` at ~7 and 11 AM Mountain: station list, every station's season, and regional averages. Hourly data (`recent`, per-station hourly) refreshes on demand; a station's hourly snapshot also expires when the bulk `recent` snapshot has a newer reading
 - The station list keeps a station's last reading for up to 14 days when NRCS misses it; `lastUpdated` is the real reading date and the map fades stations more than a day behind
 - Station metadata comes from static `packages/core/data/stations.json` (GeoJSON from egagli/snotel_ccss_stations); `packages/core/src/stations.ts` parses it and builds lookups
+
+### British Columbia snow pillows
+
+- BC River Forecast Centre automated snow weather stations (network `ASWS`, state `BC`, triplets like `2A06P:BC:ASWS`) are merged into the station list from `packages/core/data/bc-stations.json` (`node scripts/fetch-bc-stations.mjs`). Use `hasLiveReadings` / `isBcStation` from `@snotel/core/stations` rather than checking `network === "SNOTEL"`
+- `apps/web/lib/bc-snow.ts` reads the province's current-season hourly CSVs (SWE mm, depth cm, temperature °C, gauge precipitation mm; UTC), converts to the app's imperial units and builds daily series from the local-midnight (UTC−8) reading, matching the NRCS end-of-day convention. Season precipitation sums gauge increases since Oct 1 because the gauges don't reset
+- History comes from the BC daily SWE and hourly depth archives: `node scripts/build-bc-envelopes.mjs` writes station envelopes/years and `apps/web/lib/bc-medians.json` (daily SWE medians, only for stations with 10+ years). Run it after `build-envelopes.mjs`, which clears the envelopes folder
+- BC stations have no HUC (no basins) and no NWS forecast (`hasNwsForecast`)
 
 ### Client caching
 

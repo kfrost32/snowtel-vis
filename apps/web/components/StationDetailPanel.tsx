@@ -5,7 +5,7 @@ import { MapPin, Mountain, ChevronDown, ArrowUpRight } from "lucide-react";
 import { theme } from "@/lib/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
-import { getStation, nrcsSiteUrl } from "@snotel/core/stations";
+import { getStation, isBcStation, networkLabel, stationSource } from "@snotel/core/stations";
 import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatDepthChange, formatHourlyTime, formatPrecip, formatReadingDateShort } from "@snotel/core/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor, getDepthChangeColor } from "@snotel/core/colors";
 import InfoTooltip from "@/components/InfoTooltip";
@@ -62,7 +62,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
   const stationId = triplet.split(/[:-]/)[0];
   const imageUrl = `https://www.wcc.nrcs.usda.gov/siteimages/${stationId}.jpg`;
   const [imageErrorFor, setImageErrorFor] = useState<string | null>(null);
-  const imageError = imageErrorFor === triplet;
+  const imageError = imageErrorFor === triplet || (station ? isBcStation(station) : false);
   const [showMoreCharts, setShowMoreCharts] = useState(false);
   const { data: seasonData, loading: seasonLoading } = useSeasonData(triplet);
   const { data: historicalData, loading: historicalLoading } = useHistoricalData(triplet);
@@ -94,6 +94,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
   }
 
   const current = seasonData?.current;
+  const source = stationSource(station);
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden" style={{ background: theme.white }}>
@@ -135,13 +136,13 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
             <span className="flex items-center gap-1"><MapPin size={12} /> {station.state}</span>
             <span className="flex items-center gap-1"><Mountain size={12} /> {formatElevation(station.elevation)}</span>
             <a
-              href={nrcsSiteUrl(station.triplet)}
+              href={source.url}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-0.5 underline-offset-2 hover:underline"
-              title="Official NRCS site page"
+              title={`Official ${source.name} data`}
             >
-              NRCS <ArrowUpRight size={12} />
+              {source.label} <ArrowUpRight size={12} />
             </a>
           </div>
         </div>
@@ -212,7 +213,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
             title={
               <EnvelopeCardTitle
                 name={station.name}
-                meta={["SNOTEL", formatElevation(station.elevation), station.state]}
+                meta={[networkLabel(station), formatElevation(station.elevation), station.state]}
                 asOf={current?.lastUpdated ?? null}
               />
             }

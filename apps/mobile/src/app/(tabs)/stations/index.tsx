@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Linking, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { getAllStations, getStation } from "@snotel/core/stations";
+import { getAllStations, getStation, hasLiveReadings } from "@snotel/core/stations";
 import { STATE_NAMES } from "@snotel/core/constants";
 import { haversineDistance } from "@snotel/core/geo";
 import { formatDistance } from "@snotel/core/formatting";
@@ -18,7 +18,7 @@ import { colors } from "@/theme";
 
 const NEARBY_COUNT = 50;
 const CARD_RADIUS = 26;
-const SNOTEL_STATIONS = getAllStations().filter((s) => s.network === "SNOTEL");
+const SNOTEL_STATIONS = getAllStations().filter(hasLiveReadings);
 const BY_STATE = groupByState(SNOTEL_STATIONS);
 
 function groupByState(stations: Station[]) {

@@ -1,7 +1,8 @@
-import { getAllStations } from "@snotel/core/stations";
+import { getAllStations, hasLiveReadings } from "@snotel/core/stations";
 import type { StationCurrentConditions, StationSeasonData } from "@snotel/core/types";
 import { fetchStationConditions, mergeConditions } from "../apps/web/lib/station-conditions";
 import { fetchStationSeasons } from "../apps/web/lib/station-season";
+import { fetchBcSeasons } from "../apps/web/lib/bc-snow";
 import { averageSeason, basinMembers } from "../apps/web/lib/basin-season";
 import { readSnapshot, snapshotKeys, snapshotStoreConfigured, writeSnapshots, type Snapshot } from "../apps/web/lib/snapshot-store";
 
@@ -24,8 +25,8 @@ async function refreshStationList(): Promise<void> {
   const previous = await readSnapshot<StationCurrentConditions[]>(snapshotKeys.stations);
   const stations = mergeConditions(await fetchStationConditions(), previous?.data ?? null);
   await writeAll([[snapshotKeys.stations, stations]]);
-  const snotel = stations.filter((s) => s.network === "SNOTEL");
-  console.log(`Station list: ${snotel.filter((s) => s.swe !== null).length}/${snotel.length} reporting SWE (${Math.round((Date.now() - started) / 1000)}s)`);
+  const live = stations.filter(hasLiveReadings);
+  console.log(`Station list: ${live.filter((s) => s.swe !== null).length}/${live.length} reporting SWE (${Math.round((Date.now() - started) / 1000)}s)`);
 }
 
 async function refreshSeasons(): Promise<Map<string, StationSeasonData>> {
@@ -42,6 +43,13 @@ async function refreshSeasons(): Promise<Map<string, StationSeasonData>> {
     } catch (e) {
       console.error(`Seasons ${i + 1}-${i + chunk.length} failed, keeping previous snapshots:`, (e as Error).message);
     }
+  }
+  try {
+    const bc = await fetchBcSeasons();
+    await writeAll([...bc].map(([triplet, season]) => [snapshotKeys.season(triplet), season]));
+    console.log(`BC seasons: ${bc.size} saved`);
+  } catch (e) {
+    console.error("BC seasons failed, keeping previous snapshots:", (e as Error).message);
   }
   return seasons;
 }

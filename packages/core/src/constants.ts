@@ -1,5 +1,5 @@
 export const SNOTEL_STATES = [
-  "AK", "AZ", "CA", "CO", "ID", "MT", "NV", "NM", "OR", "SD", "UT", "WA", "WY",
+  "AK", "AZ", "CA", "CO", "ID", "MT", "NV", "NM", "OR", "SD", "UT", "WA", "WY", "BC",
 ] as const;
 
 export const STATE_NAMES: Record<string, string> = {
@@ -16,6 +16,7 @@ export const STATE_NAMES: Record<string, string> = {
   UT: "Utah",
   WA: "Washington",
   WY: "Wyoming",
+  BC: "British Columbia",
 };
 
 export const REGIONS: Record<string, { name: string; states: string[] }> = {
@@ -26,6 +27,7 @@ export const REGIONS: Record<string, { name: string; states: string[] }> = {
   rockiesSouth: { name: "Southern Rockies", states: ["NM", "AZ"] },
   alaska: { name: "Alaska", states: ["AK"] },
   plains: { name: "Great Plains", states: ["SD"] },
+  britishColumbia: { name: "British Columbia", states: ["BC"] },
 };
 
 export const ELEMENT_CODES = {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getStation, parseTripletFromUrl } from "@snotel/core/stations";
+import { getStation, isBcStation, parseTripletFromUrl } from "@snotel/core/stations";
 import { fetchHourlyData } from "@/lib/snotel-api";
+import { fetchBcHourly } from "@/lib/bc-snow";
 import { shiftDate } from "@snotel/core/water-year";
 import { getSnapshot, peekSnapshot } from "@/lib/snapshot-cache";
 import { snapshotKeys, type Snapshot } from "@/lib/snapshot-store";
@@ -44,7 +45,8 @@ export async function GET(
 ) {
   const { triplet: urlTriplet } = await params;
   const triplet = parseTripletFromUrl(urlTriplet);
-  if (!getStation(triplet)) {
+  const station = getStation(triplet);
+  if (!station) {
     return NextResponse.json({ error: "Station not found" }, { status: 404, headers: NO_CACHE_HEADER });
   }
 
@@ -52,7 +54,7 @@ export async function GET(
     const result = await getSnapshot<HourlyObservation[]>({
       key: snapshotKeys.hourly(triplet),
       maxAge: MAX_AGE_MS,
-      load: () => fetchHourly(triplet),
+      load: () => (isBcStation(station) ? fetchBcHourly(triplet) : fetchHourly(triplet)),
       expired: (snapshot) => behindRecent(triplet, snapshot),
     });
     return NextResponse.json(result, { headers: result.stale ? STALE_HEADER : CACHE_HEADER });

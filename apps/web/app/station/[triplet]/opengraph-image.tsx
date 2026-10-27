@@ -8,7 +8,7 @@ import { stationPlace, stationShare } from "@/lib/station-share";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Current snowpack at this SNOTEL station";
+export const alt = "Current snowpack at this snow station";
 export const revalidate = 3600;
 
 function Stat({ label, value, color = theme.black }: { label: string; value: string; color?: string }) {

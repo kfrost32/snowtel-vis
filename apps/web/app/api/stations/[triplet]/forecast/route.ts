@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getStation, parseTripletFromUrl } from "@snotel/core/stations";
+import { getStation, hasNwsForecast, parseTripletFromUrl } from "@snotel/core/stations";
 import { getStationForecast } from "@/lib/nws";
 
 const CACHE_HEADER = { "Cache-Control": "public, max-age=900, s-maxage=1800, stale-while-revalidate=3600" };
@@ -8,7 +8,7 @@ const NO_CACHE_HEADER = { "Cache-Control": "private, no-cache, no-store" };
 
 export async function GET(_request: Request, { params }: { params: Promise<{ triplet: string }> }) {
   const triplet = parseTripletFromUrl((await params).triplet);
-  if (!getStation(triplet)) {
+  if (!hasNwsForecast(getStation(triplet))) {
     return NextResponse.json({ error: "Station not found" }, { status: 404, headers: NO_CACHE_HEADER });
   }
   try {

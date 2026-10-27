@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getStation, parseTripletFromUrl } from "@snotel/core/stations";
+import { getStation, isBcStation, parseTripletFromUrl } from "@snotel/core/stations";
 import { fetchStationSeasons } from "@/lib/station-season";
+import { fetchBcSeasons } from "@/lib/bc-snow";
 import { getSnapshot } from "@/lib/snapshot-cache";
 import { snapshotKeys } from "@/lib/snapshot-store";
 import type { StationSeasonData } from "@snotel/core/types";
@@ -17,7 +18,8 @@ export async function GET(
 ) {
   const { triplet: urlTriplet } = await params;
   const triplet = parseTripletFromUrl(urlTriplet);
-  if (!getStation(triplet)) {
+  const station = getStation(triplet);
+  if (!station) {
     return NextResponse.json({ error: "Station not found" }, { status: 404, headers: NO_CACHE_HEADER });
   }
 
@@ -26,7 +28,8 @@ export async function GET(
       key: snapshotKeys.season(triplet),
       maxAge: MAX_AGE_MS,
       load: async () => {
-        const season = (await fetchStationSeasons([triplet], { timeout: NRCS_TIMEOUT_MS })).get(triplet);
+        const seasons = isBcStation(station) ? await fetchBcSeasons([triplet]) : await fetchStationSeasons([triplet], { timeout: NRCS_TIMEOUT_MS });
+        const season = seasons.get(triplet);
         if (!season) throw new Error(`No data returned for ${triplet}`);
         return season;
       },
