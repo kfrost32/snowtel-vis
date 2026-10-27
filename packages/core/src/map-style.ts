@@ -157,6 +157,7 @@ export function spotFeatures(spots: Spot[]): GeoJSON.FeatureCollection<GeoJSON.P
       properties: {
         ...spotPlacement(spot, stations),
         id: spot.id,
+        kind: spot.kind,
         icon: spotImageId(spot.kind),
         name: spot.name,
         color: SPOT_COLORS[spot.kind],

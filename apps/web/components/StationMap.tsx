@@ -5,6 +5,7 @@ import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@snotel/core/types";
 import { prefetchStation } from "@/lib/prefetch";
+import { track } from "@/lib/analytics";
 import { theme } from "@/lib/theme";
 import { SPOT_ICON_SIZE, SPOT_KINDS, spotIconSvg, type Spot, type SpotKind } from "@snotel/core/spots";
 import {
@@ -371,7 +372,11 @@ function StationMapInner({
           if (feature) showHoverLabel(`spot:${feature.properties!.id}`, feature);
         };
         map.on("mousemove", "spot-icons", showSpotLabel);
-        map.on("click", "spot-icons", showSpotLabel);
+        map.on("click", "spot-icons", (e) => {
+          showSpotLabel(e);
+          const spot = e.features?.[0]?.properties;
+          if (spot) track("select_content", { content_type: "spot", item_id: spot.id, item_name: spot.name, spot_kind: spot.kind });
+        });
         map.on("mouseleave", "spot-icons", clearHover);
 
         map.on("moveend", updateVisibleStations);
