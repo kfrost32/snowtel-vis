@@ -43,6 +43,8 @@
   --animate-slide-in-left: slide-in-left 200ms ease-out;
   --animate-slide-in-right: slide-in-right 200ms ease-out;
   --animate-menu-in: menu-in 140ms ease-out;
+  --animate-tout-in: tout-in 600ms cubic-bezier(0.2, 0.8, 0.2, 1) 3s backwards, tout-glint 1800ms ease-in-out 3.4s backwards;
+  --animate-tout-nudge: tout-nudge 700ms ease-in-out 3.6s backwards;
 
   @keyframes slide-in-left {
     from {
@@ -55,6 +57,33 @@
     from {
       opacity: 0;
       transform: translateX(24px);
+    }
+  }
+
+  @keyframes tout-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  @keyframes tout-glint {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+    35% {
+      box-shadow: 0 0 0 1px var(--c-border-gray), 0 6px 18px rgba(15, 23, 42, 0.1);
+    }
+  }
+
+  @keyframes tout-nudge {
+    0%,
+    100% {
+      transform: none;
+    }
+    40% {
+      transform: translate(2px, -2px);
     }
   }
 
