@@ -11,6 +11,7 @@ import { memoryValue, useStoredValue } from "@/lib/stored-value";
 import { SidebarFavoriteItem, SidebarSection } from "@/components/sidebar";
 import { useFavorites } from "@/hooks/useFavorites";
 import { track } from "@/lib/analytics";
+import AboutDialog from "@/components/AboutDialog";
 
 const settingsOpen = memoryValue(false);
 const SLIDE_IN = {
@@ -74,6 +75,7 @@ export default function MapSidebar({ stationCount, isMobile, basins, controls, o
           </div>
         )}
         <div key={`${view}-actions`} className={`flex items-center gap-1 max-md:gap-2 shrink-0 ${enter}`}>
+          {!showSettings && <AboutDialog />}
           {!showSettings && (
             <button
               onClick={() => showView(true)}
