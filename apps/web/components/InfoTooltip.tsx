@@ -58,8 +58,8 @@ export default function InfoTooltip({ text, size = 12 }: InfoTooltipProps) {
             top: pos.top - window.scrollY,
             left: pos.left,
             transform: "translate(-50%, -100%) translateY(-6px)",
-            background: theme.darkGray,
-            color: theme.offWhite,
+            background: theme.tooltip,
+            color: theme.onAccent,
           }}
         >
           {text}

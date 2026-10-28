@@ -8,8 +8,14 @@
   --c-border-gray: light-dark(#DDE3E6, #2C353B);
   --c-medium-gray: light-dark(#8A9BA3, #7D8D95);
   --c-gray: light-dark(#5A6B73, #A2B0B7);
-  --c-dark-gray: light-dark(#2A3238, #D3DCE0);
-  --c-black: light-dark(#1A2026, #EEF2F4);
+  --c-dark-gray: light-dark(#2A3238, #C9D2D7);
+  --c-black: light-dark(#1A2026, #E3E8EB);
+  --c-accent: light-dark(#1A2026, #3B4952);
+  --c-on-accent: light-dark(#FFFFFF, #E3E8EB);
+  --c-switch-on: light-dark(#1A2026, #44535C);
+  --c-knob: light-dark(#FFFFFF, #AAB6BC);
+  --c-header: light-dark(#1A2026, #161B1F);
+  --c-tooltip: light-dark(#2A3238, #2C353B);
   --c-hover: light-dark(rgba(15, 23, 42, 0.05), rgba(255, 255, 255, 0.07));
   --c-glass: light-dark(rgba(255, 255, 255, 0.86), rgba(22, 27, 31, 0.82));
   --c-sheet: light-dark(rgba(255, 255, 255, 0.96), rgba(22, 27, 31, 0.96));

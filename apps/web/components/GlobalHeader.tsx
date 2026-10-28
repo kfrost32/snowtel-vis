@@ -13,13 +13,13 @@ export default function GlobalHeader() {
     <>
     <header
       className="fixed top-0 left-0 right-0 z-50 h-14 md:h-12"
-      style={{ background: theme.black }}
+      style={{ background: theme.header, boxShadow: "0 1px 0 var(--c-hairline)" }}
     >
       <div className="px-4 sm:px-6 h-14 md:h-12 flex items-center justify-between">
         <Link
           href="/"
           className="text-sm font-semibold tracking-tight hover:opacity-70 transition-opacity duration-150 truncate font-sans"
-          style={{ color: theme.white }}
+          style={{ color: theme.onAccent }}
         >
           snotel.fyi
         </Link>

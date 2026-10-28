@@ -23,11 +23,11 @@ export default function SidebarToggle({ label, description, checked, onChange }:
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className="relative w-10 h-[22px] rounded-full transition-colors duration-150 cursor-pointer shrink-0"
-        style={{ background: checked ? theme.black : theme.borderGray }}
+        style={{ background: checked ? theme.switchOn : theme.borderGray }}
       >
         <span
           className="absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-full shadow-sm transition-transform duration-150"
-          style={{ background: theme.white, transform: checked ? "translateX(18px)" : "translateX(0)" }}
+          style={{ background: theme.knob, transform: checked ? "translateX(18px)" : "translateX(0)" }}
         />
       </button>
     </div>

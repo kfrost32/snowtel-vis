@@ -9,6 +9,12 @@ export const theme = {
   gray: "var(--c-gray)",
   darkGray: "var(--c-dark-gray)",
   black: "var(--c-black)",
+  accent: "var(--c-accent)",
+  onAccent: "var(--c-on-accent)",
+  switchOn: "var(--c-switch-on)",
+  knob: "var(--c-knob)",
+  header: "var(--c-header)",
+  tooltip: "var(--c-tooltip)",
 };
 
 export const chartTooltipStyle = {

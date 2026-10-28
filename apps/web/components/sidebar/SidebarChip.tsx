@@ -16,8 +16,8 @@ export default function SidebarChip({ label, active, onClick }: SidebarChipProps
       onClick={onClick}
       className="px-3 py-1.5 md:px-2 md:py-1 text-sm md:text-xs font-mono font-medium rounded-md min-h-[36px] md:min-h-0 transition-all duration-150 cursor-pointer"
       style={{
-        background: active ? theme.black : hovered ? theme.borderGray : theme.lightGray,
-        color: active ? theme.white : hovered ? theme.darkGray : theme.gray,
+        background: active ? theme.accent : hovered ? theme.borderGray : theme.lightGray,
+        color: active ? theme.onAccent : hovered ? theme.darkGray : theme.gray,
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
