@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/site";
 import { IBM_Plex_Mono, DM_Sans } from "next/font/google";
@@ -5,6 +6,7 @@ import "./globals.css";
 import GlobalHeader from "@/components/GlobalHeader";
 import CommandSearch from "@/components/CommandSearch";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import PageViews from "@/components/PageViews";
 import { SWRProvider } from "@/lib/swr-config";
 import { SettingsProvider, appearanceScript } from "@/lib/settings";
 
@@ -52,6 +54,9 @@ export default function RootLayout({
         <GoogleAnalytics />
         <SWRProvider>
           <SettingsProvider>
+            <Suspense fallback={null}>
+              <PageViews />
+            </Suspense>
             <GlobalHeader />
             <CommandSearch />
             {children}
