@@ -2,6 +2,7 @@ import type { DailyObservation, StationEnvelope, StationSeasonData, WaterYearSum
 import { expandEnvelope, percentileRank, type BasinEnvelopeFile, type StationEnvelopeFile, type YearsFile } from "./envelope-files";
 import { buildSeasonMap } from "./season";
 import { calendarRow, calendarRowToWyDay, getCurrentWaterYear, getWaterYearDay } from "./water-year";
+import { stationPace, type Pace } from "./pace";
 
 export function toStationEnvelope(file: StationEnvelopeFile, wy = getCurrentWaterYear()): StationEnvelope {
   return {
@@ -23,6 +24,7 @@ export interface EnvelopeStats {
   pctOfMedianPeak: number | null;
   daysUntilPeak: number;
   percentile: number | null;
+  pace: Pace | null;
 }
 
 export function toBasinEnvelope(file: BasinEnvelopeFile, wy = getCurrentWaterYear()): StationEnvelope {
@@ -48,16 +50,18 @@ export function statsAt(
   envelope: StationEnvelope,
   yearsFile: YearsFile | null,
 ): EnvelopeStats {
+  const wyDay = getWaterYearDay(asOf);
   return {
     asOf,
     currentSwe,
-    medianAtDay: envelope.envelope.find((d) => d.wyDay === getWaterYearDay(asOf))?.median ?? null,
+    medianAtDay: envelope.envelope.find((d) => d.wyDay === wyDay)?.median ?? null,
     pctOfNormal,
     pctOfMedianPeak: currentSwe !== null && envelope.medianPeakSwe
       ? Math.round((currentSwe / envelope.medianPeakSwe) * 100)
       : null,
     daysUntilPeak: envelope.medianPeakRow - calendarRow(asOf),
     percentile: yearsFile && currentSwe !== null ? percentileRank(yearsFile, asOf, currentSwe) : null,
+    pace: stationPace(envelope, asOf, wyDay, currentSwe),
   };
 }
 

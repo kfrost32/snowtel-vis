@@ -11,7 +11,7 @@ import DetailHeader from "@/components/DetailHeader";
 import EnvelopeChart from "@/components/charts/EnvelopeChart";
 import Section from "@/components/Section";
 import StationRow from "@/components/StationRow";
-import { Hero, Row } from "@/components/Summary";
+import { Hero, PaceCard, Row } from "@/components/Summary";
 import { useRegionDetail, useStationList } from "@/hooks/data";
 import { colors } from "@/theme";
 import { formatAxisLength } from "@snotel/core/units";
@@ -67,6 +67,8 @@ export default function RegionScreen() {
               last
             />
           </Section>
+
+          <PaceCard name={name} stats={stats} />
 
           {loading ? (
             <ActivityIndicator />

@@ -1,4 +1,8 @@
 import { StyleSheet, Text, View, type ColorValue } from "react-native";
+import { SymbolView } from "expo-symbols";
+import { PACE_COLORS, describePace } from "@snotel/core/pace";
+import type { EnvelopeStats } from "@snotel/core/station-stats";
+import Section from "@/components/Section";
 import { colors, numeric } from "@/theme";
 
 export function Hero({
@@ -49,6 +53,29 @@ export function Row({
   );
 }
 
+const PACE_SYMBOLS = {
+  ahead: "chart.line.uptrend.xyaxis",
+  behind: "chart.line.downtrend.xyaxis",
+  even: "equal",
+} as const;
+
+export function PaceCard({ name, stats }: { name: string; stats: EnvelopeStats | null }) {
+  if (!stats?.pace) return null;
+  const { headline, detail } = describePace(name, stats.pace);
+  const color = PACE_COLORS[stats.pace.tone];
+  return (
+    <Section>
+      <View style={styles.row}>
+        <SymbolView name={PACE_SYMBOLS[stats.pace.tone]} size={18} tintColor={color} />
+        <View style={styles.paceText}>
+          <Text style={[styles.rowValueText, { color }]}>{headline}</Text>
+          <Text style={styles.rowDetail}>{detail}</Text>
+        </View>
+      </View>
+    </Section>
+  );
+}
+
 export const summaryStyles = StyleSheet.create({
   divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.separator },
   rowLabel: { flex: 1, fontSize: 16, color: colors.label },
@@ -65,4 +92,5 @@ const styles = StyleSheet.create({
   rowValue: { alignItems: "flex-end" },
   rowValueText: { fontSize: 16, fontWeight: "600", color: colors.label },
   rowDetail: { fontSize: 12, color: colors.secondaryLabel },
+  paceText: { flex: 1, gap: 2 },
 });

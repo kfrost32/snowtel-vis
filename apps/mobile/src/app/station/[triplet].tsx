@@ -29,7 +29,7 @@ import DetailHeader, { HeaderButton } from "@/components/DetailHeader";
 import Section from "@/components/Section";
 import StormCard from "@/components/StormCard";
 import ForecastCard from "@/components/ForecastCard";
-import { Hero, Row, summaryStyles } from "@/components/Summary";
+import { Hero, PaceCard, Row, summaryStyles } from "@/components/Summary";
 import { useStationConditions, useStationDetail, useStationForecast, useStationHourly } from "@/hooks/data";
 import { toggleFavorite, useIsFavorite } from "@/lib/favorites";
 import { webUrl } from "@/lib/api";
@@ -149,6 +149,8 @@ export default function StationScreen() {
               <RecentChart data={hourly} />
             </Section>
           )}
+
+          <PaceCard name={station.name} stats={stats} />
 
           <Section title="Snowpack" footer={current.lastUpdated && `Daily readings as of ${formatReadingEndOfDay(current.lastUpdated)}`}>
             <Row label="Snow water equivalent" value={formatSwe(current.swe)} detail={stats ? `median ${formatSwe(stats.medianAtDay)}` : undefined} />

@@ -7,6 +7,7 @@ import { getConditionColor, getConditionLabel } from "@snotel/core/colors";
 import { getWaterYearDay, getCurrentWaterYear } from "@snotel/core/water-year";
 import { basinSeasonMap, statsAt } from "@snotel/core/station-stats";
 import EnvelopeStatGrid from "@/components/EnvelopeStatGrid";
+import PaceSummary from "@/components/PaceSummary";
 import type { BasinSummary } from "@snotel/core/types";
 import ConditionBadge from "@/components/ConditionBadge";
 import ChartCard from "@/components/ChartCard";
@@ -120,6 +121,7 @@ export default function BasinDetailPanel({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
+        <PaceSummary name={basin.name} stats={envelopeStats} />
         <div className="px-3 pt-3">
           <ChartCard dense
             title={
@@ -136,11 +138,11 @@ export default function BasinDetailPanel({
             footer={envelopeStats && (
               <EnvelopeStatGrid
                 stats={[
-                  { label: "Avg SWE", value: formatSwe(envelopeStats.currentSwe), hideOnMobile: true },
-                  { label: "% of Median", value: formatPctOfNormal(envelopeStats.pctOfNormal), color: getConditionColor(envelopeStats.pctOfNormal), hideOnMobile: true },
+                  { label: "Avg SWE", value: formatSwe(envelopeStats.currentSwe), exportOnly: true },
+                  { label: "% of Median", value: formatPctOfNormal(envelopeStats.pctOfNormal), color: getConditionColor(envelopeStats.pctOfNormal), exportOnly: true },
                   { label: "Percentile", value: envelopeStats.percentile !== null ? String(envelopeStats.percentile) : "—" },
                   { label: "% Median Peak", value: formatPctOfNormal(envelopeStats.pctOfMedianPeak) },
-                  { label: `Median ${asOfLabel}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray, hideOnMobile: true },
+                  { label: `Median ${asOfLabel}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray, exportOnly: true },
                   { label: envelopeStats.daysUntilPeak >= 0 ? "To Median Peak" : "Past Median Peak", value: `${Math.abs(envelopeStats.daysUntilPeak)}d`, color: theme.darkGray },
                 ]}
               />

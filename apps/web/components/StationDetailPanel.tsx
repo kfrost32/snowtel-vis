@@ -13,6 +13,7 @@ import { metricDescriptions } from "@snotel/core/metric-descriptions";
 import { envelopeStats as computeEnvelopeStats, seasonDeltas } from "@snotel/core/station-stats";
 import { endpoints } from "@snotel/core/endpoints";
 import EnvelopeStatGrid from "@/components/EnvelopeStatGrid";
+import PaceSummary from "@/components/PaceSummary";
 import { buildSeasonMap } from "@snotel/core/season";
 import { useSeasonData } from "@/hooks/useSeasonData";
 import { useHistoricalData } from "@/hooks/useHistoricalData";
@@ -214,6 +215,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
           </div>
         </div>
 
+        <PaceSummary name={station.name} stats={envelopeStats} />
         <div className="px-3 pt-3">
           <ChartCard
             title={
@@ -229,11 +231,11 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
             footer={envelopeStats && (
               <EnvelopeStatGrid
                 stats={[
-                  { label: "Current SWE", value: formatSwe(envelopeStats.currentSwe), hideOnMobile: true },
-                  { label: "% of Median", value: formatPctOfNormal(envelopeStats.pctOfNormal), color: getConditionColor(envelopeStats.pctOfNormal), hideOnMobile: true },
+                  { label: "Current SWE", value: formatSwe(envelopeStats.currentSwe), exportOnly: true },
+                  { label: "% of Median", value: formatPctOfNormal(envelopeStats.pctOfNormal), color: getConditionColor(envelopeStats.pctOfNormal), exportOnly: true },
                   { label: "Percentile", value: envelopeStats.percentile !== null ? String(envelopeStats.percentile) : "—" },
                   { label: "% Median Peak", value: formatPctOfNormal(envelopeStats.pctOfMedianPeak) },
-                  { label: `Median ${formatReadingDateShort(envelopeStats.asOf)}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray, hideOnMobile: true },
+                  { label: `Median ${formatReadingDateShort(envelopeStats.asOf)}`, value: formatSwe(envelopeStats.medianAtDay), color: theme.gray, exportOnly: true },
                   { label: envelopeStats.daysUntilPeak >= 0 ? "To Median Peak" : "Past Median Peak", value: `${Math.abs(envelopeStats.daysUntilPeak)}d`, color: theme.darkGray },
                 ]}
               />
