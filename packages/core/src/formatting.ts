@@ -6,12 +6,12 @@ function length(inches: number, digits: number, sign = ""): string {
 
 export const formatSwe = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
-  return length(value, 1);
+  return length(Math.max(0, value), 1);
 };
 
 export const formatSnowDepth = (value: number | null): string => {
   if (value === null || value === undefined) return "—";
-  return length(value, 0);
+  return length(Math.max(0, value), 0);
 };
 
 export const formatTemp = (value: number | null): string => {
