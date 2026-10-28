@@ -29,6 +29,9 @@ export const BASEMAP_STYLE_URL = "https://basemaps.cartocdn.com/gl/positron-gl-s
 export const INITIAL_CENTER: [number, number] = [-110, 44];
 export const INITIAL_ZOOM = 4;
 
+const MAP_DARK_EDGE = "#0F1316";
+const MAP_DARK_HALO = "rgba(15,19,22,0.9)";
+
 export function isSweMetric(metric: string): boolean {
   return metric === "WTEQ" || metric === "WTEQ_PCT";
 }
@@ -141,6 +144,11 @@ export const stationCirclePaint: CircleLayerSpecification["paint"] = {
   "circle-opacity": ["case", ["get", "inactive"], 0.35, 1],
 };
 
+export const stationCirclePaintDark: CircleLayerSpecification["paint"] = {
+  ...stationCirclePaint,
+  "circle-stroke-color": ["case", ["get", "hollow"], theme.mediumGray, MAP_DARK_EDGE],
+};
+
 export const SPOT_MINZOOM = 7.5;
 
 export function spotImageId(kind: SpotKind): string {
@@ -186,6 +194,12 @@ export const spotPaint: SymbolLayerSpecification["paint"] = {
   "text-halo-width": 1.5,
 };
 
+export const spotPaintDark: SymbolLayerSpecification["paint"] = {
+  "text-color": ["match", ["get", "kind"], "backcountry", "#5EC4B6", "#B4C1C7"],
+  "text-halo-color": MAP_DARK_HALO,
+  "text-halo-width": 1.5,
+};
+
 export const selectedStationGlowPaint: CircleLayerSpecification["paint"] = {
   "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 16, 5, 22, 7, 34, 10, 46],
   "circle-color": theme.white,
@@ -198,6 +212,16 @@ export const selectedStationPaint: CircleLayerSpecification["paint"] = {
   "circle-color": ["get", "color"],
   "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 3, 1.5, 7, 3],
   "circle-stroke-color": theme.white,
+};
+
+export const selectedStationGlowPaintDark: CircleLayerSpecification["paint"] = {
+  ...selectedStationGlowPaint,
+  "circle-opacity": 0.22,
+};
+
+export const selectedStationPaintDark: CircleLayerSpecification["paint"] = {
+  ...selectedStationPaint,
+  "circle-stroke-color": "#D3DCE0",
 };
 
 
@@ -244,7 +268,7 @@ export const hillshadePaint: HillshadeLayerSpecification["paint"] = {
 };
 
 export const hillshadePaintDark: HillshadeLayerSpecification["paint"] = {
-  "hillshade-exaggeration": 0.35,
+  "hillshade-exaggeration": 0.25,
   "hillshade-shadow-color": "#000000",
   "hillshade-highlight-color": "rgba(255, 255, 255, 0.12)",
   "hillshade-accent-color": "#000000",
@@ -347,6 +371,11 @@ export const regionLabelLayout: Record<RegionLevel, SymbolLayerSpecification["la
 export const regionLabelPaint: Record<RegionLevel, SymbolLayerSpecification["paint"]> = {
   2: { "text-color": ["get", "textColor"], "text-halo-color": "rgba(255,255,255,0.95)", "text-halo-width": 2.5 },
   4: { "text-color": ["get", "textColor"], "text-halo-color": "rgba(255,255,255,0.95)", "text-halo-width": 2 },
+};
+
+export const regionLabelPaintDark: Record<RegionLevel, SymbolLayerSpecification["paint"]> = {
+  2: { ...regionLabelPaint[2], "text-halo-color": MAP_DARK_HALO },
+  4: { ...regionLabelPaint[4], "text-halo-color": MAP_DARK_HALO },
 };
 
 const STATES = stateBoundaries as GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon, { state: string }>;

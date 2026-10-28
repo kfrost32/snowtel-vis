@@ -17,6 +17,7 @@ import {
   regionFillPaint,
   regionLabelLayout,
   regionLabelPaint,
+  regionLabelPaintDark,
   regionLabels,
   regionOutlinePaint,
   regionPolygons,
@@ -24,8 +25,10 @@ import {
   spotImageId,
   spotLayout,
   spotPaint,
+  spotPaintDark,
   stationCircleLayout,
   stationCirclePaint,
+  stationCirclePaintDark,
   stationFeatures,
   stationLabelLayout,
   stationLabelPaint,
@@ -56,23 +59,27 @@ const BOUNDARIES: Record<RegionLevel, GeoJSON.FeatureCollection> = {
 
 const { "hillshade-shadow-color": _shadow, "hillshade-highlight-color": _highlight, ...hillshadeBase } = hillshadePaint ?? {};
 const HILLSHADE_PAINT = nativePaint({ ...hillshadeBase, "hillshade-exaggeration": 0.15 });
-const CIRCLE_PAINT = nativePaint(stationCirclePaint);
+const CIRCLE_PAINT = { light: nativePaint(stationCirclePaint), dark: nativePaint(stationCirclePaintDark) };
 const LABEL_PAINT = nativePaint(stationLabelPaint);
 const FILL_PAINT = nativePaint(regionFillPaint);
 const OUTLINE_PAINT = { 2: nativePaint(regionOutlinePaint[2]), 4: nativePaint(regionOutlinePaint[4]) };
-const REGION_LABEL_PAINT = { 2: nativePaint(regionLabelPaint[2]), 4: nativePaint(regionLabelPaint[4]) };
+const REGION_LABEL_PAINT = {
+  light: { 2: nativePaint(regionLabelPaint[2]), 4: nativePaint(regionLabelPaint[4]) },
+  dark: { 2: nativePaint(regionLabelPaintDark[2]), 4: nativePaint(regionLabelPaintDark[4]) },
+};
 
 const SPOT_IMAGES = {
   [spotImageId("resort")]: require("../../assets/map/spot-resort.png"),
   [spotImageId("backcountry")]: require("../../assets/map/spot-backcountry.png"),
 };
-const SPOT_PAINT = nativePaint(spotPaint);
+const SPOT_PAINT = { light: nativePaint(spotPaint), dark: nativePaint(spotPaintDark) };
 
 const TAP_SLOP = 12;
 const visibility = (on: boolean) => ({ visibility: on ? ("visible" as const) : ("none" as const) });
 
 export default function StationMap({ stations, metric, regions, spots, show, onSelect, initialBounds }: StationMapProps) {
   const dark = useColorScheme() === "dark";
+  const scheme = dark ? "dark" : "light";
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapRef>(null);
 
@@ -140,7 +147,7 @@ export default function StationMap({ stations, metric, regions, spots, show, onS
       })}
 
       <GeoJSONSource id="stations" data={stationData}>
-        <Layer id="station-circles" type="circle" layout={{ ...stationCircleLayout, ...visibility(show.stations) }} paint={CIRCLE_PAINT} />
+        <Layer id="station-circles" type="circle" layout={{ ...stationCircleLayout, ...visibility(show.stations) }} paint={CIRCLE_PAINT[scheme]} />
         <Layer
           id="station-labels"
           type="symbol"
@@ -152,7 +159,7 @@ export default function StationMap({ stations, metric, regions, spots, show, onS
 
       <Images images={SPOT_IMAGES} />
       <GeoJSONSource id="spots" data={spotData}>
-        <Layer id="spot-icons" type="symbol" minzoom={SPOT_MINZOOM} layout={{ ...spotLayout, ...visibility(show.spots) }} paint={SPOT_PAINT} />
+        <Layer id="spot-icons" type="symbol" minzoom={SPOT_MINZOOM} layout={{ ...spotLayout, ...visibility(show.spots) }} paint={SPOT_PAINT[scheme]} />
       </GeoJSONSource>
 
       {([4, 2] as const).map((level) => (
@@ -161,7 +168,7 @@ export default function StationMap({ stations, metric, regions, spots, show, onS
             id={`huc${level}-label-text`}
             type="symbol"
             layout={{ ...regionLabelLayout[level], ...visibility(level === 2 ? show.regions : show.subregions) }}
-            paint={REGION_LABEL_PAINT[level]}
+            paint={REGION_LABEL_PAINT[scheme][level]}
           />
         </GeoJSONSource>
       ))}

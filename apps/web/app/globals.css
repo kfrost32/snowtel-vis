@@ -123,7 +123,8 @@ body {
 .station-hover-popup .maplibregl-popup-content {
   padding: 4px 7px;
   border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: var(--c-sheet);
+  box-shadow: 0 0 0 1px var(--c-hairline), 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 .station-hover-popup {
   pointer-events: none;
@@ -131,6 +132,35 @@ body {
 
 .station-hover-popup .maplibregl-popup-tip {
   display: none;
+}
+
+.maplibregl-ctrl-group,
+.maplibregl-ctrl-attrib.maplibregl-compact,
+.maplibregl-ctrl-attrib-button {
+  background-color: var(--c-sheet);
+}
+.maplibregl-ctrl-group:not(:empty) {
+  box-shadow: 0 0 0 1px var(--c-hairline), 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--c-border-gray);
+}
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-attrib a {
+  color: var(--c-gray);
+}
+.maplibregl-ctrl button:not(:disabled):hover {
+  background-color: var(--c-hover);
+}
+:root[data-theme="dark"] .maplibregl-ctrl-icon,
+:root[data-theme="dark"] .maplibregl-ctrl-attrib-button {
+  filter: invert(1) brightness(0.85);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .maplibregl-ctrl-icon,
+  :root:not([data-theme="light"]) .maplibregl-ctrl-attrib-button {
+    filter: invert(1) brightness(0.85);
+  }
 }
 
 .maplibregl-ctrl-top-right,

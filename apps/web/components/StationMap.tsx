@@ -21,6 +21,7 @@ import {
   hillshadePaintDark,
   stationCircleLayout,
   stationCirclePaint,
+  stationCirclePaintDark,
   stationFeatures,
   stationLabelLayout,
   stationLabelPaint,
@@ -28,6 +29,7 @@ import {
   regionFillPaintDark,
   regionLabelLayout,
   regionLabelPaint,
+  regionLabelPaintDark,
   regionLabels,
   regionOutlinePaint,
   regionPolygons,
@@ -35,12 +37,15 @@ import {
   spotImageId,
   spotLayout,
   spotPaint,
+  spotPaintDark,
   stateBounds,
   stateMask,
   stateMaskPaint,
   selectedStationFilter,
   selectedStationGlowPaint,
+  selectedStationGlowPaintDark,
   selectedStationPaint,
+  selectedStationPaintDark,
   selectedStationValueLayout,
   selectedStationValuePaint,
   stateMaskPaintDark,
@@ -75,11 +80,12 @@ interface StationMapProps {
 }
 
 const NO_STATES: string[] = [];
-const SELECTED_LAYERS: (maplibregl.CircleLayerSpecification | maplibregl.SymbolLayerSpecification)[] = [
-  { id: "station-selected-glow", type: "circle", source: "stations", paint: selectedStationGlowPaint },
-  { id: "station-selected", type: "circle", source: "stations", paint: selectedStationPaint },
+const selectedLayers = (dark: boolean): (maplibregl.CircleLayerSpecification | maplibregl.SymbolLayerSpecification)[] => [
+  { id: "station-selected-glow", type: "circle", source: "stations", paint: dark ? selectedStationGlowPaintDark : selectedStationGlowPaint },
+  { id: "station-selected", type: "circle", source: "stations", paint: dark ? selectedStationPaintDark : selectedStationPaint },
   { id: "station-selected-value", type: "symbol", source: "stations", minzoom: STATION_LABEL_MINZOOM, layout: selectedStationValueLayout, paint: selectedStationValuePaint },
 ];
+const SELECTED_LAYER_IDS = selectedLayers(false).map((layer) => layer.id);
 
 let lastView: { center: maplibregl.LngLatLike; zoom: number } | null = null;
 
@@ -255,7 +261,7 @@ function StationMapInner({
           type: "circle",
           source: "stations",
           layout: stationCircleLayout,
-          paint: stationCirclePaint,
+          paint: dark ? stationCirclePaintDark : stationCirclePaint,
         });
         map.addLayer({
           id: "station-labels",
@@ -266,7 +272,7 @@ function StationMapInner({
           paint: stationLabelPaint,
         });
 
-        SELECTED_LAYERS.forEach((layer, i) => map.addLayer({ ...layer, filter: selectedStationFilter(null) }, i === 0 ? "station-circles" : undefined));
+        selectedLayers(dark).forEach((layer, i) => map.addLayer({ ...layer, filter: selectedStationFilter(null) }, i === 0 ? "station-circles" : undefined));
 
       // ── Ski areas & backcountry spots ──────────────────────────────────
         for (const kind of SPOT_KINDS) addSpotIcon(map, kind);
@@ -280,7 +286,7 @@ function StationMapInner({
           source: "spots",
           minzoom: SPOT_MINZOOM,
           layout: spotLayout,
-          paint: spotPaint,
+          paint: dark ? spotPaintDark : spotPaint,
         });
 
         // Basin labels — added last so they render above station dots
@@ -289,14 +295,14 @@ function StationMapInner({
           type: "symbol",
           source: "huc4-labels",
           layout: { ...regionLabelLayout[4], visibility: "none" },
-          paint: regionLabelPaint[4],
+          paint: (dark ? regionLabelPaintDark : regionLabelPaint)[4],
         });
         map.addLayer({
           id: "huc2-label-text",
           type: "symbol",
           source: "huc2-labels",
           layout: { ...regionLabelLayout[2], visibility: "none" },
-          paint: regionLabelPaint[2],
+          paint: (dark ? regionLabelPaintDark : regionLabelPaint)[2],
         });
 
         // ── Interactions ───────────────────────────────────────────────────
@@ -471,7 +477,7 @@ function StationMapInner({
     const vis = (v: boolean) => (v ? "visible" : "none");
     if (map.getLayer("station-circles")) map.setLayoutProperty("station-circles", "visibility", vis(showStations));
     if (map.getLayer("station-labels")) map.setLayoutProperty("station-labels", "visibility", vis(showStations));
-    for (const { id } of SELECTED_LAYERS) {
+    for (const id of SELECTED_LAYER_IDS) {
       if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", vis(showStations));
     }
     if (map.getLayer("huc4-fill")) map.setLayoutProperty("huc4-fill", "visibility", vis(showHuc4));
@@ -486,7 +492,7 @@ function StationMapInner({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
-    for (const { id } of SELECTED_LAYERS) {
+    for (const id of SELECTED_LAYER_IDS) {
       if (map.getLayer(id)) map.setFilter(id, selectedStationFilter(selectedTriplet));
     }
     if (!selectedTriplet || !map.getLayer("station-selected-glow")) return;
