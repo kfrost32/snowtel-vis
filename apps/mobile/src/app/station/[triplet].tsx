@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Text, View
 import { useLocalSearchParams } from "expo-router";
 import { STATE_NAMES } from "@snotel/core/constants";
 import * as Haptics from "expo-haptics";
-import { getStation, parseTripletFromUrl, stationSource, urlTriplet } from "@snotel/core/stations";
+import { getStation, parseTripletFromUrl, stationDataNote, stationSource, urlTriplet } from "@snotel/core/stations";
 import * as WebBrowser from "expo-web-browser";
 import { DELTA_DAYS, envelopeStats, seasonDeltas, statsAt } from "@snotel/core/station-stats";
 import { buildSeasonMap } from "@snotel/core/season";
@@ -105,10 +105,13 @@ export default function StationScreen() {
   }
 
   const source = stationSource(station);
+  const dataNote = stationDataNote(station);
 
   return (
     <ScrollView key={units} contentContainerStyle={styles.content}>
       {header}
+
+      {dataNote && <Text style={styles.note}>{dataNote}</Text>}
 
       {loading && !current ? (
         <ActivityIndicator style={styles.loading} />
@@ -237,6 +240,7 @@ const styles = StyleSheet.create({
   changeFirst: { flex: 1.4 },
   changeLabel: { flex: 1, fontSize: 12, fontWeight: "600", color: colors.secondaryLabel, textAlign: "right" },
   changeValue: { flex: 1, fontSize: 16, fontWeight: "600", textAlign: "right" },
+  note: { fontSize: 13, color: colors.secondaryLabel },
   footer: { fontSize: 12, color: colors.tertiaryLabel, textAlign: "center" },
   footerLink: { color: colors.tint },
 });

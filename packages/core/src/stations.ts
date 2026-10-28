@@ -1,6 +1,7 @@
 import type { Station, StationCurrentConditions } from "./types";
 import stationsGeoJson from "../data/stations.json";
 import bcStations from "../data/bc-stations.json";
+import cdecStations from "../data/cdec-stations.json";
 
 const STATE_ABBREV: Record<string, string> = {
   Alaska: "AK",
@@ -36,15 +37,22 @@ interface GeoJsonFeature {
   };
 }
 
-interface BcStation {
+interface ListedStation {
   id: string;
   name: string;
   latitude: number;
   longitude: number;
-  elevation_m: number | null;
+  elevation_m?: number | null;
+  elevation_ft?: number;
 }
 
-const BC_NETWORK = "ASWS";
+export const BC_NETWORK = "ASWS";
+export const CDEC_NETWORK = "CDEC";
+
+const LISTED_NETWORKS = [
+  { stations: bcStations as ListedStation[], state: "BC", network: BC_NETWORK },
+  { stations: cdecStations as ListedStation[], state: "CA", network: CDEC_NETWORK },
+];
 
 export interface StationSource {
   name: string;
@@ -56,6 +64,8 @@ export interface StationSource {
 
 interface NetworkInfo {
   label: string;
+  nrcs: boolean;
+  dataNote: string | null;
   liveReadings: boolean;
   nwsForecast: boolean;
   title: (station: Pick<Station, "name" | "state">) => string;
@@ -63,20 +73,24 @@ interface NetworkInfo {
   photoUrl: (triplet: string) => string | null;
 }
 
-const nrcsSiteNumber = (triplet: string) => triplet.split(":")[0];
+export function stationId(triplet: string): string {
+  return triplet.split(":")[0];
+}
 
 const nrcsSource = (triplet: string): StationSource => ({
   name: "USDA NRCS SNOTEL",
   label: "NRCS",
   linkText: "NRCS station page",
   description: "NRCS automated snow telemetry",
-  url: `https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=${nrcsSiteNumber(triplet)}`,
+  url: `https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=${stationId(triplet)}`,
 });
 
-const nrcsPhotoUrl = (triplet: string) => `https://www.wcc.nrcs.usda.gov/siteimages/${nrcsSiteNumber(triplet)}.jpg`;
+const nrcsPhotoUrl = (triplet: string) => `https://www.wcc.nrcs.usda.gov/siteimages/${stationId(triplet)}.jpg`;
 
 const NRCS_NETWORK: NetworkInfo = {
   label: "SNOTEL",
+  nrcs: true,
+  dataNote: null,
   liveReadings: true,
   nwsForecast: true,
   title: (s) => `${s.name} SNOTEL, ${s.state}`,
@@ -89,6 +103,8 @@ const NETWORKS: Record<string, NetworkInfo> = {
   "Snow Course": { ...NRCS_NETWORK, label: "Snow course", liveReadings: false, nwsForecast: false },
   [BC_NETWORK]: {
     label: "BC snow pillow",
+    nrcs: false,
+    dataNote: null,
     liveReadings: true,
     nwsForecast: false,
     title: (s) => `${s.name} snow pillow, BC`,
@@ -101,6 +117,22 @@ const NETWORKS: Record<string, NetworkInfo> = {
     }),
     photoUrl: () => null,
   },
+  [CDEC_NETWORK]: {
+    label: "CDEC snow sensor",
+    nrcs: false,
+    dataNote: "CDEC sensor data isn't quality checked, so expect occasional bad readings and spikes.",
+    liveReadings: true,
+    nwsForecast: true,
+    title: (s) => `${s.name} snow sensor, CA`,
+    source: (triplet) => ({
+      name: "California Data Exchange Center",
+      label: "CDEC",
+      linkText: "CDEC station page",
+      description: "California DWR's Data Exchange Center",
+      url: `https://cdec.water.ca.gov/dynamicapp/staMeta?station_id=${stationId(triplet)}`,
+    }),
+    photoUrl: () => null,
+  },
 };
 
 function network(station: Pick<Station, "network">): NetworkInfo {
@@ -109,6 +141,7 @@ function network(station: Pick<Station, "network">): NetworkInfo {
 
 let _stations: Station[] | null = null;
 let _stationMap: Map<string, Station> | null = null;
+let _byNetwork: Map<string, Station[]> | null = null;
 
 function formatTriplet(code: string): string {
   return code.replace(/_/g, ":");
@@ -144,19 +177,21 @@ export function getAllStations(): Station[] {
       };
     });
 
-  const bc = (bcStations as BcStation[]).map((s): Station => ({
-    triplet: `${s.id}:BC:${BC_NETWORK}`,
-    name: s.name,
-    state: "BC",
-    latitude: s.latitude,
-    longitude: s.longitude,
-    elevation: Math.round((s.elevation_m ?? 0) * M_TO_FT),
-    huc: "",
-    beginDate: "",
-    network: BC_NETWORK,
-  }));
+  const listed = LISTED_NETWORKS.flatMap(({ stations, state, network }) =>
+    stations.map((s): Station => ({
+      triplet: `${s.id}:${state}:${network}`,
+      name: s.name,
+      state,
+      latitude: s.latitude,
+      longitude: s.longitude,
+      elevation: s.elevation_ft ?? Math.round((s.elevation_m ?? 0) * M_TO_FT),
+      huc: "",
+      beginDate: "",
+      network,
+    }))
+  );
 
-  _stations = [...nrcs, ...bc].sort((a, b) => a.name.localeCompare(b.name));
+  _stations = [...nrcs, ...listed].sort((a, b) => a.name.localeCompare(b.name));
 
   return _stations;
 }
@@ -174,6 +209,18 @@ export function getStation(triplet: string): Station | undefined {
   return getStationMap().get(triplet);
 }
 
+export function getStationsInNetwork(network: string): Station[] {
+  if (!_byNetwork) {
+    _byNetwork = new Map();
+    for (const s of getAllStations()) {
+      const list = _byNetwork.get(s.network) ?? [];
+      list.push(s);
+      _byNetwork.set(s.network, list);
+    }
+  }
+  return _byNetwork.get(network) ?? [];
+}
+
 export function getStationsByState(state: string): Station[] {
   return getAllStations().filter((s) => s.state === state);
 }
@@ -182,8 +229,12 @@ export function hasLiveReadings(station: Pick<Station, "network">): boolean {
   return network(station).liveReadings;
 }
 
-export function isBcStation(station: Pick<Station, "network">): boolean {
-  return station.network === BC_NETWORK;
+export function isNrcsStation(station: Pick<Station, "network">): boolean {
+  return network(station).nrcs;
+}
+
+export function stationDataNote(station: Pick<Station, "network">): string | null {
+  return network(station).dataNote;
 }
 
 export function hasNwsForecast(station: Pick<Station, "network"> | undefined): boolean {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getStation, isBcStation, parseTripletFromUrl } from "@snotel/core/stations";
+import { getStation, parseTripletFromUrl } from "@snotel/core/stations";
 import { fetchHourlyData } from "@/lib/snotel-api";
-import { fetchBcHourly } from "@/lib/bc-snow";
+import { feedFor } from "@/lib/data-feeds";
 import { shiftDate } from "@snotel/core/water-year";
 import { getSnapshot, peekSnapshot } from "@/lib/snapshot-cache";
 import { snapshotKeys, type Snapshot } from "@/lib/snapshot-store";
@@ -54,7 +54,7 @@ export async function GET(
     const result = await getSnapshot<HourlyObservation[]>({
       key: snapshotKeys.hourly(triplet),
       maxAge: MAX_AGE_MS,
-      load: () => (isBcStation(station) ? fetchBcHourly(triplet) : fetchHourly(triplet)),
+      load: () => feedFor(station)?.fetchHourly(triplet) ?? fetchHourly(triplet),
       expired: (snapshot) => behindRecent(triplet, snapshot),
     });
     return NextResponse.json(result, { headers: result.stale ? STALE_HEADER : CACHE_HEADER });

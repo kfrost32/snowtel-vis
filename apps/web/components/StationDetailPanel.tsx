@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { MapPin, Mountain, ChevronDown, ArrowUpRight } from "lucide-react";
+import { MapPin, Mountain, ChevronDown, ArrowUpRight, Info } from "lucide-react";
 import { theme } from "@/lib/theme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ChartCard from "@/components/ChartCard";
-import { getStation, networkLabel, stationPhotoUrl, stationSource } from "@snotel/core/stations";
+import { getStation, networkLabel, stationDataNote, stationPhotoUrl, stationSource } from "@snotel/core/stations";
 import { formatSwe, formatPctOfNormal, formatElevation, formatSnowDepth, formatChange, formatDepthChange, formatHourlyTime, formatPrecip, formatReadingDateShort } from "@snotel/core/formatting";
 import { getConditionColor, getConditionLabel, getChangeColor, getDepthChangeColor } from "@snotel/core/colors";
 import InfoTooltip from "@/components/InfoTooltip";
@@ -94,6 +94,7 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
 
   const current = seasonData?.current;
   const source = stationSource(station);
+  const dataNote = stationDataNote(station);
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden" style={{ background: theme.white }}>
@@ -148,6 +149,12 @@ export default function StationDetailPanel({ triplet, onClose, isFavorite, onTog
       </div>
 
       <div className="flex-1 overflow-y-auto flex flex-col">
+        {dataNote && (
+          <div className="flex items-start gap-2 px-3 py-2 border-b font-sans text-xs" style={{ borderColor: theme.borderGray, background: "var(--c-hairline)", color: theme.gray }}>
+            <Info size={13} className="shrink-0 mt-px" />
+            <span>{dataNote}</span>
+          </div>
+        )}
         <div className="border-b @container" style={{ borderColor: theme.borderGray }}>
           <div className="grid grid-cols-2 @lg:grid-cols-3 @3xl:grid-cols-6 gap-px" style={{ background: theme.borderGray }}>
             {seasonLoading ? (

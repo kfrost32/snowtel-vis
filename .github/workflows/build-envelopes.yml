@@ -21,10 +21,12 @@ jobs:
       - run: node scripts/build-envelopes.mjs
       - run: node scripts/fetch-bc-stations.mjs
       - run: node scripts/build-bc-envelopes.mjs
+      - run: node scripts/fetch-cdec-stations.mjs
+      - run: node scripts/build-cdec-envelopes.mjs
       - name: Commit updated envelopes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add packages/core/data/huc-associations.json packages/core/data/bc-stations.json apps/web/lib/bc-medians.json apps/web/public/envelopes
+          git add packages/core/data/huc-associations.json packages/core/data/bc-stations.json apps/web/lib/bc-medians.json packages/core/data/cdec-stations.json apps/web/lib/cdec-medians.json apps/web/public/envelopes
           git diff --cached --quiet || git commit -m "Rebuild historical envelopes"
           git push

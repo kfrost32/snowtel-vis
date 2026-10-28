@@ -1,9 +1,9 @@
-import { getAllStations, isBcStation } from "@snotel/core/stations";
+import { getAllStations } from "@snotel/core/stations";
 import { shiftDate } from "@snotel/core/water-year";
 import { fetchDailyData } from "./snotel-api";
 import type { StationCurrentConditions } from "@snotel/core/types";
 import { seriesChange } from "./series";
-import { fetchBcConditions } from "./bc-snow";
+import { fromEachFeed } from "./data-feeds";
 
 const LOOKBACK_DAYS = 8;
 const DATA_TIMEZONE = "America/Denver";
@@ -21,22 +21,19 @@ export async function fetchStationConditions(): Promise<StationCurrentConditions
 
   const endDate = todayInDataTimezone();
   const beginDate = shiftDate(endDate, -LOOKBACK_DAYS);
-  const [data, bc] = await Promise.all([
+  const [data, feeds] = await Promise.all([
     fetchDailyData(snotelTriplets, ["WTEQ", "SNWD", "PREC", "TOBS"], beginDate, endDate, {
       timeout: BULK_TIMEOUT_MS,
       batchSize: BATCH_SIZE,
       median: true,
     }),
-    fetchBcConditions().catch((e) => {
-      console.error("BC conditions fetch failed:", (e as Error).message);
-      return [];
-    }),
+    fromEachFeed("conditions", (feed) => feed.fetchConditions()),
   ]);
-  const bcByTriplet = new Map(bc.map((s) => [s.triplet, s]));
+  const feedConditions = new Map(feeds.flat().map((s) => [s.triplet, s]));
 
   return stations.map((station): StationCurrentConditions => {
-    const bcConditions = isBcStation(station) ? bcByTriplet.get(station.triplet) : undefined;
-    if (bcConditions) return bcConditions;
+    const fromFeed = feedConditions.get(station.triplet);
+    if (fromFeed) return fromFeed;
     if (station.network !== "SNOTEL") {
       return {
         ...station,

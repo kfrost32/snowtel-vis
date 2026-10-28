@@ -1,22 +1,19 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { buildSeries, calendarRow, DAYS, lastCompleteWaterYear, median, round, waterYear, writeYears, yearlyPeaks } from "./lib/envelope-stats.mjs";
+import { calendarRow, DAYS, lastCompleteWaterYear, waterYear, writeNetworkHistories } from "./lib/envelope-stats.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
-const OUTPUT_DIR = path.join(ROOT, "apps", "web", "public", "envelopes");
 const MEDIANS_FILE = path.join(ROOT, "apps", "web", "lib", "bc-medians.json");
 const CACHE_DIR = path.join(ROOT, "node_modules", ".cache", "snotel-bc");
 const DATA_URL = "https://www.env.gov.bc.ca/wsd/data_searches/snow/asws/data";
 
-const MIN_MEDIAN_YEARS = 10;
 const SWE_HOURS = ["16:00", "00:00"];
 const DEPTH_HOURS = ["08:00"];
 const MM_PER_INCH = 25.4;
 const CM_PER_INCH = 2.54;
 
-const generated = new Date().toISOString().split("T")[0];
 const stations = JSON.parse(fs.readFileSync(path.join(ROOT, "packages", "core", "data", "bc-stations.json"), "utf8"));
 
 async function download(name) {
@@ -63,44 +60,14 @@ function readArchive(csv, hours, unitsPerInch) {
   return byStation;
 }
 
-function rowMedians(years) {
-  return Array.from({ length: DAYS }, (_, d) => {
-    const values = [...years.values()].map((arr) => arr[d]).filter((v) => !Number.isNaN(v));
-    return values.length >= MIN_MEDIAN_YEARS ? median(values) : null;
-  });
-}
-
-function envelopeSeries(years, medians) {
-  return buildSeries((d) => [...years].map(([wy, arr]) => [wy, arr[d]]), medians, -Infinity, years.values());
-}
-
 const [sweCsv, depthCsv] = await Promise.all([download("SW_DailyArchive.csv"), download("SD_Archive.csv")]);
 const swe = readArchive(sweCsv, SWE_HOURS, MM_PER_INCH);
 const depth = readArchive(depthCsv, DEPTH_HOURS, CM_PER_INCH);
 
-fs.mkdirSync(path.join(OUTPUT_DIR, "stations"), { recursive: true });
-fs.mkdirSync(path.join(OUTPUT_DIR, "years", "stations"), { recursive: true });
-
-const medians = {};
-let written = 0;
-for (const { id } of stations) {
-  const sweYears = swe.get(id) ?? new Map();
-  const depthYears = depth.get(id) ?? new Map();
-  if (!sweYears.size) continue;
-  const sweMedians = rowMedians(sweYears);
-  const file = {
-    generated,
-    lastWaterYear: lastCompleteWaterYear,
-    peaks: yearlyPeaks(sweYears),
-    swe: envelopeSeries(sweYears, sweMedians),
-    depth: envelopeSeries(depthYears, rowMedians(depthYears)),
-  };
-  const fileId = `${id}-BC-ASWS`;
-  fs.writeFileSync(path.join(OUTPUT_DIR, "stations", `${fileId}.json`), JSON.stringify(file));
-  writeYears(OUTPUT_DIR, generated, "stations", fileId, sweYears, -Infinity);
-  if (sweMedians.some((v) => v !== null)) medians[id] = sweMedians.map(round);
-  written++;
-}
-
-fs.writeFileSync(MEDIANS_FILE, JSON.stringify({ generated, stations: medians }));
-console.log(`Wrote ${written}/${stations.length} BC station envelopes, ${Object.keys(medians).length} with medians (WY through ${lastCompleteWaterYear})`);
+writeNetworkHistories({
+  label: "BC",
+  stations,
+  triplet: (id) => `${id}:BC:ASWS`,
+  history: (id) => ({ swe: swe.get(id) ?? new Map(), depth: depth.get(id) ?? new Map() }),
+  mediansFile: MEDIANS_FILE,
+});

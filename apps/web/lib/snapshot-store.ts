@@ -5,7 +5,7 @@ export interface Snapshot<T> {
   fetchedAt: number;
 }
 
-const PREFIX = "snotel:v1:";
+const PREFIX = process.env.SNAPSHOT_PREFIX ?? "snotel:v1:";
 
 export const snapshotKeys = {
   stations: "stations",

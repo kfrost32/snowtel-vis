@@ -2,7 +2,7 @@ import { getAllStations, hasLiveReadings } from "@snotel/core/stations";
 import type { StationCurrentConditions, StationSeasonData } from "@snotel/core/types";
 import { fetchStationConditions, mergeConditions } from "../apps/web/lib/station-conditions";
 import { fetchStationSeasons } from "../apps/web/lib/station-season";
-import { fetchBcSeasons } from "../apps/web/lib/bc-snow";
+import { DATA_FEEDS } from "../apps/web/lib/data-feeds";
 import { averageSeason, basinMembers } from "../apps/web/lib/basin-season";
 import { readSnapshot, snapshotKeys, snapshotStoreConfigured, writeSnapshots, type Snapshot } from "../apps/web/lib/snapshot-store";
 
@@ -47,14 +47,18 @@ async function refreshSeasons(): Promise<Map<string, StationSeasonData>> {
   return seasons;
 }
 
-async function refreshBcSeasons(): Promise<void> {
-  try {
-    const bc = await fetchBcSeasons();
-    await writeAll([...bc].map(([triplet, season]) => [snapshotKeys.season(triplet), season]));
-    console.log(`BC seasons: ${bc.size} saved`);
-  } catch (e) {
-    console.error("BC seasons failed, keeping previous snapshots:", (e as Error).message);
-  }
+async function refreshFeedSeasons(): Promise<void> {
+  await Promise.all(
+    DATA_FEEDS.map(async (feed) => {
+      try {
+        const seasons = await feed.fetchSeasons();
+        await writeAll([...seasons].map(([triplet, season]) => [snapshotKeys.season(triplet), season]));
+        console.log(`${feed.name} seasons: ${seasons.size} saved`);
+      } catch (e) {
+        console.error(`${feed.name} seasons failed, keeping previous snapshots:`, (e as Error).message);
+      }
+    })
+  );
 }
 
 async function refreshBasins(seasons: Map<string, StationSeasonData>): Promise<void> {
@@ -82,7 +86,7 @@ async function main() {
     failed = true;
     console.error("Station list failed, keeping previous snapshot:", (e as Error).message);
   }
-  await refreshBcSeasons();
+  await refreshFeedSeasons();
   const seasons = await refreshSeasons();
   if (seasons.size === 0) failed = true;
   await refreshBasins(seasons);

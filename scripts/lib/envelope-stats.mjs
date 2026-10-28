@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
 export const DAYS = 366;
 const PERCENTILES = [10, 30, 70, 90];
@@ -101,4 +102,49 @@ export function writeYears(outputDir, generated, dir, id, entries, minValue) {
     if (rounded.some((v) => v !== null)) years[wy] = rounded;
   }
   fs.writeFileSync(path.join(outputDir, "years", dir, `${id}.json`), JSON.stringify({ generated, years }));
+}
+
+function rowMedians(years, minYears) {
+  return Array.from({ length: DAYS }, (_, d) => {
+    const values = [...years.values()].map((arr) => arr[d]).filter((v) => !Number.isNaN(v));
+    return values.length >= minYears ? median(values) : null;
+  });
+}
+
+function envelopeSeries(years, medians) {
+  return buildSeries((d) => [...years].map(([wy, arr]) => [wy, arr[d]]), medians, -Infinity, years.values());
+}
+
+const MIN_MEDIAN_YEARS = 10;
+const STATION_ENVELOPES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "apps", "web", "public", "envelopes");
+
+function writeStationHistory(generated, fileId, sweYears, depthYears) {
+  const sweMedians = rowMedians(sweYears, MIN_MEDIAN_YEARS);
+  const file = {
+    generated,
+    lastWaterYear: lastCompleteWaterYear,
+    peaks: yearlyPeaks(sweYears),
+    swe: envelopeSeries(sweYears, sweMedians),
+    depth: envelopeSeries(depthYears, rowMedians(depthYears, MIN_MEDIAN_YEARS)),
+  };
+  fs.writeFileSync(path.join(STATION_ENVELOPES_DIR, "stations", `${fileId}.json`), JSON.stringify(file));
+  writeYears(STATION_ENVELOPES_DIR, generated, "stations", fileId, sweYears, -Infinity);
+  return sweMedians.some((v) => v !== null) ? sweMedians.map(round) : null;
+}
+
+export function writeNetworkHistories({ label, stations, triplet, history, mediansFile }) {
+  const generated = new Date().toISOString().split("T")[0];
+  fs.mkdirSync(path.join(STATION_ENVELOPES_DIR, "stations"), { recursive: true });
+  fs.mkdirSync(path.join(STATION_ENVELOPES_DIR, "years", "stations"), { recursive: true });
+  const medians = {};
+  let written = 0;
+  for (const { id } of stations) {
+    const { swe, depth } = history(id);
+    if (!swe.size) continue;
+    const sweMedians = writeStationHistory(generated, triplet(id).replace(/:/g, "-"), swe, depth);
+    if (sweMedians) medians[id] = sweMedians;
+    written++;
+  }
+  fs.writeFileSync(mediansFile, JSON.stringify({ generated, stations: medians }));
+  console.log(`Wrote ${written}/${stations.length} ${label} station envelopes, ${Object.keys(medians).length} with medians (WY through ${lastCompleteWaterYear})`);
 }

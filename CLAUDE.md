@@ -32,8 +32,8 @@ npm run build-spot-icons   # Render mobile spot icon PNGs from the shared SVG in
 - `/` — Full-viewport MapLibre map with sidebar (metric, layers, state/elevation filters, favorites). `?station=` or `?basin=` opens a detail panel
 - `/station/[triplet]` — Shareable station link (triplet uses dashes, e.g. `669-CO-SNTL`). Renders per-station metadata and a generated Open Graph image, then redirects to `/?station=`
 - `/basins`, `/status`; `/map` redirects to `/`
-- `/api/stations` — All NRCS stations with current conditions (full records; kept for installed app versions, so BC stations are left out)
-- `/api/stations/readings` — Same data, compact: SNOTEL stations only as value rows plus a field list. Clients expand it with `unpackReadings` from `@snotel/core/readings`
+- `/api/stations` — All NRCS stations with current conditions (full records; kept for installed app versions, so BC and CDEC stations are left out)
+- `/api/stations/readings` — Same data, compact: stations with live readings (SNOTEL, BC, CDEC) as value rows plus a field list. Clients expand it with `unpackReadings` from `@snotel/core/readings`
 - `/api/stations/recent` — Latest hourly snow depth and 24h change for every SNOTEL station
 - `/api/stations/[triplet]` — Single station season-to-date with daily medians
 - `/api/stations/[triplet]/hourly` — Last 7 days hourly depth, temperature and SWE
@@ -51,12 +51,15 @@ npm run build-spot-icons   # Render mobile spot icon PNGs from the shared SVG in
 - The station list keeps a station's last reading for up to 14 days when NRCS misses it; `lastUpdated` is the real reading date and the map fades stations more than a day behind
 - Station metadata comes from static `packages/core/data/stations.json` (GeoJSON from egagli/snotel_ccss_stations); `packages/core/src/stations.ts` parses it and builds lookups
 
-### British Columbia snow pillows
+### Other networks: BC snow pillows and California CDEC sensors
 
-- BC River Forecast Centre automated snow weather stations (network `ASWS`, state `BC`, triplets like `2A06P:BC:ASWS`) are merged into the station list from `packages/core/data/bc-stations.json` (`node scripts/fetch-bc-stations.mjs`). Per-network facts (label, page title, source link, photo, live readings, NWS forecast) live in the `NETWORKS` table in `packages/core/src/stations.ts`; use its helpers (`hasLiveReadings`, `hasNwsForecast`, `stationSource`, `stationPhotoUrl`, …) rather than checking `network === "SNOTEL"`. `isBcStation` is only for picking the data source
+- Non-NRCS stations come from static lists merged into the station list in `packages/core/src/stations.ts`: BC River Forecast Centre automated snow weather stations (network `ASWS`, state `BC`, triplets like `2A06P:BC:ASWS`, from `packages/core/data/bc-stations.json` via `node scripts/fetch-bc-stations.mjs`) and California DWR CDEC snow sensors (network `CDEC`, state `CA`, triplets like `MHP:CA:CDEC`, from `packages/core/data/cdec-stations.json` via `node scripts/fetch-cdec-stations.mjs`, which leaves out NRCS-operated sites and anything within 0.5 km of a SNOTEL station). Per-network facts (label, page title, source link, photo, live readings, NWS forecast) live in the `NETWORKS` table; use its helpers (`hasLiveReadings`, `hasNwsForecast`, `isNrcsStation`, `stationSource`, `stationPhotoUrl`, …) rather than checking `network === "SNOTEL"`. `stationId(triplet)` is the site id and `getStationsInNetwork(network)` the cached per-network list
+- Each network's data is a `DataFeed` in `apps/web/lib/data-feeds.ts` (season, all seasons, conditions, hourly, recent depth). Routes, the station list, recent depth and `refresh-snapshots` dispatch with `feedFor(station)` / `DATA_FEEDS`; a feed that fails is logged and skipped. Feeds share `conditionsFromSeason` and `roundTo` (`lib/series.ts`), `reportedSeason` (core `season.ts`), Pacific time helpers (`lib/pacific-time.ts`) and `memoized`
 - `apps/web/lib/bc-snow.ts` reads the province's current-season hourly CSVs (SWE mm, depth cm, temperature °C, gauge precipitation mm; UTC), converts to the app's imperial units and builds daily series from the local-midnight (UTC−8) reading, matching the NRCS end-of-day convention. Season precipitation sums gauge increases since Oct 1 because the gauges don't reset
-- History comes from the BC daily SWE and hourly depth archives: `node scripts/build-bc-envelopes.mjs` writes station envelopes/years and `apps/web/lib/bc-medians.json` (daily SWE medians, only for stations with 10+ years; a server-bundled copy of the envelope medians, since API routes can't read `public/` at runtime). Run it after `build-envelopes.mjs`, which clears the envelopes folder
-- BC stations have no HUC (no basins) and no NWS forecast (`hasNwsForecast`)
+- `apps/web/lib/cdec-snow.ts` reads CDEC's `CSVDataServlet` (no key; inches and °F; Pacific standard time). Daily values (sensors 3 SWE, 18 depth, 30–32 temperature, 2 accumulated precipitation, which resets Oct 1) are dated by CDEC's early-morning reading, close enough to the NRCS convention to use as-is. Hourly uses sensors 3, 18 and 4
+- History: `node scripts/build-bc-envelopes.mjs` (BC daily SWE and hourly depth archives) and `node scripts/build-cdec-envelopes.mjs` (per-station daily history, cached in `node_modules/.cache/snotel-cdec`; CDEC archives are unscreened, so the build drops sensor error codes and impossible jumps: SWE over 150" or rising more than 15"/day from the past week's level, depth over 400" or rising more than 48"/day. Live CDEC data is shown as reported) write station envelopes/years (through `writeNetworkHistories` in `scripts/lib/envelope-stats.mjs`) plus `apps/web/lib/bc-medians.json` / `cdec-medians.json` (daily SWE medians for stations with 10+ years; server-bundled because API routes can't read `public/` at runtime). Run them after `build-envelopes.mjs`, which clears the envelopes folder
+- These stations have no HUC (no basins). BC stations have no NWS forecast; CDEC stations do
+- `SNAPSHOT_PREFIX` overrides the Redis key prefix (`snotel:v1:`); set it in `apps/web/.env.local` so the dev server doesn't overwrite production snapshots
 
 ### Client caching
 
