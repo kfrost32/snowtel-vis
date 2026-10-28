@@ -130,10 +130,10 @@ export const stationCirclePaint: CircleLayerSpecification["paint"] = {
   "circle-color": ["case", ["get", "inactive"], theme.mediumGray, ["get", "hollow"], "rgba(0,0,0,0)", ["get", "color"]],
   "circle-radius": [
     "interpolate", ["linear"], ["zoom"],
-    3, ["case", ["get", "inactive"], 1, ["get", "hollow"], 2.5, 5],
-    5, ["case", ["get", "inactive"], 1.5, ["get", "hollow"], 3.5, 8],
-    7, ["case", ["get", "inactive"], 2.5, ["get", "hollow"], 5, 14],
-    10, ["case", ["get", "inactive"], 3.5, ["get", "hollow"], 7, 20],
+    3, ["case", ["get", "inactive"], 1.75, ["get", "hollow"], 2.5, 5],
+    5, ["case", ["get", "inactive"], 2.5, ["get", "hollow"], 3.5, 8],
+    7, ["case", ["get", "inactive"], 4, ["get", "hollow"], 5, 14],
+    10, ["case", ["get", "inactive"], 5.5, ["get", "hollow"], 7, 20],
   ],
   "circle-stroke-width": [
     "interpolate", ["linear"], ["zoom"],
@@ -141,7 +141,7 @@ export const stationCirclePaint: CircleLayerSpecification["paint"] = {
     7, ["case", ["get", "inactive"], 0, ["get", "hollow"], 1.5, ["get", "fresh"], 3, 1],
   ],
   "circle-stroke-color": ["case", ["get", "hollow"], theme.mediumGray, theme.white],
-  "circle-opacity": ["case", ["get", "inactive"], 0.35, 1],
+  "circle-opacity": ["case", ["get", "inactive"], 0.6, 1],
 };
 
 export const stationCirclePaintDark: CircleLayerSpecification["paint"] = {
