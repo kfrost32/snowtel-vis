@@ -14,6 +14,9 @@ export const READING_FIELDS = [
   "depthChange1d",
   "depthChange3d",
   "depthChange7d",
+  "precipChange1d",
+  "precipChange3d",
+  "precipChange7d",
   "lastUpdated",
 ] as const satisfies readonly (keyof StationCurrentConditions)[];
 

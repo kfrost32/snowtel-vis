@@ -28,7 +28,7 @@ export function dataAsOfLabel(
   forecastUpdated?: string | null
 ): string | null {
   if (metric.startsWith("FORECAST")) {
-    return forecastUpdated ? `NWS forecast · ${new Date(forecastUpdated).toLocaleString("en-US", { weekday: "short", hour: "numeric" })}` : "NWS forecast";
+    return forecastUpdated ? `NWS point forecast · ${new Date(forecastUpdated).toLocaleString("en-US", { weekday: "short", hour: "numeric" })}` : "NWS point forecast";
   }
   if (usesRecentReading(metric) && recent?.asOf) return `As of ${formatHourlyTime(recent.asOf)}`;
   const latest = stations.reduce((max, s) => (s.lastUpdated > max ? s.lastUpdated : max), "");

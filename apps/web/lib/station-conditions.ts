@@ -2,7 +2,7 @@ import { getAllStations } from "@snotel/core/stations";
 import { shiftDate } from "@snotel/core/water-year";
 import { fetchDailyData } from "./snotel-api";
 import type { StationCurrentConditions } from "@snotel/core/types";
-import { seriesChange } from "./series";
+import { accumulationChanges, seriesChange } from "./series";
 import { fromEachFeed } from "./data-feeds";
 
 const LOOKBACK_DAYS = 8;
@@ -70,6 +70,7 @@ export async function fetchStationConditions(): Promise<StationCurrentConditions
       depthChange1d: seriesChange(snwd, 1, 0),
       depthChange3d: seriesChange(snwd, 3, 0),
       depthChange7d: seriesChange(snwd, 7, 0),
+      ...accumulationChanges(prec, series.PREC?.dates ?? []),
       lastUpdated: series.WTEQ?.dates.at(-1) ?? endDate,
     };
   });

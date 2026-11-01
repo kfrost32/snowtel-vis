@@ -267,6 +267,7 @@ export function getPlaceholderConditions(): StationCurrentConditions[] {
     swe: null, sweNormal: null, pctOfNormal: null, snowDepth: null, temp: null, precipAccum: null,
     sweChange1d: null, sweChange3d: null, sweChange7d: null,
     depthChange1d: null, depthChange3d: null, depthChange7d: null,
+    precipChange1d: null, precipChange3d: null, precipChange7d: null,
     lastUpdated: "",
   }));
   return _placeholderConditions;

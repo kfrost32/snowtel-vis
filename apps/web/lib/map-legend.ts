@@ -1,4 +1,4 @@
-import { FORECAST_STOPS, NO_FORECAST_COLOR } from "@snotel/core/colors";
+import { depthGainStops, FORECAST_STOPS, NO_FORECAST_COLOR, NO_PRECIP_COLOR, PRECIP_CHANGE_STOPS } from "@snotel/core/colors";
 import { formatAxisTemp, inchesToCm, isMetric } from "@snotel/core/units";
 
 export interface LegendItem {
@@ -50,6 +50,9 @@ const METRIC_LABELS: Record<string, string> = {
   SNWD_CHANGE_7D: "Snow Depth 7-Day Δ",
   SNWD: "Snow Depth",
   PREC: "Season Precip",
+  PRECIP_1D: "1-Day Precip",
+  PRECIP_3D: "3-Day Precip",
+  PRECIP_7D: "7-Day Precip",
   TAVG: "Temperature",
   FORECAST_3D: "Forecast snow, next 3 days",
   FORECAST_7D: "Forecast snow, next 7 days",
@@ -75,14 +78,20 @@ function legendItems(metric: string): LegendItem[] {
       );
     case "SNWD_CHANGE_1D":
     case "SNWD_CHANGE_3D":
-    case "SNWD_CHANGE_7D":
-      return legend([[-6, "#DC2626"], [-2, "#F59E0B"], [0, "#94A3B8"], [2, "#3B82F6"], [6, "#1D4ED8"]], signed).map((item, i) =>
+    case "SNWD_CHANGE_7D": {
+      const days = metric === "SNWD_CHANGE_1D" ? 1 : metric === "SNWD_CHANGE_3D" ? 3 : 7;
+      return legend([[-6, "#DC2626"], [-2, "#F59E0B"], [0, "#94A3B8"], ...depthGainStops(days).map((stop): Stop => [stop.from, stop.color])], signed).map((item, i) =>
         i === 0 ? { ...item, label: `${item.label}+` } : item
       );
+    }
     case "SNWD":
       return legend([[0, "#CBD5E1"], [1, "#C7D6EE"], [3, "#A3BDE6"], [6, "#7AA0DD"], [10, "#2F5A9E"]], feet);
     case "PREC":
       return legend([[0, "#CBD5E1"], [10, "#A5F3FC"], [20, "#67E8F9"], [35, "#22D3EE"], [50, "#0891B2"]], plain);
+    case "PRECIP_1D":
+    case "PRECIP_3D":
+    case "PRECIP_7D":
+      return legend([[0, NO_PRECIP_COLOR], ...PRECIP_CHANGE_STOPS.map((stop): Stop => [stop.from, stop.color])], plain);
     case "FORECAST_3D":
     case "FORECAST_7D": {
       const [first, ...rest] = FORECAST_STOPS;

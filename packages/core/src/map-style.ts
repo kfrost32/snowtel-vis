@@ -55,6 +55,9 @@ export function metricDotLabel(metric: string, s: StationCurrentConditions): str
     case "SNWD_CHANGE_1D": return compact(formatDepthChange(s.depthChange1d ?? null));
     case "SNWD_CHANGE_3D": return compact(formatDepthChange(s.depthChange3d ?? null));
     case "SNWD_CHANGE_7D": return compact(formatDepthChange(s.depthChange7d ?? null));
+    case "PRECIP_1D": return fmtChange(s.precipChange1d ?? null);
+    case "PRECIP_3D": return fmtChange(s.precipChange3d ?? null);
+    case "PRECIP_7D": return fmtChange(s.precipChange7d ?? null);
     case "SNWD": return s.snowDepth !== null ? compact(formatSnowDepth(s.snowDepth)) : "—";
     case "PREC": return s.precipAccum !== null ? compact(formatSnowDepth(s.precipAccum)) : "";
     case "TAVG": return s.temp !== null ? formatAxisTemp(s.temp) : "";

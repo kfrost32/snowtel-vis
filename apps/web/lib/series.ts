@@ -14,6 +14,19 @@ export function seriesChange(values: (number | null)[], days: number, digits = 1
   return roundTo(now - then, digits);
 }
 
+export function accumulationChanges(values: (number | null)[], dates: string[]) {
+  let end = values.length;
+  while (end > 0 && values[end - 1] === null) end--;
+  const last = dates[end - 1] ?? "";
+  const resetDate = `${Number(last.slice(0, 4)) - (last.slice(5, 10) > "10-01" ? 0 : 1)}-10-01`;
+  const season = values.slice(0, end).filter((_, i) => (dates[i] ?? "") > resetDate);
+  return {
+    precipChange1d: seriesChange(season, 1),
+    precipChange3d: seriesChange(season, 3),
+    precipChange7d: seriesChange(season, 7),
+  };
+}
+
 export function conditionsFromSeason({ station, current, season }: StationSeasonData, temp = current.temp): StationCurrentConditions {
   const swe = season.map((d) => d.swe);
   const depth = season.map((d) => d.snowDepth);
@@ -31,6 +44,7 @@ export function conditionsFromSeason({ station, current, season }: StationSeason
     depthChange1d: seriesChange(depth, 1, 0),
     depthChange3d: seriesChange(depth, 3, 0),
     depthChange7d: seriesChange(depth, 7, 0),
+    ...accumulationChanges(season.map((d) => d.precip), season.map((d) => d.date)),
     lastUpdated: current.lastUpdated ?? season[0].date,
   };
 }

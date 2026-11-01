@@ -14,7 +14,7 @@ const DATA_URL = "https://cdec.water.ca.gov/dynamicapp/req/CSVDataServlet";
 const TIMEOUT_MS = 30000;
 const STATIONS_PER_REQUEST = 25;
 const HOURLY_DAYS = 7;
-const CONDITIONS_DAYS = 8;
+const CONDITIONS_DAYS = 9;
 const DAY_MS = 86400_000;
 
 const SENSORS = {

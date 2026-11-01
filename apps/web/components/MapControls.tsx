@@ -39,6 +39,9 @@ const METRIC_GROUPS = [
     label: "Other",
     metrics: [
       { key: "PREC", label: "Season precip" },
+      { key: "PRECIP_1D", label: "1-day precip" },
+      { key: "PRECIP_3D", label: "3-day precip" },
+      { key: "PRECIP_7D", label: "7-day precip" },
       { key: "TAVG", label: "Temperature" },
     ],
   },

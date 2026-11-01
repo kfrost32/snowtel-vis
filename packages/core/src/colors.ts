@@ -107,6 +107,38 @@ export function getDepthChangeColor(v: number | null): string {
   return "#DC2626";
 }
 
+const DEPTH_GAIN_COLORS = ["#BAE6FD", "#38BDF8", "#3B82F6", "#1D4ED8", "#1E3A8A"];
+const DEPTH_GAIN_STEPS: Record<1 | 3 | 7, number[]> = {
+  1: [1, 2, 4, 8, 16],
+  3: [2, 4, 8, 16, 32],
+  7: [2, 4, 8, 16, 32],
+};
+
+export function depthGainStops(days: 1 | 3 | 7): { from: number; color: string }[] {
+  return DEPTH_GAIN_STEPS[days].map((from, i) => ({ from, color: DEPTH_GAIN_COLORS[i] }));
+}
+
+export function getDepthChangeMapColor(v: number | null, days: 1 | 3 | 7): string {
+  const stops = depthGainStops(days);
+  if (v !== null && v >= stops[0].from) return stops.findLast((stop) => v >= stop.from)!.color;
+  return getDepthChangeColor(v);
+}
+
+export const NO_PRECIP_COLOR = "#CBD5E1";
+
+export const PRECIP_CHANGE_STOPS: { from: number; color: string }[] = [
+  { from: 0.1, color: "#A5F3FC" },
+  { from: 0.5, color: "#67E8F9" },
+  { from: 1, color: "#22D3EE" },
+  { from: 2, color: "#0891B2" },
+  { from: 4, color: "#155E75" },
+];
+
+export function getPrecipChangeColor(v: number | null): string {
+  if (v === null) return "#94A3B8";
+  return PRECIP_CHANGE_STOPS.findLast((stop) => v >= stop.from)?.color ?? NO_PRECIP_COLOR;
+}
+
 export function getChangeColor(v: number | null): string {
   if (v === null) return "#94A3B8";
   if (v > 2) return "#1D4ED8";
@@ -138,8 +170,11 @@ export function getMetricMapColor(metric: string, station: StationCurrentConditi
   if (metric === "CHANGE_1D") return getChangeColor(station.sweChange1d ?? null);
   if (metric === "CHANGE_3D") return getChangeColor(station.sweChange3d ?? null);
   if (metric === "CHANGE_7D") return getChangeColor(station.sweChange7d ?? null);
-  if (metric === "SNWD_CHANGE_1D") return getDepthChangeColor(station.depthChange1d ?? null);
-  if (metric === "SNWD_CHANGE_3D") return getDepthChangeColor(station.depthChange3d ?? null);
-  if (metric === "SNWD_CHANGE_7D") return getDepthChangeColor(station.depthChange7d ?? null);
+  if (metric === "SNWD_CHANGE_1D") return getDepthChangeMapColor(station.depthChange1d ?? null, 1);
+  if (metric === "SNWD_CHANGE_3D") return getDepthChangeMapColor(station.depthChange3d ?? null, 3);
+  if (metric === "SNWD_CHANGE_7D") return getDepthChangeMapColor(station.depthChange7d ?? null, 7);
+  if (metric === "PRECIP_1D") return getPrecipChangeColor(station.precipChange1d ?? null);
+  if (metric === "PRECIP_3D") return getPrecipChangeColor(station.precipChange3d ?? null);
+  if (metric === "PRECIP_7D") return getPrecipChangeColor(station.precipChange7d ?? null);
   return getMetricColor(metric, getStationMetricValue(station, metric));
 }
