@@ -108,7 +108,8 @@ export default function StationMap({ stations, metric, regions, spots, show, onS
     }
     const regionLayers = [show.subregions && "huc4-fill", show.regions && "huc2-fill"].filter(Boolean) as string[];
     if (!regionLayers.length) return;
-    const [region] = await map.queryRenderedFeatures(point, { layers: regionLayers });
+    const hits = await Promise.all(regionLayers.map((id) => map.queryRenderedFeatures(point, { layers: [id] })));
+    const region = hits.flat()[0];
     if (region?.properties?.hucId) {
       Haptics.selectionAsync();
       onSelect({ kind: "region", huc: region.properties.hucId });

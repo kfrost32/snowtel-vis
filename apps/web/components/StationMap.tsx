@@ -328,17 +328,19 @@ function StationMapInner({
           if (!map.queryRenderedFeatures(e.point, { layers: ["spot-icons"] }).length) clearHover();
         });
 
-        const basinClickHandler = (layerId: string) => (e: maplibregl.MapMouseEvent) => {
-          const features = map.queryRenderedFeatures(e.point, { layers: [layerId] });
-          if (!features.length) return;
-          const props = features[0].properties!;
-          if (onBasinSelectRef.current && props.hucId) {
-            onBasinSelectRef.current(props.hucId as string);
-          }
+        const basinClickHandler = (e: maplibregl.MapMouseEvent) => {
+          const [feature] = [
+            ...map.queryRenderedFeatures(e.point, { layers: ["huc4-fill"] }),
+            ...map.queryRenderedFeatures(e.point, { layers: ["huc2-fill"] }),
+          ];
+          const huc = feature?.properties?.hucId;
+          if (onBasinSelectRef.current && huc) onBasinSelectRef.current(huc as string);
         };
 
-        map.on("click", "huc4-fill", basinClickHandler("huc4-fill"));
-        map.on("click", "huc2-fill", basinClickHandler("huc2-fill"));
+        map.on("click", "huc2-fill", basinClickHandler);
+        map.on("click", "huc4-fill", (e) => {
+          if (!map.queryRenderedFeatures(e.point, { layers: ["huc2-fill"] }).length) basinClickHandler(e);
+        });
         map.on("mouseenter", "huc4-fill", () => { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "huc4-fill", () => {
           map.getCanvas().style.cursor = "";
