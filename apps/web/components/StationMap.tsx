@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState, type RefObject } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@snotel/core/types";
@@ -56,7 +56,7 @@ import {
 } from "@snotel/core/map-style";
 import huc2Boundaries from "@snotel/core/data/huc2-boundaries.json";
 import huc4Boundaries from "@snotel/core/data/huc4-boundaries.json";
-import { captureMap, snapshotControl, type MapSnapshotter } from "@/lib/map-snapshot";
+import { captureMap, snapshotControl, type MapSnapshot, type SnapshotCrop } from "@/lib/map-snapshot";
 
 interface StationMapProps {
   stations: StationCurrentConditions[];
@@ -74,8 +74,8 @@ interface StationMapProps {
   spots?: Spot[];
   showSpots?: boolean;
   selectedStates?: string[];
-  snapshotRef?: RefObject<MapSnapshotter | null>;
-  onSnapshotRequest?: () => void;
+  getSnapshotCrop?: () => SnapshotCrop;
+  onSnapshot?: (snapshot: MapSnapshot) => void;
   selectedTriplet?: string | null;
   fitPadding?: maplibregl.PaddingOptions;
   initialBounds?: [number, number, number, number] | null;
@@ -139,8 +139,8 @@ function StationMapInner({
   fitPadding,
   initialBounds = null,
   dark = false,
-  snapshotRef,
-  onSnapshotRequest,
+  getSnapshotCrop,
+  onSnapshot,
 }: StationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -181,7 +181,7 @@ function StationMapInner({
       });
 
       map.addControl(new maplibregl.NavigationControl(), "top-right");
-      if (onSnapshotRequestRef.current) map.addControl(snapshotControl(() => onSnapshotRequestRef.current?.()), "top-right");
+      if (onSnapshotRef.current) map.addControl(snapshotControl(takeSnapshot), "top-right");
       map.addControl(
         new maplibregl.AttributionControl({ compact: true, customAttribution: '<a href="https://openskimap.org" target="_blank" rel="noopener">OpenSkiMap</a>' }),
         "bottom-right"
@@ -424,23 +424,29 @@ function StationMapInner({
 
   const metricRef = useRef(metric);
   metricRef.current = metric;
-  const onSnapshotRequestRef = useRef(onSnapshotRequest);
-  onSnapshotRequestRef.current = onSnapshotRequest;
+  const onSnapshotRef = useRef(onSnapshot);
+  onSnapshotRef.current = onSnapshot;
+  const getSnapshotCropRef = useRef(getSnapshotCrop);
+  getSnapshotCropRef.current = getSnapshotCrop;
+  const capturingRef = useRef(false);
+
+  async function takeSnapshot() {
+    const map = mapRef.current;
+    if (!map || capturingRef.current) return;
+    capturingRef.current = true;
+    hoverPopupRef.current?.remove();
+    try {
+      onSnapshotRef.current?.(await captureMap(map, getSnapshotCropRef.current?.() ?? { left: 0, right: 0 }));
+    } catch (err) {
+      console.error("Map capture failed:", err);
+    } finally {
+      capturingRef.current = false;
+    }
+  }
   const onStationSelectRef = useRef(onStationSelect);
   onStationSelectRef.current = onStationSelect;
   const onBasinSelectRef = useRef(onBasinSelect);
   onBasinSelectRef.current = onBasinSelect;
-
-  useEffect(() => {
-    if (!snapshotRef || !mapLoaded) return;
-    snapshotRef.current = (crop) => {
-      hoverPopupRef.current?.remove();
-      return captureMap(mapRef.current!, crop);
-    };
-    return () => {
-      snapshotRef.current = null;
-    };
-  }, [snapshotRef, mapLoaded]);
 
   // Update station data
   useEffect(() => {

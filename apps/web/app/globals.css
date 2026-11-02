@@ -220,13 +220,5 @@ body {
 }
 
 .maplibregl-ctrl-group .map-snapshot-button {
-  color: #333;
-}
-:root[data-theme="dark"] .map-snapshot-button {
-  filter: invert(1) brightness(0.85);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .map-snapshot-button {
-    filter: invert(1) brightness(0.85);
-  }
+  color: var(--c-dark-gray);
 }

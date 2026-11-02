@@ -1,4 +1,5 @@
 import type { IControl, Map as MapLibreMap } from "maplibre-gl";
+import type { MapView } from "@snotel/core/place";
 
 export interface SnapshotCrop {
   left: number;
@@ -9,9 +10,8 @@ export interface MapSnapshot {
   canvas: HTMLCanvasElement;
   pixelRatio: number;
   attribution: string;
+  view: MapView;
 }
-
-export type MapSnapshotter = (crop: SnapshotCrop) => Promise<MapSnapshot>;
 
 const SNAPSHOT_PIXEL_RATIO = 2;
 const IDLE_TIMEOUT_MS = 8000;
@@ -28,7 +28,6 @@ export function snapshotControl(onClick: () => void): IControl {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "map-snapshot-button";
-      button.style.cssText = "display:flex;align-items:center;justify-content:center";
       button.title = "Save map image";
       button.setAttribute("aria-label", "Save map image");
       button.innerHTML = CAMERA_ICON;
@@ -70,6 +69,20 @@ function nextFrame(map: MapLibreMap, crop: SnapshotCrop): Promise<HTMLCanvasElem
   });
 }
 
+function visibleView(map: MapLibreMap, crop: SnapshotCrop): MapView {
+  const { clientWidth, clientHeight } = map.getCanvas();
+  const left = crop.left;
+  const right = clientWidth - crop.right;
+  const northWest = map.unproject([left, 0]);
+  const southEast = map.unproject([right, clientHeight]);
+  const center = map.unproject([(left + right) / 2, clientHeight / 2]);
+  return {
+    center: [center.lng, center.lat],
+    bounds: [[northWest.lng, southEast.lat], [southEast.lng, northWest.lat]],
+    zoom: map.getZoom(),
+  };
+}
+
 export async function captureMap(map: MapLibreMap, crop: SnapshotCrop): Promise<MapSnapshot> {
   const previous = map.getPixelRatio();
   const sharper = previous < SNAPSHOT_PIXEL_RATIO;
@@ -80,7 +93,7 @@ export async function captureMap(map: MapLibreMap, crop: SnapshotCrop): Promise<
   try {
     const canvas = await nextFrame(map, crop);
     const attribution = map.getContainer().querySelector(".maplibregl-ctrl-attrib-inner")?.textContent?.trim() ?? "";
-    return { canvas, pixelRatio: map.getPixelRatio(), attribution };
+    return { canvas, pixelRatio: map.getPixelRatio(), attribution, view: visibleView(map, crop) };
   } finally {
     if (sharper) map.setPixelRatio(previous);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { Check, Copy, Download, Loader2, Share, X } from "lucide-react";
 import { theme } from "@/lib/theme";
@@ -9,8 +9,9 @@ import { track } from "@/lib/analytics";
 import { legendFor } from "@/lib/map-legend";
 import { SITE_NAME } from "@/lib/site";
 import { GLASS_STYLE } from "@/lib/map-layout";
-import { canShareFiles, copyImage, downloadBlob, shareImage } from "@/lib/image-export";
+import { copyImage, downloadBlob, shareImage } from "@/lib/image-export";
 import type { MapSnapshot } from "@/lib/map-snapshot";
+import { placeLabel } from "@snotel/core/place";
 
 interface MapSnapshotDialogProps {
   snapshot: MapSnapshot;
@@ -24,23 +25,21 @@ function overlayScale(width: number): number {
   return Math.min(1.6, Math.max(1.1, width / 900));
 }
 
-function SnapshotFrame({ snapshot, metric, dataDate, states, onReady }: Omit<MapSnapshotDialogProps, "onClose"> & { onReady: (node: HTMLDivElement) => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const src = useMemo(() => snapshot.canvas.toDataURL("image/png"), [snapshot]);
+function SnapshotOverlay({ snapshot, metric, dataDate, states, ref }: Omit<MapSnapshotDialogProps, "onClose"> & { ref: Ref<HTMLDivElement> }) {
   const { title, items } = legendFor(metric);
-  const context = [dataDate, states.length ? states.join(", ") : null].filter(Boolean).join(" · ");
+  const heading = dataDate ? `${title} · ${dataDate}` : title;
+  const place = placeLabel(snapshot.view, states);
   const width = snapshot.canvas.width / snapshot.pixelRatio;
   const u = (px: number) => px * overlayScale(width);
   const inset = u(12);
   const card = { ...GLASS_STYLE, borderRadius: u(14) };
 
   return (
-    <div ref={ref} className="relative font-sans" style={{ width, background: theme.white, color: theme.black }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" className="block w-full" onLoad={() => ref.current && onReady(ref.current)} />
+    <div ref={ref} className="relative font-sans" style={{ width, color: theme.black }}>
+      <div style={{ height: snapshot.canvas.height / snapshot.pixelRatio }} />
       <div className="absolute" style={{ ...card, top: inset, left: inset, maxWidth: "62%", padding: `${u(10)}px ${u(14)}px` }}>
-        <div className="font-semibold" style={{ fontSize: u(16), lineHeight: 1.25, color: theme.darkGray }}>{title}</div>
-        {context && <div className="font-mono" style={{ fontSize: u(12), marginTop: u(2), color: theme.mediumGray }}>{context}</div>}
+        <div className="font-semibold" style={{ fontSize: u(16), lineHeight: 1.25, color: theme.darkGray }}>{heading}</div>
+        {place && <div style={{ fontSize: u(13), marginTop: u(2), color: theme.gray }}>{place}</div>}
       </div>
       <div
         className="absolute flex items-center font-semibold tracking-tight"
@@ -50,7 +49,7 @@ function SnapshotFrame({ snapshot, metric, dataDate, states, onReady }: Omit<Map
       </div>
       <div
         className="flex items-center justify-between flex-wrap border-t"
-        style={{ borderColor: theme.borderGray, padding: `${u(8)}px ${inset}px`, columnGap: u(16), rowGap: u(4) }}
+        style={{ background: theme.white, borderColor: theme.borderGray, padding: `${u(8)}px ${inset}px`, columnGap: u(16), rowGap: u(4) }}
       >
         <div className="flex items-center flex-wrap" style={{ columnGap: u(12), rowGap: u(4) }}>
           {items.map(({ label, color }) => (
@@ -70,29 +69,42 @@ function SnapshotFrame({ snapshot, metric, dataDate, states, onReady }: Omit<Map
 
 export default function MapSnapshotDialog({ snapshot, metric, dataDate, states, onClose }: MapSnapshotDialogProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const [blob, setBlob] = useState<Blob | null>(null);
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState(false);
   const preview = useMemo(() => (blob ? URL.createObjectURL(blob) : null), [blob]);
   const filename = `snotel-map-${metric.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.png`;
   const canCopy = typeof ClipboardItem !== "undefined";
+  const canShare = typeof navigator.canShare === "function";
 
   useDismiss(ref, true, onClose);
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
   }, [preview]);
 
-  const render = async (node: HTMLDivElement) => {
-    try {
-      const { toBlob } = await import("html-to-image");
-      const image = await toBlob(node, { pixelRatio: snapshot.pixelRatio, backgroundColor: getComputedStyle(node).backgroundColor });
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { toCanvas } = await import("html-to-image");
+      const overlay = await toCanvas(overlayRef.current!, { pixelRatio: snapshot.pixelRatio });
+      const out = document.createElement("canvas");
+      out.width = overlay.width;
+      out.height = overlay.height;
+      const context = out.getContext("2d")!;
+      context.drawImage(snapshot.canvas, 0, 0);
+      context.drawImage(overlay, 0, 0);
+      const image = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, "image/png"));
       if (!image) throw new Error("Empty image");
-      setBlob(image);
-    } catch (err) {
+      if (!cancelled) setBlob(image);
+    })().catch((err) => {
       console.error("Map image failed:", err);
-      setFailed(true);
-    }
-  };
+      if (!cancelled) setFailed(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [snapshot]);
 
   const act = (method: string, action: (image: Blob) => Promise<void> | void) => async () => {
     if (!blob) return;
@@ -110,7 +122,7 @@ export default function MapSnapshotDialog({ snapshot, metric, dataDate, states, 
     <>
       {!blob && !failed && (
         <div aria-hidden className="fixed pointer-events-none" style={{ left: -100000, top: 0 }}>
-          <SnapshotFrame snapshot={snapshot} metric={metric} dataDate={dataDate} states={states} onReady={render} />
+          <SnapshotOverlay ref={overlayRef} snapshot={snapshot} metric={metric} dataDate={dataDate} states={states} />
         </div>
       )}
       <div className="fixed inset-0 flex items-center justify-center p-4 motion-safe:animate-[fadeIn_150ms_ease-out]" style={{ zIndex: 70, background: "rgba(0,0,0,0.4)" }}>
@@ -157,7 +169,7 @@ export default function MapSnapshotDialog({ snapshot, metric, dataDate, states, 
             <button className={buttonClass} disabled={!blob} onClick={act("download", (image) => downloadBlob(image, filename))}>
               <Download size={16} /> Download
             </button>
-            {canShareFiles() && (
+            {canShare && (
               <button className={buttonClass} disabled={!blob} onClick={act("share", (image) => shareImage(image, filename))}>
                 <Share size={16} /> Share
               </button>
