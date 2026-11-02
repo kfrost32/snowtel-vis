@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { latestDepth, stationDepth } from "../src/recent";
+import { latestDepth, precip24h, stationDepth } from "../src/recent";
 import { shiftDate } from "../src/water-year";
 import { packReadings, unpackReadings } from "../src/readings";
 import { getPlaceholderConditions } from "../src/stations";
@@ -35,4 +35,15 @@ test("packed readings unpack to the same conditions", () => {
   const conditions = { ...station, swe: 4.3, sweNormal: 0.8, pctOfNormal: 537, snowDepth: 16, depthChange1d: 3, lastUpdated: "2026-10-26" };
   const unpacked = unpackReadings(packReadings([conditions])).find((s) => s.triplet === station.triplet);
   assert.deepEqual(unpacked, conditions);
+});
+
+test("precip24h compares the latest gauge reading with the one 24 hours earlier", () => {
+  const readings = [
+    { datetime: "2026-11-01 18:00", precip: 5.0 },
+    { datetime: "2026-11-02 12:00", precip: 5.6 },
+    { datetime: "2026-11-02 18:00", precip: 6.3 },
+    { datetime: "2026-11-02 19:00", precip: null },
+  ];
+  assert.equal(precip24h(readings), 1.3);
+  assert.equal(precip24h([{ datetime: "2026-10-01 18:00", precip: 0 }, { datetime: "2026-10-02 18:00", precip: 0.2 }]), null);
 });

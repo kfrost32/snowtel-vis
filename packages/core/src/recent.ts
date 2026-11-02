@@ -10,6 +10,7 @@ export interface RecentDepth {
   depth: number;
   depthAt: string;
   change24h: number | null;
+  precip24h?: number | null;
 }
 
 export interface RecentConditions {
@@ -18,7 +19,7 @@ export interface RecentConditions {
 }
 
 function usesRecentReading(metric: string): boolean {
-  return metric === "SNWD" || metric === "SNWD_CHANGE_1D";
+  return metric === "SNWD" || metric === "SNWD_CHANGE_1D" || metric === "PRECIP_24H";
 }
 
 export function dataAsOfLabel(
@@ -51,6 +52,19 @@ export function latestDepth(observations: Pick<HourlyObservation, "datetime" | "
   };
 }
 
+function inResetWindow(datetime: string): boolean {
+  const monthDay = datetime.slice(5, 10);
+  return monthDay === "10-01" || monthDay === "10-02";
+}
+
+export function precip24h(readings: { datetime: string; precip: number | null }[]): number | null {
+  const reported = readings.filter((o): o is { datetime: string; precip: number } => o.precip !== null);
+  const latest = reported.at(-1);
+  if (!latest || inResetWindow(latest.datetime)) return null;
+  const dayAgo = reported.find((o) => toTime(o.datetime) === toTime(latest.datetime) - DAY_MS);
+  return dayAgo ? Math.round((latest.precip - dayAgo.precip) * 10) / 10 || 0 : null;
+}
+
 export function stationDepth(recent: RecentDepth | null | undefined, hourly: HourlyObservation[] | null | undefined): RecentDepth | null {
   const own = hourly ? latestDepth(hourly) : null;
   if (!recent) return own;
@@ -58,7 +72,9 @@ export function stationDepth(recent: RecentDepth | null | undefined, hourly: Hou
 }
 
 export function applyRecentDepth(s: StationCurrentConditions, r: RecentDepth | null | undefined): StationCurrentConditions {
-  return r ? { ...s, snowDepth: r.depth, depthChange1d: r.change24h, depthAt: r.depthAt } : s;
+  if (!r) return s;
+  const live = { ...s, snowDepth: r.depth, depthChange1d: r.change24h, depthAt: r.depthAt };
+  return r.precip24h !== undefined ? { ...live, precip24h: r.precip24h } : live;
 }
 
 export function withRecentDepth(stations: StationCurrentConditions[], recent: RecentConditions | null): StationCurrentConditions[] {

@@ -50,6 +50,7 @@ const METRIC_LABELS: Record<string, string> = {
   SNWD_CHANGE_7D: "Snow Depth 7-Day Δ",
   SNWD: "Snow Depth",
   PREC: "Season Precip",
+  PRECIP_24H: "24hr Precip (Hourly)",
   PRECIP_1D: "1-Day Precip",
   PRECIP_3D: "3-Day Precip",
   PRECIP_7D: "7-Day Precip",
@@ -88,6 +89,7 @@ function legendItems(metric: string): LegendItem[] {
       return legend([[0, "#CBD5E1"], [1, "#C7D6EE"], [3, "#A3BDE6"], [6, "#7AA0DD"], [10, "#2F5A9E"]], feet);
     case "PREC":
       return legend([[0, "#CBD5E1"], [10, "#A5F3FC"], [20, "#67E8F9"], [35, "#22D3EE"], [50, "#0891B2"]], plain);
+    case "PRECIP_24H":
     case "PRECIP_1D":
     case "PRECIP_3D":
     case "PRECIP_7D":

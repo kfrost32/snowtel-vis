@@ -55,6 +55,7 @@ export function metricDotLabel(metric: string, s: StationCurrentConditions): str
     case "SNWD_CHANGE_1D": return compact(formatDepthChange(s.depthChange1d ?? null));
     case "SNWD_CHANGE_3D": return compact(formatDepthChange(s.depthChange3d ?? null));
     case "SNWD_CHANGE_7D": return compact(formatDepthChange(s.depthChange7d ?? null));
+    case "PRECIP_24H": return fmtChange(s.precip24h ?? null);
     case "PRECIP_1D": return fmtChange(s.precipChange1d ?? null);
     case "PRECIP_3D": return fmtChange(s.precipChange3d ?? null);
     case "PRECIP_7D": return fmtChange(s.precipChange7d ?? null);

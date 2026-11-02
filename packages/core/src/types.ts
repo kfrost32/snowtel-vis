@@ -26,6 +26,7 @@ export interface StationCurrentConditions extends Station {
   precipChange1d?: number | null;
   precipChange3d?: number | null;
   precipChange7d?: number | null;
+  precip24h?: number | null;
   lastUpdated: string;
   depthAt?: string | null;
   forecast3d?: number | null;

@@ -173,6 +173,7 @@ export function getMetricMapColor(metric: string, station: StationCurrentConditi
   if (metric === "SNWD_CHANGE_1D") return getDepthChangeMapColor(station.depthChange1d ?? null, 1);
   if (metric === "SNWD_CHANGE_3D") return getDepthChangeMapColor(station.depthChange3d ?? null, 3);
   if (metric === "SNWD_CHANGE_7D") return getDepthChangeMapColor(station.depthChange7d ?? null, 7);
+  if (metric === "PRECIP_24H") return getPrecipChangeColor(station.precip24h ?? null);
   if (metric === "PRECIP_1D") return getPrecipChangeColor(station.precipChange1d ?? null);
   if (metric === "PRECIP_3D") return getPrecipChangeColor(station.precipChange3d ?? null);
   if (metric === "PRECIP_7D") return getPrecipChangeColor(station.precipChange7d ?? null);

@@ -1,5 +1,5 @@
 import { BC_NETWORK, getStationsInNetwork, stationId } from "@snotel/core/stations";
-import { latestDepth, type RecentDepth } from "@snotel/core/recent";
+import { latestDepth, precip24h, type RecentDepth } from "@snotel/core/recent";
 import { reportedSeason } from "@snotel/core/season";
 import { celsiusToFahrenheit, cmToInches, mmToInches } from "@snotel/core/units";
 import type { DailyObservation, HourlyObservation, Station, StationCurrentConditions, StationSeasonData } from "@snotel/core/types";
@@ -200,16 +200,24 @@ async function fetchBcHourly(triplet: string): Promise<HourlyObservation[]> {
   });
 }
 
+function gaugePrecip24h(table: ElementTable, gauge: Float64Array | undefined): number | null {
+  if (!gauge) return null;
+  const rows = recentRows(table);
+  const change = precip24h(rows.map((row) => ({ datetime: pacificDateTime(table.times[row]), precip: orNull(gauge[row], (mm) => mm) })));
+  return change === null || change < 0 || change >= MAX_DAILY_PRECIP_MM ? null : sweInches(change);
+}
+
 async function fetchBcRecentDepth(): Promise<Record<string, RecentDepth>> {
-  const table = await tables.SD();
+  const [table, precipTable] = await Promise.all([tables.SD(), tables.PC()]);
   const rows = recentRows(table);
   const datetimes = rows.map((row) => pacificDateTime(table.times[row]));
   const stations: Record<string, RecentDepth> = {};
   for (const station of getStationsInNetwork(BC_NETWORK)) {
-    const depth = table.columns.get(stationId(station.triplet));
+    const id = stationId(station.triplet);
+    const depth = table.columns.get(id);
     if (!depth) continue;
     const recent = latestDepth(rows.map((row, i) => ({ datetime: datetimes[i], snowDepth: orNull(depth[row], depthInches) })));
-    if (recent) stations[station.triplet] = recent;
+    if (recent) stations[station.triplet] = { ...recent, precip24h: gaugePrecip24h(precipTable, precipTable.columns.get(id)) };
   }
   return stations;
 }
