@@ -5,6 +5,7 @@ import { Check, Copy, Download, Share } from "lucide-react";
 import { theme } from "@/lib/theme";
 import OverflowMenu, { type OverflowMenuItem } from "@/components/OverflowMenu";
 import { track } from "@/lib/analytics";
+import { copyImage, shareImage } from "@/lib/image-export";
 
 interface ChartCardProps {
   dense?: boolean;
@@ -66,26 +67,13 @@ export default function ChartCard({ title, description, height, actions, footer,
     track("chart_export", { method: "share" });
     if (!cardRef.current || exporting) return;
     setExporting(true);
-    const filename = `snotel-chart-${Date.now()}.png`;
-    let blob: Blob | null = null;
     try {
       const { toBlob } = await import("html-to-image");
-      blob = await capture((node) => toBlob(node, { backgroundColor: exportBackground(node), pixelRatio: 2 }));
+      const blob = await capture((node) => toBlob(node, { backgroundColor: exportBackground(node), pixelRatio: 2 }));
       if (!blob) throw new Error("Empty image");
-      const file = new File([blob], filename, { type: "image/png" });
-      if (!navigator.canShare?.({ files: [file] })) throw new DOMException("Sharing files unsupported", "NotSupportedError");
-      await navigator.share({ files: [file] });
+      await shareImage(blob, `snotel-chart-${Date.now()}.png`);
     } catch (err) {
-      const name = (err as DOMException).name;
-      if (blob && (name === "NotSupportedError" || name === "NotAllowedError")) {
-        const link = document.createElement("a");
-        link.download = filename;
-        link.href = URL.createObjectURL(blob);
-        link.click();
-        URL.revokeObjectURL(link.href);
-      } else if (name !== "AbortError") {
-        console.error("Share failed:", err);
-      }
+      console.error("Share failed:", err);
     } finally {
       setExporting(false);
     }
@@ -102,7 +90,7 @@ export default function ChartCard({ title, description, height, actions, footer,
         if (!b) throw new Error("Empty image");
         return b;
       });
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      await copyImage(blob);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch (err) {

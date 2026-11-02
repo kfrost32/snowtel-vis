@@ -26,6 +26,8 @@ import MobileOverlay from "@/components/MobileOverlay";
 import StationDetailPanel from "@/components/StationDetailPanel";
 import BasinDetailPanel from "@/components/BasinDetailPanel";
 import MapLegend from "@/components/MapLegend";
+import MapSnapshotDialog from "@/components/MapSnapshotDialog";
+import type { MapSnapshot, MapSnapshotter } from "@/lib/map-snapshot";
 import MapSidebar from "@/components/MapSidebar";
 import { metricButtonLabel } from "@/components/MapControls";
 import { DETAIL_MAX, DETAIL_WIDTH, EXPANDED_DETAIL_MAX, GLASS_BUTTON, GLASS_STYLE, SIDEBAR_INSET, SIDEBAR_WIDTH } from "@/lib/map-layout";
@@ -64,6 +66,10 @@ function HomePageInner() {
   const sidebarOpen = sidebarChoice && sidebarChoice.mobile === isMobile ? sidebarChoice.open : !isMobile;
   const setSidebarOpen = (open: boolean) => setSidebarChoice({ open, mobile: isMobile });
   const [overlayVisible, setOverlayVisible] = useState(false);
+  const snapshotRef = useRef<MapSnapshotter | null>(null);
+  const detailPanelRef = useRef<HTMLDivElement>(null);
+  const [snapshot, setSnapshot] = useState<MapSnapshot | null>(null);
+  const capturing = useRef(false);
 
   const filteredStations = useMemo(() => filterStations(stations, filters, !loading), [stations, filters, loading]);
   const dataDate = useMemo(() => dataAsOfLabel(metric, stations, recent, forecasts?.updated), [stations, metric, recent, forecasts]);
@@ -102,6 +108,19 @@ function HomePageInner() {
   const handleFavoriteStation = (triplet: string) => {
     if (isMobile) setSidebarOpen(false);
     selection.focusStation(triplet);
+  };
+
+  const handleSnapshot = async () => {
+    if (!snapshotRef.current || capturing.current) return;
+    capturing.current = true;
+    const panel = !isMobile ? detailPanelRef.current : null;
+    try {
+      setSnapshot(await snapshotRef.current({ left: isMobile ? 0 : sidebarOffset, right: panel ? panel.offsetWidth + SIDEBAR_INSET * 2 : 0 }));
+    } catch (err) {
+      console.error("Map capture failed:", err);
+    } finally {
+      capturing.current = false;
+    }
   };
 
   const handleBasinClick = (huc: string) => {
@@ -272,6 +291,8 @@ function HomePageInner() {
           selectedStates={selectedStateList}
           selectedTriplet={selectedTriplet}
           initialBounds={homeBounds}
+          snapshotRef={snapshotRef}
+          onSnapshotRequest={handleSnapshot}
           fitPadding={{ top: 48, right: 48, bottom: 48, left: sidebarOffset + 48 }}
         />
 
@@ -285,6 +306,10 @@ function HomePageInner() {
           </div>
         )}
 
+        {snapshot && (
+          <MapSnapshotDialog snapshot={snapshot} metric={metric} dataDate={dataDate} states={selectedStateList} onClose={() => setSnapshot(null)} />
+        )}
+
         <MapLegend metric={metric} dataDate={dataDate} activeOnly={controls.activeOnly} isMobile={isMobile} left={sidebarOffset || undefined} />
       </div>
 
@@ -294,6 +319,7 @@ function HomePageInner() {
         </BottomSheet>
       ) : (
         <div
+          ref={detailPanelRef}
           className="absolute z-30 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200"
           style={{
             top: SIDEBAR_INSET,

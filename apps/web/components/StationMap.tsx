@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, type RefObject } from "react";
 import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { StationCurrentConditions } from "@snotel/core/types";
@@ -56,6 +56,7 @@ import {
 } from "@snotel/core/map-style";
 import huc2Boundaries from "@snotel/core/data/huc2-boundaries.json";
 import huc4Boundaries from "@snotel/core/data/huc4-boundaries.json";
+import { captureMap, snapshotControl, type MapSnapshotter } from "@/lib/map-snapshot";
 
 interface StationMapProps {
   stations: StationCurrentConditions[];
@@ -73,6 +74,8 @@ interface StationMapProps {
   spots?: Spot[];
   showSpots?: boolean;
   selectedStates?: string[];
+  snapshotRef?: RefObject<MapSnapshotter | null>;
+  onSnapshotRequest?: () => void;
   selectedTriplet?: string | null;
   fitPadding?: maplibregl.PaddingOptions;
   initialBounds?: [number, number, number, number] | null;
@@ -136,6 +139,8 @@ function StationMapInner({
   fitPadding,
   initialBounds = null,
   dark = false,
+  snapshotRef,
+  onSnapshotRequest,
 }: StationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -176,6 +181,7 @@ function StationMapInner({
       });
 
       map.addControl(new maplibregl.NavigationControl(), "top-right");
+      if (onSnapshotRequestRef.current) map.addControl(snapshotControl(() => onSnapshotRequestRef.current?.()), "top-right");
       map.addControl(
         new maplibregl.AttributionControl({ compact: true, customAttribution: '<a href="https://openskimap.org" target="_blank" rel="noopener">OpenSkiMap</a>' }),
         "bottom-right"
@@ -418,10 +424,23 @@ function StationMapInner({
 
   const metricRef = useRef(metric);
   metricRef.current = metric;
+  const onSnapshotRequestRef = useRef(onSnapshotRequest);
+  onSnapshotRequestRef.current = onSnapshotRequest;
   const onStationSelectRef = useRef(onStationSelect);
   onStationSelectRef.current = onStationSelect;
   const onBasinSelectRef = useRef(onBasinSelect);
   onBasinSelectRef.current = onBasinSelect;
+
+  useEffect(() => {
+    if (!snapshotRef || !mapLoaded) return;
+    snapshotRef.current = (crop) => {
+      hoverPopupRef.current?.remove();
+      return captureMap(mapRef.current!, crop);
+    };
+    return () => {
+      snapshotRef.current = null;
+    };
+  }, [snapshotRef, mapLoaded]);
 
   // Update station data
   useEffect(() => {
