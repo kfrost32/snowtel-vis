@@ -42,3 +42,15 @@ export const ELEMENT_CODES = {
 
 export const REPORT_GENERATOR_BASE =
   "https://wcc.sc.egov.usda.gov/reportGenerator/view_csv";
+
+export function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+export function stateSlug(state: string): string {
+  return slugify(STATE_NAMES[state] ?? state);
+}
+
+export function stateFromSlug(slug: string): string | undefined {
+  return SNOTEL_STATES.find((state) => stateSlug(state) === slug);
+}

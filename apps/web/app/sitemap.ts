@@ -1,22 +1,21 @@
 import type { MetadataRoute } from "next";
-import { getAllStations, hasLiveReadings, urlTriplet } from "@snotel/core/stations";
+import { basinPath } from "@snotel/core/basins";
+import { SNOTEL_STATES, stateSlug } from "@snotel/core/constants";
+import { getAllStations, getStationsByState, hasLiveReadings, stationPath } from "@snotel/core/stations";
+import { allBasinHucs } from "@/lib/basin-share";
 import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 86400;
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
-  const pages: MetadataRoute.Sitemap = [
-    { url: SITE_URL, lastModified, changeFrequency: "hourly", priority: 1 },
-    { url: `${SITE_URL}/basins`, lastModified, changeFrequency: "daily", priority: 0.7 },
+  const states = SNOTEL_STATES.filter((state) => getStationsByState(state).some(hasLiveReadings));
+  const paths = [
+    "",
+    "/basins",
+    "/stations",
+    ...states.map((state) => `/stations/${stateSlug(state)}`),
+    ...allBasinHucs().map(basinPath),
+    ...getAllStations().filter(hasLiveReadings).map((s) => stationPath(s.triplet)),
   ];
-  const stations = getAllStations()
-    .filter(hasLiveReadings)
-    .map((s): MetadataRoute.Sitemap[number] => ({
-      url: `${SITE_URL}/station/${urlTriplet(s.triplet)}`,
-      lastModified,
-      changeFrequency: "daily",
-      priority: 0.6,
-    }));
-  return [...pages, ...stations];
+  return paths.map((path) => ({ url: `${SITE_URL}${path}` }));
 }

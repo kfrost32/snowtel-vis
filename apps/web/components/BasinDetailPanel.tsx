@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
+import { basinPath } from "@snotel/core/basins";
 import { theme } from "@/lib/theme";
 import { formatSwe, formatPctOfNormal, formatSnowDepth, formatReadingDateShort } from "@snotel/core/formatting";
 import { getConditionColor, getConditionLabel } from "@snotel/core/colors";
@@ -98,6 +100,9 @@ export default function BasinDetailPanel({
             <span>{basin.indexStationCount} of {basin.stationCount} stations in index</span>
             {asOfLabel && <span>As of {asOfLabel}</span>}
             <span style={{ color: getConditionColor(basin.medianPctOfNormal) }}>{getConditionLabel(basin.medianPctOfNormal)}</span>
+            <Link href={basinPath(basin.huc)} className="underline underline-offset-2 hover:opacity-70 transition-opacity duration-150">
+              All stations
+            </Link>
           </div>
         </div>
       </div>

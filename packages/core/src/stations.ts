@@ -1,4 +1,5 @@
 import type { Station, StationCurrentConditions } from "./types";
+import { slugify } from "./constants";
 import stationsGeoJson from "../data/stations.json";
 import bcStations from "../data/bc-stations.json";
 import cdecStations from "../data/cdec-stations.json";
@@ -207,6 +208,36 @@ export function getStationMap(): Map<string, Station> {
 
 export function getStation(triplet: string): Station | undefined {
   return getStationMap().get(triplet);
+}
+
+let _stationSlugs: Map<string, string> | null = null;
+let _stationsBySlug: Map<string, Station> | null = null;
+
+function buildStationSlugs(): void {
+  _stationSlugs = new Map();
+  _stationsBySlug = new Map();
+  const snotelFirst = [...getAllStations()].sort((a, b) => Number(b.network === "SNOTEL") - Number(a.network === "SNOTEL"));
+  for (const station of snotelFirst) {
+    const base = slugify(`${station.name} ${station.state}`);
+    const slug = [base, `${base}-${slugify(station.network)}`, `${base}-${slugify(station.network)}-${slugify(stationId(station.triplet))}`]
+      .find((candidate) => !_stationsBySlug!.has(candidate))!;
+    _stationSlugs.set(station.triplet, slug);
+    _stationsBySlug.set(slug, station);
+  }
+}
+
+export function stationSlug(triplet: string): string {
+  if (!_stationSlugs) buildStationSlugs();
+  return _stationSlugs!.get(triplet) ?? urlTriplet(triplet);
+}
+
+export function stationPath(triplet: string): string {
+  return `/station/${stationSlug(triplet)}`;
+}
+
+export function findStation(param: string): Station | undefined {
+  if (!_stationsBySlug) buildStationSlugs();
+  return _stationsBySlug!.get(param) ?? getStation(parseTripletFromUrl(param));
 }
 
 export function getStationsInNetwork(network: string): Station[] {

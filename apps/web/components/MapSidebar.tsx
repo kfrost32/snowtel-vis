@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, ChevronLeft, PanelLeftClose, Settings, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, ArrowUpRight, ChevronLeft, PanelLeftClose, Settings, X } from "lucide-react";
 import { theme } from "@/lib/theme";
 import { getStation } from "@snotel/core/stations";
 import type { BasinSummary } from "@snotel/core/types";
@@ -148,12 +149,21 @@ export default function MapSidebar({ stationCount, isMobile, basins, controls, o
           </div>
         )}
 
+        <Link
+          href="/stations"
+          className="group mt-auto max-md:order-last mx-3 px-3 py-2 flex items-center justify-between gap-3 rounded-lg font-sans text-xs font-medium hover:bg-[var(--c-hover)] transition-colors duration-150"
+          style={{ color: theme.black }}
+        >
+          Browse stations by state
+          <ArrowRight size={16} className="shrink-0 opacity-50 group-hover:opacity-100 transition" style={{ color: theme.darkGray }} />
+        </Link>
+
         <a
           href={NEWSLETTER_URL}
           target="_blank"
           rel="noopener"
           onClick={() => track("newsletter_click", { location: "sidebar" })}
-          className={`group mt-auto max-md:order-last mx-3 my-3 px-3 py-2.5 rounded-lg flex items-center gap-3 bg-[var(--c-hairline)] hover:bg-[var(--c-hover)] active:scale-[0.99] transition ${introduceNewsletter ? "motion-safe:animate-tout-in" : ""}`}
+          className={`group max-md:order-last mx-3 mb-3 mt-1 px-3 py-2.5 rounded-lg flex items-center gap-3 bg-[var(--c-hairline)] hover:bg-[var(--c-hover)] active:scale-[0.99] transition ${introduceNewsletter ? "motion-safe:animate-tout-in" : ""}`}
         >
           <span className="min-w-0 flex-1 font-sans">
             <span className="block text-xs font-medium" style={{ color: theme.black }}>Get the Here &amp; There newsletter</span>

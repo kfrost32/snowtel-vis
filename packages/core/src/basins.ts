@@ -1,8 +1,23 @@
 import type { StationCurrentConditions, BasinSummary } from "./types";
 import { HUC2_NAMES, HUC4_NAMES } from "./huc-names";
+import { slugify } from "./constants";
 import hucAssociations from "../data/huc-associations.json";
 
 const associatedHucs = hucAssociations as Record<string, string[]>;
+
+export function basinName(huc: string): string | undefined {
+  return huc.length === 2 ? HUC2_NAMES[huc] : huc.length === 4 ? HUC4_NAMES[huc] : undefined;
+}
+
+export function basinPath(huc: string): string {
+  const name = basinName(huc);
+  return `/basins/${name ? slugify(name) : huc}`;
+}
+
+export function findBasinHuc(param: string): string | undefined {
+  if (basinName(param)) return param;
+  return [...Object.keys(HUC2_NAMES), ...Object.keys(HUC4_NAMES)].find((huc) => slugify(basinName(huc) ?? "") === param);
+}
 
 export function getStationHucs(station: { triplet: string; huc: string }): string[] {
   return [station.huc, ...(associatedHucs[station.triplet] ?? [])];

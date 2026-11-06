@@ -55,12 +55,12 @@ export default function PercentOfNormalGauge({ value, size = 120 }: PercentOfNor
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
-          className="font-sans font-semibold tracking-tighter"
-          style={{ fontSize: size * 0.25, color }}
+          className="font-sans font-semibold tracking-tighter leading-none"
+          style={{ fontSize: size * 0.21, color }}
         >
           {displayValue !== null ? `${displayValue}%` : "—"}
         </span>
-        <span className="font-mono text-xs uppercase tracking-wider" style={{ color: "#8A9BA3" }}>
+        <span className="font-sans text-[10px] leading-none mt-1" style={{ color: "#8A9BA3" }}>
           of median
         </span>
       </div>

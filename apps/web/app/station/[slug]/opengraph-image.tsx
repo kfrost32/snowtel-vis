@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { parseTripletFromUrl } from "@snotel/core/stations";
+import { findStation } from "@snotel/core/stations";
 import { theme } from "@snotel/core/theme";
 import { getConditionColor, getDepthChangeColor } from "@snotel/core/colors";
 import { formatDepthChange, formatHourlyTime, formatPctOfNormal, formatReadingEndOfDay, formatSnowDepth, formatSwe } from "@snotel/core/formatting";
@@ -20,8 +20,9 @@ function Stat({ label, value, color = theme.black }: { label: string; value: str
   );
 }
 
-export default async function Image({ params }: { params: Promise<{ triplet: string }> }) {
-  const share = await stationShare(parseTripletFromUrl((await params).triplet));
+export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
+  const found = findStation((await params).slug);
+  const share = found ? await stationShare(found.triplet) : null;
   const station = share?.station;
   const conditions = share?.conditions ?? null;
   const storm = share?.storm ?? null;

@@ -30,8 +30,10 @@ npm run build-spot-icons   # Render mobile spot icon PNGs from the shared SVG in
 ## Routes
 
 - `/` — Full-viewport MapLibre map with sidebar (metric, layers, state/elevation filters, favorites). `?station=` or `?basin=` opens a detail panel
-- `/station/[triplet]` — Shareable station link (triplet uses dashes, e.g. `669-CO-SNTL`). Renders per-station metadata and a generated Open Graph image, then redirects to `/?station=`
-- `/basins`, `/status`; `/map` redirects to `/`
+- `/station/[slug]` — Shareable station link from the name and state (`stationPath`, e.g. `north-lost-trail-co`; dashed triplets like `669-CO-SNTL` redirect to it). Server-rendered station detail page (conditions, charts via `StationCharts`, nearby stations, map CTA to `/?station=`) with per-station metadata and a generated Open Graph image
+- `/stations`, `/stations/[state]` — Crawlable station index by state (slug from `stateSlug`, e.g. `colorado`) with current conditions
+- `/basins` (index; `?basin=` redirects), `/basins/[slug]` — Server-rendered basin page named from its HUC-2 or HUC-4 (`basinPath`, e.g. `upper-colorado`; numeric HUCs redirect) with its stations and sub-basins (`lib/basin-share.ts`)
+- `/status`; `/map` redirects to `/`
 - `/api/stations` — All NRCS stations with current conditions (full records; kept for installed app versions, so BC and CDEC stations are left out)
 - `/api/stations/readings` — Same data, compact: stations with live readings (SNOTEL, BC, CDEC) as value rows plus a field list. Clients expand it with `unpackReadings` from `@snotel/core/readings`
 - `/api/stations/recent` — Latest hourly snow depth and 24h change for every SNOTEL station
@@ -87,7 +89,8 @@ Web persists recent `/api/` SWR responses to localStorage (`lib/swr-config.tsx`,
 All web components live in `apps/web/components/`. Key components:
 - `StationMap` — MapLibre GL JS map (dynamic import, no SSR); basemap style is fetched once before the map is created
 - `MapSidebar`, `MapControls`, `MapLegend` — map page chrome
-- `StationDetailPanel`, `BasinDetailPanel` — detail overlays
+- `StationConditionsTable` — server-rendered station table for state and basin pages
+- `StationDetailPanel`, `BasinDetailPanel` — detail overlays; `StationCharts` is the chart stack shared by the panel and `/station/[slug]`
 - `EnvelopeChart`, `DepthTempChart`, `PeakSweChart`, `ChartCard` — charts
 - `CommandSearch` — Cmd+K search across all stations
 
